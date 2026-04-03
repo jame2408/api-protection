@@ -24,6 +24,9 @@ packages/
 # Entity Framework
 # (migrations are committed; exclude nothing specific here)
 
+# Reqnroll generated files
+*.feature.cs
+
 # Test results
 TestResults/
 *.trx
