@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SharedKernel\ApiKeyManagement.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\KeyLifecycle\ApiKeyManagement.KeyLifecycle.csproj" />
+    <ProjectReference Include="..\..\src\AccessPolicy\ApiKeyManagement.AccessPolicy.csproj" />
+    <ProjectReference Include="..\..\src\Monitoring\ApiKeyManagement.Monitoring.csproj" />
+    <ProjectReference Include="..\..\src\Audit\ApiKeyManagement.Audit.csproj" />
+    <ProjectReference Include="..\..\src\TenantManagement\ApiKeyManagement.TenantManagement.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure\ApiKeyManagement.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

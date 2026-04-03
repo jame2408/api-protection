@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/AccessPolicy/">
+    <Project Path="src/AccessPolicy/ApiKeyManagement.AccessPolicy.csproj" />
+  </Folder>
+  <Folder Name="/src/Audit/">
+    <Project Path="src/Audit/ApiKeyManagement.Audit.csproj" />
+  </Folder>
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/ApiKeyManagement.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/ApiKeyManagement.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/KeyLifecycle/">
+    <Project Path="src/KeyLifecycle/ApiKeyManagement.KeyLifecycle.csproj" />
+  </Folder>
+  <Folder Name="/src/Monitoring/">
+    <Project Path="src/Monitoring/ApiKeyManagement.Monitoring.csproj" />
+  </Folder>
+  <Folder Name="/src/SharedKernel/">
+    <Project Path="src/SharedKernel/ApiKeyManagement.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/TenantManagement/">
+    <Project Path="src/TenantManagement/ApiKeyManagement.TenantManagement.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Architecture.Tests/">
+    <Project Path="tests/Architecture.Tests/ApiKeyManagement.Architecture.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/FunctionalTests/">
+    <Project Path="tests/FunctionalTests/ApiKeyManagement.FunctionalTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/TestInfrastructure/">
+    <Project Path="tests/TestInfrastructure/ApiKeyManagement.TestInfrastructure.csproj" />
+  </Folder>
+</Solution>
