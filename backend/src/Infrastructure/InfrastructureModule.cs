@@ -18,7 +18,7 @@ public static class InfrastructureModule
         var connectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
 
-        services.AddDbContext<AppDbContext>(options =>
+        services.AddDbContextPool<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
         // Register ITenantQueryContext (AppDbContext implements it)

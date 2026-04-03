@@ -6,54 +6,53 @@ Entity Framework Core 模式、反模式與效能優化。
 
 ## A. 本專案 EF Core 規範
 
-### DbContextFactory 模式
+### DbContext 注册模式
+
+本專案為高流量 Web API，使用 **DbContext Pooling**：
 
 ```csharp
-// ✅ 本專案使用 DbContextFactory
-public class OrderRepository(
-    IDbContextFactory<EventDbContext> contextFactory,
-    ILogger<OrderRepository> logger)
+// ✅ 本專案使用 AddDbContextPool（高流量場景，減少 GC 壓力約 2x 快）
+services.AddDbContextPool<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+// ❌ 一般 AddDbContext（功能正確但不適合高流量）
+services.AddDbContext<AppDbContext>(...);
+```
+
+### Repository 注入方式
+
+```csharp
+// ✅ Scoped Repository 直接注入 Scoped DbContext（官方推薦）
+public class OrderRepository(AppDbContext db) : IOrderRepository
 {
     public async Task<Order?> GetByIdAsync(int id, CancellationToken cancel = default)
-    {
-        await using var context = await contextFactory.CreateDbContextAsync(cancel);
-        return await context.Orders
-            .AsNoTracking()
-            .FirstOrDefaultAsync(o => o.Id == id, cancel);
-    }
+        => await db.Orders.AsNoTracking()
+               .FirstOrDefaultAsync(o => o.Id == id, cancel);
 }
 
-// ❌ 禁止直接注入 DbContext
-public class OrderRepository(EventDbContext context) // ❌
-{
-}
+// ❌ Repository 為 Singleton（並發安全問題）
+services.AddSingleton<IOrderRepository, OrderRepository>();
+
+// ❌ Scoped 服務內使用 IServiceScopeFactory（不必要的複雜度）
+public class OrderRepository(IServiceScopeFactory scopeFactory) // ❌
 ```
+
+> ⚠️ **IDbContextFactory 使用場景**：僅限 Blazor、Background Service (IHostedService)、或 Singleton 服務中需要 DB 存取時。一般 Scoped Repository **不需要** Factory。
 
 ### 搭配 Result Pattern
 
 ```csharp
-// ✅ Repository 回傳 Result
+// ✅ Repository 在基礎設施層捕捉 DB 例外，轉換為 Result
 public async Task<Result<Order, Failure>> GetByIdAsync(int id, CancellationToken cancel = default)
 {
-    try
-    {
-        await using var context = await _contextFactory.CreateDbContextAsync(cancel);
-        var order = await context.Orders
-            .AsNoTracking()
-            .FirstOrDefaultAsync(o => o.Id == id, cancel);
-        
-        if (order is null)
-        {
-            return FailureProvider.CreateFailure(ErrorCode.NotFound, "訂單不存在");
-        }
-        
-        return order;
-    }
-    catch (DbException ex)
-    {
-        _logger.LogError(ex, "資料庫查詢失敗: OrderId={OrderId}", id);
-        return FailureProvider.CreateFailure(ErrorCode.DatabaseError, ex.Message);
-    }
+    var order = await db.Orders
+        .AsNoTracking()
+        .FirstOrDefaultAsync(o => o.Id == id, cancel);
+
+    if (order is null)
+        return FailureProvider.CreateFailure("NOT_FOUND");
+
+    return order;
 }
 ```
 
@@ -228,5 +227,6 @@ catch
 | **Over-fetching** | `ToListAsync()` 沒有 `.Select()` projection | 🟢 Consider |
 | **Tracking Overhead** | 唯讀查詢沒有 `.AsNoTracking()` | 🟢 Consider |
 | **In-Memory Evaluation** | Where 內使用無法轉換的 C# 方法 | 🟡 Performance |
-| **直接注入 DbContext** | 注入 DbContext 而非 DbContextFactory | 🟡 Warning |
+| **Repository 誤用 Singleton** | `AddSingleton<IXxxRepository>` → 必須改為 `AddScoped` | 🔴 Critical |
+| **高流量場景未啟用池化** | 高流量場景使用 `AddDbContext` 而非 `AddDbContextPool` | 🟡 Consider |
 | **缺少 CancellationToken** | Async 方法沒有傳遞 cancel 參數 | 🟢 Consider |
