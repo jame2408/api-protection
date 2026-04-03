@@ -6,9 +6,9 @@ public class AccessPolicyRepository(AppDbContext db) : IAccessPolicyRepository
 {
     public async Task SaveAsync(
         ApiKeyManagement.AccessPolicy.Domain.AccessPolicy policy,
-        CancellationToken ct = default)
+        CancellationToken cancel = default)
     {
         db.AccessPolicies.Add(policy);
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancel);
     }
 }

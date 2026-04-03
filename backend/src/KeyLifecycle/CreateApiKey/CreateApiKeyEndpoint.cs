@@ -22,7 +22,7 @@ public static class CreateApiKeyEndpoint
                 string consumerId,
                 Request request,
                 ICreateApiKeyHandler handler,
-                CancellationToken ct) =>
+                CancellationToken cancel) =>
             {
                 var command = new CreateApiKeyCommand(
                     TenantId: tenantId,
@@ -32,29 +32,28 @@ public static class CreateApiKeyEndpoint
                     Scopes: request.Scopes,
                     ExpiresAt: request.ExpiresAt);
 
-                try
+                var result = await handler.HandleAsync(command, cancel);
+
+                if (result.IsFailure)
                 {
-                    var response = await handler.HandleAsync(command, ct);
-                    return Results.Created(
-                        $"/api/v1/tenants/{tenantId}/consumers/{consumerId}/keys/{response.KeyId}",
-                        response);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    return ex.Message switch
+                    return result.Error.Code switch
                     {
-                        "TENANT_NOT_FOUND" => Results.NotFound(new { error = ex.Message }),
-                        "CONSUMER_NOT_FOUND" => Results.NotFound(new { error = ex.Message }),
-                        "TENANT_SUSPENDED" => Results.Json(new { error = ex.Message }, statusCode: 403),
-                        "KEY_LIMIT_EXCEEDED" => Results.Conflict(new { error = ex.Message }),
-                        "KEY_NAME_DUPLICATE" => Results.Conflict(new { error = ex.Message }),
-                        "SCOPE_NOT_FOUND" => Results.UnprocessableEntity(new { error = ex.Message }),
-                        "EXPIRES_AT_EXCEEDS_MAX" => Results.UnprocessableEntity(new { error = ex.Message }),
-                        _ when ex.Message.StartsWith("VALIDATION_ERROR") =>
-                            Results.BadRequest(new { error = ex.Message }),
-                        _ => Results.Problem(ex.Message)
+                        "TENANT_NOT_FOUND"       => Results.NotFound(new { error = result.Error.Code }),
+                        "CONSUMER_NOT_FOUND"     => Results.NotFound(new { error = result.Error.Code }),
+                        "TENANT_SUSPENDED"       => Results.Json(new { error = result.Error.Code }, statusCode: 403),
+                        "KEY_LIMIT_EXCEEDED"     => Results.Conflict(new { error = result.Error.Code }),
+                        "KEY_NAME_DUPLICATE"     => Results.Conflict(new { error = result.Error.Code }),
+                        "SCOPE_NOT_FOUND"        => Results.UnprocessableEntity(new { error = result.Error.Code }),
+                        "EXPIRES_AT_EXCEEDS_MAX" => Results.UnprocessableEntity(new { error = result.Error.Code }),
+                        _ when result.Error.Code.StartsWith("VALIDATION_ERROR") =>
+                            Results.BadRequest(new { error = result.Error.Code }),
+                        _ => Results.Problem(result.Error.Code)
                     };
                 }
+
+                return Results.Created(
+                    $"/api/v1/tenants/{tenantId}/consumers/{consumerId}/keys/{result.Value.KeyId}",
+                    result.Value);
             });
     }
 }

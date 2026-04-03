@@ -7,10 +7,10 @@ namespace ApiKeyManagement.AccessPolicy.Application;
 public class AccessPolicyService(IAccessPolicyRepository repository) : IAccessPolicyService
 {
     public async Task<Guid> CreateDefaultPolicyAsync(
-        Guid keyId, string tenantId, CancellationToken ct = default)
+        Guid keyId, string tenantId, CancellationToken cancel = default)
     {
         var policy = AccessPolicyEntity.CreateDefault(keyId, tenantId);
-        await repository.SaveAsync(policy, ct);
+        await repository.SaveAsync(policy, cancel);
         return policy.Id;
     }
 }
