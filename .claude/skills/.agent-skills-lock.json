@@ -1,0 +1,39 @@
+{
+  "skills": {
+    "code-review": {
+      "version": "cf1dc68344bba058c36a7a454bd847650c7bed67",
+      "repo": "https://github.com/jame2408/agent-skills.git",
+      "installedAt": "2026-03-01T09:51:05.598Z"
+    },
+    "code-review-context-analyzer": {
+      "version": "a8b5cad15c7e6b08f6cea7c99563f6cf889f5fbf",
+      "repo": "https://github.com/jame2408/agent-skills.git",
+      "installedAt": "2026-03-01T09:51:05.608Z"
+    },
+    "coding-style": {
+      "version": "cf1dc68344bba058c36a7a454bd847650c7bed67",
+      "repo": "https://github.com/jame2408/agent-skills.git",
+      "installedAt": "2026-03-01T09:51:05.617Z"
+    },
+    "deai-editor": {
+      "version": "cf1dc68344bba058c36a7a454bd847650c7bed67",
+      "repo": "https://github.com/jame2408/agent-skills.git",
+      "installedAt": "2026-03-01T09:51:05.626Z"
+    },
+    "doc-coauthoring": {
+      "version": "a8b5cad15c7e6b08f6cea7c99563f6cf889f5fbf",
+      "repo": "https://github.com/jame2408/agent-skills.git",
+      "installedAt": "2026-03-01T09:51:05.634Z"
+    },
+    "requirements-analysis-design": {
+      "version": "cf1dc68344bba058c36a7a454bd847650c7bed67",
+      "repo": "https://github.com/jame2408/agent-skills.git",
+      "installedAt": "2026-03-01T09:51:05.643Z"
+    },
+    "simplify": {
+      "version": "a39a64f0d06ac4eb0fb3f12e45d880e99cb743d4",
+      "repo": "https://github.com/jame2408/agent-skills.git",
+      "installedAt": "2026-03-01T09:51:05.650Z"
+    }
+  }
+}
