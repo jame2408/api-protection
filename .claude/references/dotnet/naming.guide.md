@@ -122,13 +122,13 @@ public class OrderService(
 ### Collection 初始化
 
 ```csharp
-// ✅ 本專案使用傳統語法
-var list = new List<int> { 1, 2, 3 };
-var array = new[] { "a", "b", "c" };
-var dict = new Dictionary<string, int> { ["key"] = 1 };
+// ✅ 本專案（.NET 10 / C# 13）使用 Collection Expressions
+string[] scopes = ["orders:read", "orders:write"];
+IReadOnlyList<string> empty = [];
+var mixed = new List<string> { "a", "b" }; // 傳統語法在複雜初始化時仍可用
 
-// ⚠️ 本專案尚未採用 Collection Expressions
-// List<int> list = [1, 2, 3]; // 暫不使用
+// ✅ 方法參數、屬性初始化皆可使用
+ApiKey.Create(scopes: ["seed:read"], ...);
 ```
 
 ---
