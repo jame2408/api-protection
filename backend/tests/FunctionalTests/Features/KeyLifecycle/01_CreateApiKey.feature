@@ -17,7 +17,6 @@ Feature: 建立 API 金鑰
 
   # --- 逐 Guard 反向 ---
 
-  @ignore
   Scenario: 租戶不存在 — 拒絕建立
     Given 租戶 "tenant-X" 不存在
     When  Consumer 嘗試在 "tenant-X" 下建立金鑰

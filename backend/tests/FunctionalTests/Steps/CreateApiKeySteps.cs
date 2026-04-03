@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ApiKeyManagement.FunctionalTests.Infrastructure;
@@ -330,5 +331,28 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
 
     [Then(@"建立失敗，錯誤原因為「(.*)」")]
     public void ThenCreateFailsWithReason(string reason)
-        => throw new PendingStepException();
+    {
+        var map = new Dictionary<string, (HttpStatusCode Status, string ErrorCode)>
+        {
+            ["租戶不存在"]            = (HttpStatusCode.NotFound,            "TENANT_NOT_FOUND"),
+            ["租戶未啟用"]            = (HttpStatusCode.Forbidden,           "TENANT_SUSPENDED"),
+            ["Consumer 不屬於該租戶"] = (HttpStatusCode.NotFound,            "CONSUMER_NOT_FOUND"),
+            ["超過金鑰數量上限"]      = (HttpStatusCode.Conflict,            "KEY_LIMIT_EXCEEDED"),
+            ["金鑰名稱重複"]          = (HttpStatusCode.Conflict,            "KEY_NAME_DUPLICATE"),
+            ["Scope 不存在"]          = (HttpStatusCode.UnprocessableEntity, "SCOPE_NOT_FOUND"),
+            ["至少需要一個 Scope"]    = (HttpStatusCode.BadRequest,          "VALIDATION_ERROR:scopes_empty"),
+            ["到期時間必須在未來"]    = (HttpStatusCode.BadRequest,          "VALIDATION_ERROR:expires_at_past"),
+            ["超過最大允許有效期"]    = (HttpStatusCode.UnprocessableEntity, "EXPIRES_AT_EXCEEDS_MAX"),
+        };
+
+        var entry = map.First(kv => reason.StartsWith(kv.Key));
+        var (expectedStatus, expectedErrorCode) = entry.Value;
+
+        _ctx.Response!.StatusCode.Should().Be(expectedStatus);
+
+        var body = JsonSerializer.Deserialize<ErrorResponse>(_ctx.ResponseBody!, JsonOptions);
+        body!.Error.Should().Be(expectedErrorCode);
+    }
+
+    private record ErrorResponse(string Error);
 }

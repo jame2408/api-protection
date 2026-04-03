@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/
 
 ## 目前進度
 
-**已通過：** 1 / 44  
-**下一個：** `01_CreateApiKey.feature` — 租戶不存在 — 拒絕建立
+**已通過：** 2 / 44  
+**下一個：** `01_CreateApiKey.feature` — 租戶狀態非 Active — 拒絕建立
 
 ---
 
