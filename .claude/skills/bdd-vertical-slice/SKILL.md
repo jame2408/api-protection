@@ -21,7 +21,7 @@ metadata:
 
 ---
 
-## 實作節奏（BDD Red-Green 循環）
+## 實作節奏（BDD Red-Green-Refactor 循環）
 
 ```
 1. 選定下一個場景（從 FunctionalTests/Features/ 的 .feature 檔）
@@ -30,8 +30,28 @@ metadata:
 4. 逐 BC 實作最小切片（Domain → Handler → Endpoint）
 5. 補齊 step definitions（實際 HTTP 呼叫）
 6. 執行 dotnet test → 場景 Green ✅
-7. 回到步驟 1，選下一個場景
+7. Refactor（見下方規則）→ 執行 dotnet test → 確認仍 Green ✅
+8. 回到步驟 1，選下一個場景
 ```
+
+### Refactor 規則（步驟 7）
+
+兩種 Refactor 絕不混用，各自獨立執行後必須重新確認 Green：
+
+| 類型 | 允許修改 | 禁止碰觸 |
+|------|---------|---------|
+| **Production Refactor** | `backend/src/` | `backend/tests/` |
+| **Test Refactor** | `backend/tests/` | `backend/src/` |
+
+**Production Refactor 檢查項目：**
+- 對照 `.claude/references/dotnet/*.rule.md` 確認合規（Result pattern、`cancel` 命名、DI lifetime）
+- 消除本輪實作引入的重複邏輯
+- 命名規範（PascalCase 方法、`_camelCase` 欄位、`Async` suffix）
+
+**Test Refactor 檢查項目：**
+- Step definitions 可跨場景重用（避免 Given/When/Then body 複製貼上）
+- When/Then 步驟不直接存取 DB（DB 操作屬於 Given setup）
+- 每個 step 職責單一清晰
 
 ---
 

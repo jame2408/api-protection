@@ -133,13 +133,28 @@ Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the te
 3. Run tests → confirm **Red** (missing step or failing assertion).
 4. Implement the production code and step definitions needed.
 5. Run tests → confirm **Green** (target scenario passes, all others still pass/skip).
-6. Update `docs/bdd/implementation-order.md`: mark the scenario ✅ and increment the "已通過" count.
-7. Commit, then loop back to step 1 for the next scenario.
+6. **Refactor** — improve code quality without changing behaviour (see rules below).
+7. Run tests → confirm still **Green** after refactoring.
+8. Update `docs/bdd/implementation-order.md`: mark the scenario ✅ and increment the "已通過" count.
+9. Commit, then loop back to step 1 for the next scenario.
 
 **Rules:**
 - Never remove more than one `@ignore` at a time unless scenarios share the exact same new step definitions.
 - Never mark a scenario done unless the test output shows it passing.
 - Test suite must be Green (0 failures) after every code change before proceeding.
+
+**Refactor Rules (Step 6):**
+- **Production refactor**: only touch `backend/src/` — zero changes to `backend/tests/`
+- **Test refactor**: only touch `backend/tests/` — zero changes to `backend/src/`
+- Never mix both in the same refactor pass; run tests after each pass to confirm Green.
+- Checklist for production refactor:
+  - Verify compliance with `.claude/references/dotnet/*.rule.md` (Result pattern, `cancel` naming, DI lifetime)
+  - Eliminate duplication introduced by this scenario's implementation
+  - Ensure naming conventions (PascalCase methods, `_camelCase` fields, `Async` suffix)
+- Checklist for test refactor:
+  - Step definitions reusable across scenarios (no copy-paste Given/When/Then bodies)
+  - No direct DB access in When/Then steps (belongs in Given setup only)
+  - Each step has a single, clear responsibility
 
 ## Task Management Protocol
 
