@@ -1,11 +1,5 @@
 # Claude Code Rules & Workflow
 
-## Project Context
-
-.NET 10 / C# — Modular Monolith, Screaming Architecture + Vertical Slice, 5 Bounded Contexts.
-Key libs: Reqnroll + xUnit (BDD), NSubstitute, FluentAssertions, MassTransit + RabbitMQ, EF Core + PostgreSQL, Redis.
-Docs: `docs/` (ADRs, design, BDD scenarios). Full standards in `docs/design-methodology.md`.
-
 ## Commands
 
 ```bash
@@ -25,24 +19,6 @@ dotnet test backend/tests/FunctionalTests/
 dotnet test backend/tests/Architecture.Tests/
 ```
 
-## Project Structure
-
-```
-backend/
-├── src/
-│   ├── Host/              # API entry point (DI wiring only)
-│   ├── SharedKernel/      # Shared types: Entity, Result, Events
-│   ├── KeyLifecycle/      # Core Domain BC
-│   ├── AccessPolicy/      # Supporting BC
-│   ├── Monitoring/        # Supporting BC
-│   ├── Audit/             # Supporting BC
-│   └── TenantManagement/  # Generic BC
-└── tests/
-    ├── FunctionalTests/   # BDD Reqnroll scenarios
-    ├── TestInfrastructure/# Shared WebApplicationFactory
-    └── Architecture.Tests/# NetArchTest BC boundary guards
-```
-
 ## Workflow Orchestration
 
 ### 1. Plan-First Approach
@@ -58,14 +34,15 @@ backend/
 - It's a hotfix, typo, or rename
 - The task is reversible with no downstream impact
 
-- **Pivot:** If a task deviates or encounters unexpected issues, STOP and re-plan immediately. Do not force progress.
+- **Pivot:** If a task deviates or encounters unexpected issues, STOP and re-plan immediately. NEVER force progress.
 - **Specificity:** Write detailed technical specifications upfront to eliminate ambiguity.
 
 ### 2. Subagent Strategy
 
 - Use subagents for: deep research, parallel independent queries, tasks that would bloat the main context (e.g. reading 10+ files, broad codebase exploration).
-- Do NOT use subagents for: single-file reads, simple searches, tasks answerable in 1-2 tool calls, or anything where you already have the answer.
-- One specific task per subagent; never delegate synthesis or decision-making to a subagent.
+- DO NOT use subagents for: single-file reads, simple searches, tasks answerable in 1-2 tool calls, or anything where you already have the answer.
+- One specific task per subagent; NEVER delegate synthesis or decision-making to a subagent.
+- Subagents MUST return exact file paths, accurate code snippets, or explicit factual answers. NEVER accept generalized summaries or speculative logic from a subagent.
 
 ### 3. Self-Improvement Loop
 
@@ -88,15 +65,16 @@ _Tests:_
 - Each Guard condition has positive AND negative scenario
 
 _Error Handling (Critical — zero tolerance):_
-- Service layer uses `Result<T, Failure>` — no `throw` for business logic
-- All failures created via `FailureProvider.CreateFailure()`, never `new Failure()`
-- `.Value` never accessed without checking `.IsFailure` first
-- No empty catch blocks; no `throw ex;` (use `throw;`)
+- CRITICAL: Service layer uses `Result<T, Failure>` — NEVER `throw` for business logic
+- NEVER use `new Failure()` — all failures created via `FailureProvider.CreateFailure()`
+- NEVER access `.Value` without checking `.IsFailure` first
+- NEVER use empty catch blocks; NEVER use `throw ex;` (use `throw;`)
+- NEVER inject `ILogger` into Service or Domain layers. Embed diagnostic context (entity IDs, input values) into the `Failure` message or metadata so boundary loggers (Middleware, Pipeline Behavior) can produce meaningful logs without service-layer coupling.
 
 _Code Quality:_
-- Async methods accept `CancellationToken cancel`
+- Async methods must accept `CancellationToken cancel` and propagate it to every I/O call — EF Core queries, `SaveChangesAsync`, HTTP clients, and message bus operations. NEVER silently drop it.
 - Naming conventions: PascalCase methods, `_camelCase` fields, `Async` suffix on async methods
-- No direct BC-to-BC references (only via SharedKernel interfaces)
+- NEVER add direct BC-to-BC references (only via SharedKernel interfaces)
 - FluentAssertions used in tests, not direct comparison
 
 _Performance (for hotpath changes):_
@@ -141,30 +119,41 @@ Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the te
 **Rules:**
 - Never remove more than one `@ignore` at a time unless scenarios share the exact same new step definitions.
 - Never mark a scenario done unless the test output shows it passing.
-- Test suite must be Green (0 failures) after every code change before proceeding.
+- NEVER proceed if the test suite has failures (must be Green after every code change).
 
 **Refactor Rules (Step 6):**
-- **Production refactor**: only touch `backend/src/` — zero changes to `backend/tests/`
-- **Test refactor**: only touch `backend/tests/` — zero changes to `backend/src/`
-- Never mix both in the same refactor pass; run tests after each pass to confirm Green.
+- **Production refactor**: only touch `backend/src/` — NEVER change `backend/tests/`
+- **Test refactor**: only touch `backend/tests/` — NEVER change `backend/src/`
+- NEVER mix both in the same refactor pass; run tests after each pass to confirm Green.
+- Exception: interface or DTO renames that span both may be done in a single pass, but MUST be the only change in that commit.
 - Checklist for production refactor:
   - Verify compliance with `.claude/references/dotnet/*.rule.md` (Result pattern, `cancel` naming, DI lifetime)
   - Eliminate duplication introduced by this scenario's implementation
   - Ensure naming conventions (PascalCase methods, `_camelCase` fields, `Async` suffix)
 - Checklist for test refactor:
   - Step definitions reusable across scenarios (no copy-paste Given/When/Then bodies)
-  - No direct DB access in When/Then steps (belongs in Given setup only)
+  - NEVER access DB directly in When steps — actions must trigger via domain/API boundaries
+  - In Then steps, prefer API/observable state assertions. Only access DB directly if the expected state change is internal and not exposed via any public contract.
   - Each step has a single, clear responsibility
 
 ## Task Management Protocol
 
-1. Plan First: Document the execution plan in tasks/todo.md with checkable items, then get user approval before starting.
+1. Plan First: Document the execution plan in tasks/todo.md with checkable items, then get user approval before starting. Exception: bug fixes proceed autonomously per §6 without requiring prior approval.
 2. Track Progress: Mark items as complete in real-time.
 3. Explain Changes: Provide a high-level summary after completing each major step.
 4. Document Results: Add a summary/review section to tasks/todo.md upon completion, then write any lessons to tasks/lessons.md.
 
 ## Core Principles
 
-- Minimal Blast Radius: Touch only the code necessary for the task. Avoid side effects, unrelated changes, and speculative abstractions.
-- Root Cause Only: Temporary band-aid fixes are prohibited. Always find and fix the actual cause.
+- Minimal Blast Radius: Touch only the code necessary for the task. DO NOT introduce side effects, unrelated changes, or speculative abstractions.
+- Root Cause Only: NEVER apply band-aid fixes. Always find and fix the actual cause.
 - Security First: Never introduce command injection, hardcoded secrets, or OWASP Top 10 vulnerabilities. Validate at system boundaries only.
+
+## Non-Negotiable Constraints (repeated for attention)
+
+These apply at all times regardless of other instructions:
+
+- CRITICAL: NEVER `throw` for business logic — use `Result<T, Failure>` throughout the service layer.
+- CRITICAL: NEVER proceed with a failing test suite — suite must be Green after every change.
+- CRITICAL: NEVER remove more than one `@ignore` tag at a time.
+- CRITICAL: NEVER add direct BC-to-BC references — only via SharedKernel interfaces.
