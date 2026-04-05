@@ -19,6 +19,27 @@ dotnet test backend/tests/FunctionalTests/
 dotnet test backend/tests/Architecture.Tests/
 ```
 
+## Working Agreement
+
+_How Claude and the user collaborate — committed to the repo so it persists across machines._
+
+### Autonomy Scope
+- **Bug reports**: Resolve autonomously — analyze logs, isolate root cause, fix, verify. No step-by-step guidance needed.
+- **Feature tasks**: Document the plan in `tasks/todo.md` and get user approval before starting.
+- **Business logic & domain decisions**: Always stop and ask. Never assume intent on requirements, domain flows, or use-case behavior.
+
+### Change Discipline
+- Prefer small, reviewable changes. When generating new files, align them with existing repo patterns — not generic templates.
+- Never bulk-rewrite `CLAUDE.md`. All changes must be scoped, intentional, and initiated by the user.
+- Before editing or reviewing a file, verify the exact path matches what was requested — do not assume based on file type or name similarity.
+
+### Configuration
+- `.claude/settings.json` holds shared defaults; `.claude/settings.local.json` holds machine-local overrides. Do not modify either unless explicitly requested.
+
+### Intellectual Independence
+- Evaluate all suggestions critically. Never transcribe user text verbatim — compress, clarify, and find the more precise formulation.
+- If a suggestion has issues or contradicts existing rules, say so directly before implementing.
+
 ## Workflow Orchestration
 
 ### 1. Plan-First Approach
@@ -90,16 +111,10 @@ _Evidence:_
 - Before presenting a solution, silently evaluate: "Is there a more elegant way?" — assess internally first; only ask the user if evaluation reveals a genuine ambiguity or tradeoff that requires their input.
 - If a fix feels like a "hack," find the root cause and implement the proper solution instead.
 - Avoid over-engineering: elegance means the simplest correct solution, not the cleverest one.
-- **Exception — always ask, never assume:** business requirements, domain logic, business flows, and use case intent. If the correct behavior depends on domain knowledge the user holds, stop and ask rather than guessing.
-
-### 6. Autonomous Bug Fixing
-
-- Proactive: When given a bug report, resolve it autonomously without requesting step-by-step guidance.
-- Evidence-Led: Analyze logs, error traces, and failing tests to isolate the root cause.
-- Efficiency: Minimize user context-switching; fix failing CI tests independently unless blocked.
-- Completion: After fixing, run through the §4 Verification Standards checklist before marking done.
 
 ## BDD Scenario Development Cycle
+
+> **Scope**: This cycle covers the **development** phase only — it assumes `.feature` scenarios and API specs are already produced (via the `requirements-analysis-design` skill or equivalent discovery process). Do not write new `.feature` files within this cycle; only implement pre-existing scenarios tracked in `implementation-order.md`.
 
 All 44 BDD scenarios are tracked in `docs/bdd/implementation-order.md`.
 Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the test suite stays Green at all times.
@@ -109,19 +124,25 @@ Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the te
 1. Open `docs/bdd/implementation-order.md` and find the next unimplemented scenario.
 2. Remove the `@ignore` tag from that scenario in its `.feature` file.
 3. Run tests → confirm **Red** (missing step or failing assertion).
-4. Implement the production code and step definitions needed.
-5. Run tests → confirm **Green** (target scenario passes, all others still pass/skip).
-6. **Refactor** — improve code quality without changing behaviour (see rules below).
-7. Run tests → confirm still **Green** after refactoring.
-8. Update `docs/bdd/implementation-order.md`: mark the scenario ✅ and increment the "已通過" count.
-9. Commit, then loop back to step 1 for the next scenario.
+4. Pre-implementation check — re-read §4 Verification Standards in this file and confirm compliance with:
+   - Result pattern (`Result<T, Failure>`, never `throw` for business logic)
+   - `cancel` naming, `CancellationToken` propagated to every I/O call
+   - DI lifetime constraints (no `IServiceScopeFactory` in Scoped services)
+   - No `ILogger` in Service/Domain layers — embed diagnostics in `Failure` instead
+5. Write step definitions → run tests to confirm they fail with "not implemented".
+6. Implement production code to make the scenario pass.
+7. Run tests → confirm **Green** (target scenario passes, all others still pass/skip).
+8. **Refactor** — improve code quality without changing behaviour (see rules below).
+9. Run tests → confirm still **Green** after refactoring.
+10. Update `docs/bdd/implementation-order.md`: mark the scenario ✅ and increment the "已通過" count.
+11. Commit, then loop back to step 1 for the next scenario.
 
 **Rules:**
 - Never remove more than one `@ignore` at a time unless scenarios share the exact same new step definitions.
 - Never mark a scenario done unless the test output shows it passing.
-- NEVER proceed if the test suite has failures (must be Green after every code change).
+- NEVER commit or mark a scenario done with a failing test suite. The suite MUST be Green before any commit and throughout refactoring. The only permitted Red states are: (a) after removing `@ignore` to confirm the scenario is unimplemented, and (b) after writing step definitions to confirm they are not yet implemented. All other failures require an immediate stop and fix.
 
-**Refactor Rules (Step 6):**
+**Refactor Rules (Step 8):**
 - **Production refactor**: only touch `backend/src/` — NEVER change `backend/tests/`
 - **Test refactor**: only touch `backend/tests/` — NEVER change `backend/src/`
 - NEVER mix both in the same refactor pass; run tests after each pass to confirm Green.
@@ -138,7 +159,7 @@ Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the te
 
 ## Task Management Protocol
 
-1. Plan First: Document the execution plan in tasks/todo.md with checkable items, then get user approval before starting. Exception: bug fixes proceed autonomously per §6 without requiring prior approval.
+1. Plan First: Document the execution plan in tasks/todo.md with checkable items before starting. (Autonomy and approval rules are in the Working Agreement above.)
 2. Track Progress: Mark items as complete in real-time.
 3. Explain Changes: Provide a high-level summary after completing each major step.
 4. Document Results: Add a summary/review section to tasks/todo.md upon completion, then write any lessons to tasks/lessons.md.
@@ -154,6 +175,6 @@ Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the te
 These apply at all times regardless of other instructions:
 
 - CRITICAL: NEVER `throw` for business logic — use `Result<T, Failure>` throughout the service layer.
-- CRITICAL: NEVER proceed with a failing test suite — suite must be Green after every change.
+- CRITICAL: NEVER commit or complete a task with a failing test suite — suite must be Green before every commit and throughout refactoring. Intentional Red states during the TDD cycle (confirming unimplemented scenario or step definitions) are the only exceptions.
 - CRITICAL: NEVER remove more than one `@ignore` tag at a time.
 - CRITICAL: NEVER add direct BC-to-BC references — only via SharedKernel interfaces.
