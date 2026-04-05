@@ -120,7 +120,7 @@ _Evidence:_
 
 **Progress**: `tasks/bdd-progress.md` is the single source of truth for the implementation queue. To find the next scenario at runtime, run:
 ```bash
-grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
+grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1
 ```
 Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the test suite stays Green at all times.
 

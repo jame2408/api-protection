@@ -24,8 +24,9 @@ metadata:
 ## 實作節奏（BDD Red-Green-Refactor 循環）
 
 ```
-1. 找出下一個待實作場景：
-   grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
+1. 讀取 tasks/bdd-progress.md，找到「下一個」欄位確認目標場景。
+   若需驗證與 .feature 檔一致，可執行：
+   grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1
 
 2. 移除該場景的 @ignore tag（只移除一個）
 

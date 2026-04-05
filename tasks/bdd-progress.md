@@ -11,10 +11,10 @@
 
 ```bash
 # 1. 找出下一個待實作場景
-grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
+grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1
 
 # 2. 確認整體進度
-grep -rc "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/
+grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 ```
 
 第一個輸出即為本次目標場景。移除該場景的 `@ignore` tag，進入 Red-Green 循環。
