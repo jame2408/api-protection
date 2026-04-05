@@ -116,7 +116,10 @@ _Evidence:_
 
 > **Scope**: This cycle covers the **development** phase only — it assumes `.feature` scenarios and API specs are already produced (via the `requirements-analysis-design` skill or equivalent discovery process). Do not write new `.feature` files within this cycle; only implement pre-existing scenarios tracked in `tasks/bdd-progress.md`.
 
-BDD scenario progress is tracked in `tasks/bdd-progress.md`.
+**Progress**: `tasks/bdd-progress.md` is the single source of truth. To find the next scenario at runtime, run:
+```bash
+grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
+```
 Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the test suite stays Green at all times.
 
 **To execute the cycle, invoke the `/bdd-vertical-slice` skill.** Step-by-step procedure, BC identification, vertical slice patterns, and implementation guidance live there.
@@ -125,6 +128,7 @@ Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the te
 
 - Never remove more than one `@ignore` at a time unless scenarios share the exact same new step definitions.
 - Never mark a scenario done unless the test output shows it passing.
+- NEVER commit a completed scenario without first updating `tasks/bdd-progress.md` (mark ✅, increment count). The progress update must be included in the same commit as the implementation.
 - NEVER commit or mark a scenario done with a failing test suite. The suite MUST be Green before any commit and throughout refactoring. The only permitted Red states are: (a) after removing `@ignore` to confirm the scenario is unimplemented, and (b) after writing step definitions to confirm they are not yet implemented. All other failures require an immediate stop and fix.
 
 **Refactor Constraints:**

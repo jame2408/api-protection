@@ -188,16 +188,3 @@ dotnet test tests/FunctionalTests/ --filter "FullyQualifiedName~建立API金鑰"
 dotnet build ApiKeyManagement.slnx
 ```
 
----
-
-## 目前進度
-
-進度以 `tasks/bdd-progress.md` 為唯一來源。執行時查詢：
-
-```bash
-# 下一個待實作場景
-grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
-
-# 整體剩餘數量
-grep -rc "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/
-```
