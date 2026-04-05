@@ -116,7 +116,9 @@ _Evidence:_
 
 > **Scope**: This cycle covers the **development** phase only — it assumes `.feature` scenarios and API specs are already produced (via the `requirements-analysis-design` skill or equivalent discovery process). Do not write new `.feature` files within this cycle; only implement pre-existing scenarios tracked in `tasks/bdd-progress.md`.
 
-**Progress**: `tasks/bdd-progress.md` is the single source of truth. To find the next scenario at runtime, run:
+**Kanban**: `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` → ✅ Done. New scenarios from discovery go to backlog first; only the user decides when and where to promote them to progress. Claude MUST NOT move items from backlog to progress autonomously.
+
+**Progress**: `tasks/bdd-progress.md` is the single source of truth for the implementation queue. To find the next scenario at runtime, run:
 ```bash
 grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
 ```
