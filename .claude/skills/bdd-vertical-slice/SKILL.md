@@ -24,19 +24,38 @@ metadata:
 ## 實作節奏（BDD Red-Green-Refactor 循環）
 
 ```
-1. 選定下一個場景（從 FunctionalTests/Features/ 的 .feature 檔）
-2. 執行 dotnet test → 確認場景 Pending（step 尚未實作）
-3. 識別場景涉及哪些 BC（分析 Given/When/Then 步驟）
-4. 逐 BC 實作最小切片（Domain → Handler → Endpoint）
-5. 補齊 step definitions（實際 HTTP 呼叫）
-6. 執行 dotnet test → 場景 Green ✅
-7. Refactor（見下方規則）→ 執行 dotnet test → 確認仍 Green ✅
-8. 回到步驟 1，選下一個場景
+1. 找出下一個待實作場景：
+   grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
+
+2. 移除該場景的 @ignore tag（只移除一個）
+
+3. 執行 dotnet test → 確認 Red（場景 Pending）
+
+4. Pre-implementation check — 對照 CLAUDE.md §4 Verification Standards 確認：
+   - Result pattern（Result<T, Failure>，禁止 throw 控制業務邏輯）
+   - cancel 命名，CancellationToken 傳遞至所有 I/O
+   - DI lifetime（Scoped 服務禁用 IServiceScopeFactory）
+   - 禁止在 Service/Domain 注入 ILogger
+
+5. 識別場景涉及哪些 BC（分析 Given/When/Then 步驟）
+
+6. 撰寫 step definitions → 執行 dotnet test 確認失敗為「not implemented」
+
+7. 逐 BC 實作最小切片（Domain → Repository 介面 → Handler → Repository 實作 → Endpoint → DI 註冊）
+
+8. 執行 dotnet test → 場景 Green ✅（其他場景維持 pass/skip）
+
+9. Refactor（見 CLAUDE.md Refactor Constraints 及下方 checklist）
+   → 執行 dotnet test → 確認仍 Green ✅
+
+10. 更新 tasks/bdd-progress.md：標記 ✅，遞增「已通過」數
+
+11. Commit，回到步驟 1
 ```
 
-### Refactor 規則（步驟 7）
+### Refactor Checklist（步驟 9）
 
-兩種 Refactor 絕不混用，各自獨立執行後必須重新確認 Green：
+隔離規則見 CLAUDE.md Refactor Constraints。兩種 Refactor 絕不混用，各自獨立執行後必須重新確認 Green：
 
 | 類型 | 允許修改 | 禁止碰觸 |
 |------|---------|---------|
@@ -50,7 +69,8 @@ metadata:
 
 **Test Refactor 檢查項目：**
 - Step definitions 可跨場景重用（避免 Given/When/Then body 複製貼上）
-- When/Then 步驟不直接存取 DB（DB 操作屬於 Given setup）
+- NEVER access DB directly in When steps — 動作必須透過 API 或 domain 邊界觸發
+- In Then steps, prefer API/observable state assertions. 只有在預期狀態為內部改變且未暴露於任何公開 API 時，才允許直接存取 DB 進行驗證
 - 每個 step 職責單一清晰
 
 ---
@@ -172,12 +192,12 @@ dotnet build ApiKeyManagement.slnx
 
 ## 目前進度
 
-**已通過場景：** 0 / 44（全部 Pending）
+進度以 `tasks/bdd-progress.md` 為唯一來源。執行時查詢：
 
-**下一個目標場景：**
-```gherkin
-# Features/KeyLifecycle/CreateApiKey.feature
-Scenario: 成功建立金鑰（第一個場景）
+```bash
+# 下一個待實作場景
+grep -rn "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/ | sort | head -1
+
+# 整體剩餘數量
+grep -rc "@ignore" backend/tests/FunctionalTests/Features/KeyLifecycle/
 ```
-
-涉及 BC：TenantManagement（租戶驗證）、KeyLifecycle（CreateApiKey）、AccessPolicy（預設 policy）

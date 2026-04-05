@@ -114,48 +114,24 @@ _Evidence:_
 
 ## BDD Scenario Development Cycle
 
-> **Scope**: This cycle covers the **development** phase only — it assumes `.feature` scenarios and API specs are already produced (via the `requirements-analysis-design` skill or equivalent discovery process). Do not write new `.feature` files within this cycle; only implement pre-existing scenarios tracked in `implementation-order.md`.
+> **Scope**: This cycle covers the **development** phase only — it assumes `.feature` scenarios and API specs are already produced (via the `requirements-analysis-design` skill or equivalent discovery process). Do not write new `.feature` files within this cycle; only implement pre-existing scenarios tracked in `tasks/bdd-progress.md`.
 
-All 44 BDD scenarios are tracked in `docs/bdd/implementation-order.md`.
+BDD scenario progress is tracked in `tasks/bdd-progress.md`.
 Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the test suite stays Green at all times.
 
-**Each session, follow this cycle:**
+**To execute the cycle, invoke the `/bdd-vertical-slice` skill.** Step-by-step procedure, BC identification, vertical slice patterns, and implementation guidance live there.
 
-1. Open `docs/bdd/implementation-order.md` and find the next unimplemented scenario.
-2. Remove the `@ignore` tag from that scenario in its `.feature` file.
-3. Run tests → confirm **Red** (missing step or failing assertion).
-4. Pre-implementation check — re-read §4 Verification Standards in this file and confirm compliance with:
-   - Result pattern (`Result<T, Failure>`, never `throw` for business logic)
-   - `cancel` naming, `CancellationToken` propagated to every I/O call
-   - DI lifetime constraints (no `IServiceScopeFactory` in Scoped services)
-   - No `ILogger` in Service/Domain layers — embed diagnostics in `Failure` instead
-5. Write step definitions → run tests to confirm they fail with "not implemented".
-6. Implement production code to make the scenario pass.
-7. Run tests → confirm **Green** (target scenario passes, all others still pass/skip).
-8. **Refactor** — improve code quality without changing behaviour (see rules below).
-9. Run tests → confirm still **Green** after refactoring.
-10. Update `docs/bdd/implementation-order.md`: mark the scenario ✅ and increment the "已通過" count.
-11. Commit, then loop back to step 1 for the next scenario.
+**Constraints — enforced at all times regardless of skill invocation:**
 
-**Rules:**
 - Never remove more than one `@ignore` at a time unless scenarios share the exact same new step definitions.
 - Never mark a scenario done unless the test output shows it passing.
 - NEVER commit or mark a scenario done with a failing test suite. The suite MUST be Green before any commit and throughout refactoring. The only permitted Red states are: (a) after removing `@ignore` to confirm the scenario is unimplemented, and (b) after writing step definitions to confirm they are not yet implemented. All other failures require an immediate stop and fix.
 
-**Refactor Rules (Step 8):**
+**Refactor Constraints:**
 - **Production refactor**: only touch `backend/src/` — NEVER change `backend/tests/`
 - **Test refactor**: only touch `backend/tests/` — NEVER change `backend/src/`
 - NEVER mix both in the same refactor pass; run tests after each pass to confirm Green.
 - Exception: interface or DTO renames that span both may be done in a single pass, but MUST be the only change in that commit.
-- Checklist for production refactor:
-  - Verify compliance with `.claude/references/dotnet/*.rule.md` (Result pattern, `cancel` naming, DI lifetime)
-  - Eliminate duplication introduced by this scenario's implementation
-  - Ensure naming conventions (PascalCase methods, `_camelCase` fields, `Async` suffix)
-- Checklist for test refactor:
-  - Step definitions reusable across scenarios (no copy-paste Given/When/Then bodies)
-  - NEVER access DB directly in When steps — actions must trigger via domain/API boundaries
-  - In Then steps, prefer API/observable state assertions. Only access DB directly if the expected state change is internal and not exposed via any public contract.
-  - Each step has a single, clear responsibility
 
 ## Task Management Protocol
 
