@@ -13,20 +13,23 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LESSONS_FILE="$PROJECT_ROOT/tasks/lessons.md"
 
 # Only inject on first prompt of a session (transcript has 1 message = new session)
-TRANSCRIPT_PATH=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('transcript_path',''))" 2>/dev/null)
+# The transcript path is taken from the hook payload and passed to Python via
+# an environment variable — never interpolated into Python source — so a path
+# containing quotes, backslashes, or Python syntax cannot inject code.
+TRANSCRIPT_PATH=$(python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('transcript_path',''))" <<<"$INPUT" 2>/dev/null)
 
 if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
   # Count human turns in transcript to detect first prompt
-  HUMAN_TURNS=$(python3 -c "
-import json, sys
+  HUMAN_TURNS=$(TRANSCRIPT_PATH="$TRANSCRIPT_PATH" python3 -c '
+import json, os, sys
 try:
-    with open('$TRANSCRIPT_PATH') as f:
+    with open(os.environ["TRANSCRIPT_PATH"]) as f:
         data = json.load(f)
-    turns = [m for m in data.get('messages', []) if m.get('role') == 'user']
+    turns = [m for m in data.get("messages", []) if m.get("role") == "user"]
     print(len(turns))
-except:
+except Exception:
     print(0)
-" 2>/dev/null)
+' 2>/dev/null)
 
   # Only inject on first human turn (new session)
   if [ "${HUMAN_TURNS:-0}" -gt "1" ]; then
