@@ -26,39 +26,43 @@ services.AddTransient<IEmailSender, SmtpEmailSender>();
 ### Primary Constructor（.NET 8+）
 
 ```csharp
-// ✅ 本專案使用 Primary Constructor
-public class OrderService(
-    IOrderRepository repository,
-    IFailureProvider failureProvider,
-    ILogger<OrderService> logger)
+// ✅ 本專案 Service / Handler 一律使用 Primary Constructor
+// ✅ Service 與 Handler 不注入 ILogger（CLAUDE.md NEVER 規則）
+public class CreateApiKeyHandler(
+    IConsumerValidator consumerValidator,
+    IApiKeyRepository keyRepository,
+    IScopeRegistry scopeRegistry,
+    IAccessPolicyService accessPolicyService) : ICreateApiKeyHandler
 {
-    public async Task<Result<Order, Failure>> GetOrderAsync(int id, CancellationToken cancel)
-    {
-        var order = await repository.GetByIdAsync(id, cancel);
-        if (order is null)
-        {
-            return failureProvider.CreateFailure(ErrorCode.NotFound);
-        }
-        return order;
-    }
+    // HandleAsync 主體略；Result-based 流程詳見 exceptions.rule.md。
 }
 ```
 
-### DbContextFactory 模式
+### Repository DbContext 注入
 
 ```csharp
-// ✅ 本專案使用 DbContextFactory 而非直接注入 DbContext
-public class OrderRepository(
-    IDbContextFactory<EventDbContext> contextFactory,
-    ILogger<OrderRepository> logger)
+// ✅ Scoped Repository 直接注入 Scoped DbContext（官方推薦，本專案標準）
+//    DbContext 透過 AddDbContextPool 註冊，效能對齊高流量需求；詳見 ef-core.rule.md。
+public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
 {
-    public async Task<Order?> GetByIdAsync(int id, CancellationToken cancel)
+    public async Task<int> CountActiveAsync(
+        string consumerId, string environment, string tenantId, CancellationToken cancel = default)
     {
-        await using var context = await contextFactory.CreateDbContextAsync(cancel);
-        return await context.Orders.FirstOrDefaultAsync(o => o.Id == id, cancel);
+        return await db.ApiKeys.CountAsync(k =>
+            k.ConsumerId == consumerId &&
+            k.Environment == environment &&
+            k.TenantId == tenantId &&
+            k.Status == ApiKeyStatus.ACTIVE, cancel);
     }
 }
+
+// ❌ 一般 Scoped Repository 不應使用 IDbContextFactory
+public class ApiKeyRepository(IDbContextFactory<AppDbContext> contextFactory) // ❌
 ```
+
+> ⚠️ **`IDbContextFactory` 使用場景**：僅限 Singleton、Background Service (`IHostedService`)、
+> 或 Blazor 等需要顯式控制 DbContext 生命週期的情境。一般 Scoped Repository **不需要**
+> Factory，請直接注入 `AppDbContext`。
 
 ### 環境變數注入
 
@@ -67,7 +71,7 @@ public class OrderRepository(
 public record SYS_REDIS_URL : EnvironmentVariable;
 
 // 註冊
-services.AddSysEnvironments(); // 在 ServiceCollectionExtensions.cs
+services.AddSysEnvironments(); // 在 Host/Program.cs 或對應 Module 註冊
 
 // 注入使用
 public class CacheService(SYS_REDIS_URL redisUrl)
@@ -190,24 +194,40 @@ services.AddScoped<IMyService, MyDisposableService>();
 
 ## E. 本專案服務註冊位置
 
-服務註冊集中於 `ServiceCollectionExtensions.cs`：
+每個 Bounded Context 自帶 `*Module.cs`，集中該 BC 的 DI + endpoint 註冊；
+跨 BC 的基礎設施（DbContext、Repositories）集中於 `Infrastructure/InfrastructureModule.cs`。
+`Host/Program.cs` 只串接這些 module，不直接註冊個別服務。
 
 ```csharp
-// JobBank1111.Event.WebAPI.ServiceExtensions.ServiceCollectionExtensions.cs
-public static class ServiceCollectionExtensions
+// ✅ Infrastructure/InfrastructureModule.cs — 跨 BC 的持久層
+public static class InfrastructureModule
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services, IConfiguration configuration)
     {
-        // 註冊 Services
-        services.AddScoped<IOrderService, OrderService>();
+        services.AddDbContextPool<AppDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("Default")));
+
+        services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
+        services.AddScoped<IAccessPolicyRepository, AccessPolicyRepository>();
+        services.AddScoped<IScopeRegistry, ScopeRegistryService>();
         return services;
     }
-    
-    public static IServiceCollection AddApplicationRepositories(this IServiceCollection services)
+}
+
+// ✅ KeyLifecycle/KeyLifecycleModule.cs — BC 內部 Handlers + endpoint mapping
+public static class KeyLifecycleModule
+{
+    public static IServiceCollection AddKeyLifecycleModule(this IServiceCollection services)
     {
-        // 註冊 Repositories
-        services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<ICreateApiKeyHandler, CreateApiKeyHandler>();
         return services;
+    }
+
+    public static IEndpointRouteBuilder MapKeyLifecycleEndpoints(this IEndpointRouteBuilder app)
+    {
+        CreateApiKeyEndpoint.Map(app);
+        return app;
     }
 }
 ```
@@ -223,4 +243,5 @@ public static class ServiceCollectionExtensions
 | **Middleware Scoped 注入** | Middleware constructor 注入 Scoped 服務 | 🔴 Critical |
 | **Transient Disposable** | `AddTransient` + `IDisposable` | 🟡 Memory Leak |
 | **Service Locator** | Constructor 內呼叫 `GetService` | 🟢 Code Smell |
-| **直接注入 DbContext** | 注入 DbContext 而非 DbContextFactory | 🟡 Warning |
+| **Scoped Repository 誤用 Factory** | 一般 Scoped Repository 注入 `IDbContextFactory<>` 而非 `AppDbContext`（Singleton/Background/Blazor 例外） | 🟡 Warning |
+| **Service/Handler 注入 ILogger** | `Service` / `Handler` constructor 注入 `ILogger<T>`（觀測性應在 Endpoint/Middleware/Pipeline Behavior 等邊界） | 🔴 Critical |

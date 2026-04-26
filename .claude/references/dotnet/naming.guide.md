@@ -8,44 +8,54 @@
 
 ### 層級命名
 
+本專案採用 **Vertical Slice + Bounded Context** 架構，HTTP 端點以 Minimal API 表示，
+不使用 MVC Controller。每個 use case 是一個資料夾（slice），內含 Endpoint、Handler、
+Command、Response。
+
 | 層級 | 命名規則 | 範例 |
 |------|----------|------|
-| **Controller** | `[Name]Controller` | `OrderController`, `TransferController` |
-| **Service** | `[Name]Service` + `I[Name]Service` | `OrderService`, `IOrderService` |
-| **Repository** | `[Name]Repository` + `I[Name]Repository` | `OrderRepository`, `IOrderRepository` |
-| **ApiClient** | `[Name]ApiClient` + `I[Name]ApiClient` | `ExternalApiClient`, `IExternalApiClient` |
+| **Endpoint** (static class) | `[Action][Aggregate]Endpoint` | `CreateApiKeyEndpoint` |
+| **Handler** + interface | `[Action][Aggregate]Handler` + `I[Action][Aggregate]Handler` | `CreateApiKeyHandler`, `ICreateApiKeyHandler` |
+| **Command / Query** (record) | `[Action][Aggregate]Command` / `Query` | `CreateApiKeyCommand` |
+| **Response** (record) | `[Action][Aggregate]Response` | `CreateApiKeyResponse` |
+| **Service** (跨 BC 邊界，經 SharedKernel 暴露) | `[Name]Service` + `I[Name]Service` | `AccessPolicyService`, `IAccessPolicyService` |
+| **Repository** (Infrastructure) | `[Aggregate]Repository` + `I[Aggregate]Repository` (interface 在 Domain) | `ApiKeyRepository`, `IApiKeyRepository` |
+| **ApiClient** (外部 HTTP 整合) | `[Name]ApiClient` + `I[Name]ApiClient` | `BillingApiClient`, `IBillingApiClient` |
+| **Module** (DI + endpoint 註冊聚合) | `[BoundedContext]Module` (static class) | `KeyLifecycleModule` |
 
-> ⚠️ **注意**：外部 API 呼叫使用 `*ApiClient`，不是 `*Client`
+> ⚠️ **注意**：外部 API 呼叫使用 `*ApiClient`，不是 `*Client`。
 
 ### 專案結構
 
 ```
-src/be/
-├── JobBank1111.Event.WebAPI/           # Presentation Layer
-│   ├── Controllers/
-│   │   └── [Domain]/
-│   │       └── [Name]Controller.cs
-│   └── Middlewares/
-│       └── [Name]Middleware.cs
-├── JobBank1111.Event.Service/          # Business Logic Layer
-│   ├── Events/
-│   │   └── [Domain]/
-│   │       ├── Services/
-│   │       │   └── [Name]Service.cs
-│   │       ├── Interfaces/
-│   │       │   └── I[Name]Service.cs
-│   │       └── Models/
-│   │           ├── Request/
-│   │           ├── Response/
-│   │           └── Dto/
-│   └── Common/
-│       └── [SharedDomain]/
-└── JobBank1111.Event.DataAccess/       # Data Access Layer
-    └── Events/
-        └── [Domain]/
-            ├── [Name]Repository.cs
-            └── [Name]ApiClient.cs
+backend/src/
+├── Host/                               # Composition root: Program.cs, DI wiring
+├── SharedKernel/                       # Cross-BC contracts & primitives
+│   ├── Contracts/                      # I*Service interfaces consumed by other BCs
+│   ├── Domain/                         # Result, Failure, FailureProvider, AggregateRoot, Entity
+│   └── Application/
+├── Infrastructure/                     # Cross-cutting persistence + DI module
+│   ├── InfrastructureModule.cs         # AddDbContextPool + Repository registrations
+│   └── Persistence/
+│       ├── AppDbContext.cs
+│       ├── Configurations/             # IEntityTypeConfiguration<TEntity>
+│       ├── Migrations/
+│       └── Repositories/               # Repository implementations
+├── {BoundedContext}/                   # e.g. KeyLifecycle, AccessPolicy, TenantManagement, Audit, Monitoring
+│   ├── Application/                    # Cross-feature application services within the BC
+│   ├── Domain/                         # Aggregates, value objects, domain events, repository interfaces
+│   ├── Infrastructure/                 # BC-private infra (rare; most persistence lives in /Infrastructure)
+│   ├── {Feature}/                      # Vertical slice — one folder per use case
+│   │   ├── {Feature}Endpoint.cs        # Minimal API: app.MapPost / MapGet ...
+│   │   ├── {Feature}Handler.cs         # Use case implementation
+│   │   ├── I{Feature}Handler.cs        # Handler interface (DI seam, mockable in tests)
+│   │   ├── {Feature}Command.cs         # Input record (use Query for read-side)
+│   │   └── {Feature}Response.cs        # Output record
+│   └── {BoundedContext}Module.cs       # Add{BC}Module + Map{BC}Endpoints extensions
 ```
+
+> Cross-BC dependencies are forbidden in source — they go through interfaces in
+> `SharedKernel/Contracts/`. Architecture tests enforce this via NetArchTest.
 
 ---
 
@@ -53,39 +63,40 @@ src/be/
 
 | Element | Convention | Example |
 |---------|------------|---------|
-| Namespace | PascalCase | `JobBank1111.Event.Service` |
-| Class | PascalCase, noun | `OrderService`, `CustomerRepository` |
-| Interface | IPascalCase | `IOrderRepository`, `IDisposable` |
-| Method | PascalCase, verb | `GetOrderById`, `ValidateInput` |
-| Property | PascalCase | `FirstName`, `IsEnabled` |
-| Field (private) | _camelCase | `_orderRepository`, `_logger` |
+| Namespace | PascalCase, BC-rooted | `ApiKeyManagement.KeyLifecycle.CreateApiKey` |
+| Class | PascalCase, noun | `ApiKeyRepository`, `CreateApiKeyHandler` |
+| Interface | IPascalCase | `IApiKeyRepository`, `IAccessPolicyService` |
+| Method | PascalCase, verb | `HandleAsync`, `GetByIdAsync` |
+| Property | PascalCase | `TenantId`, `IsActive` |
+| Field (private) | _camelCase | `_repository`, `_clock` |
 | Field (const) | PascalCase | `MaxRetryCount`, `DefaultTimeout` |
-| Parameter | camelCase | `orderId`, `customerName` |
-| Local variable | camelCase | `orderCount`, `isValid` |
-| Enum | PascalCase (singular) | `OrderStatus`, `PaymentType` |
+| Parameter | camelCase | `tenantId`, `consumerId` |
+| Local variable | camelCase | `activeCount`, `policyId` |
+| Enum | PascalCase (singular) | `ApiKeyStatus`, `ScopeKind` |
 
 ### Async 方法命名
 
 ```csharp
-// ✅ Async 方法以 Async 結尾
-public async Task<Order> GetOrderAsync(int id, CancellationToken cancel);
-public async Task SaveOrderAsync(Order order, CancellationToken cancel);
+// ✅ Async 方法以 Async 結尾，CancellationToken 命名為 cancel 並給預設值
+public async Task<Result<CreateApiKeyResponse, Failure>> HandleAsync(
+    CreateApiKeyCommand command,
+    CancellationToken cancel = default);
 
-// ✅ 本專案要求傳入 CancellationToken
-public async Task<Result<Order, Failure>> GetOrderAsync(int id, CancellationToken cancel);
+public async Task<int> CountActiveAsync(
+    string consumerId, string environment, string tenantId,
+    CancellationToken cancel = default);
 ```
 
 ### Boolean 命名
 
 ```csharp
 // ✅ 使用 is/has/can/should 前綴
-public bool IsEnabled { get; set; }
-public bool HasPermission { get; set; }
-public bool CanEdit { get; set; }
+public bool IsActive { get; init; }
+public bool HasExpired { get; }
 
 // Methods returning bool
 public bool IsValid();
-public bool HasAccess(User user);
+public bool HasAccess(ApiKey key);
 ```
 
 ---
@@ -96,9 +107,9 @@ public bool HasAccess(User user);
 
 ```csharp
 // ✅ 本專案使用 file-scoped namespace
-namespace JobBank1111.Event.Service.Events.Order;
+namespace ApiKeyManagement.KeyLifecycle.CreateApiKey;
 
-public class OrderService
+public class CreateApiKeyHandler : ICreateApiKeyHandler
 {
 }
 ```
@@ -106,15 +117,19 @@ public class OrderService
 ### Primary Constructors ✅
 
 ```csharp
-// ✅ 本專案使用 Primary Constructor (.NET 8+)
-public class OrderService(
-    IOrderRepository repository,
-    ILogger<OrderService> logger)
+// ✅ 本專案 Handler / Service / Repository 一律使用 Primary Constructor (.NET 8+)
+// ✅ Service 與 Handler 不注入 ILogger（CLAUDE.md NEVER 規則）—
+//    觀測性由 Endpoint / Middleware / Pipeline Behavior 等邊界統一處理。
+public class CreateApiKeyHandler(
+    IConsumerValidator consumerValidator,
+    IApiKeyRepository keyRepository,
+    IScopeRegistry scopeRegistry,
+    IAccessPolicyService accessPolicyService) : ICreateApiKeyHandler
 {
-    public async Task<Result<Order, Failure>> GetOrderAsync(int id, CancellationToken cancel)
+    public async Task<Result<CreateApiKeyResponse, Failure>> HandleAsync(
+        CreateApiKeyCommand command, CancellationToken cancel = default)
     {
-        logger.LogInformation("Getting order {OrderId}", id);
-        return await repository.GetByIdAsync(id, cancel);
+        // ... Result-based flow; see exceptions.rule.md for Result pattern.
     }
 }
 ```
@@ -125,7 +140,6 @@ public class OrderService(
 // ✅ 本專案（.NET 10 / C# 13）使用 Collection Expressions
 string[] scopes = ["orders:read", "orders:write"];
 IReadOnlyList<string> empty = [];
-var mixed = new List<string> { "a", "b" }; // 傳統語法在複雜初始化時仍可用
 
 // ✅ 方法參數、屬性初始化皆可使用
 ApiKey.Create(scopes: ["seed:read"], ...);
@@ -139,16 +153,14 @@ ApiKey.Create(scopes: ["seed:read"], ...);
 
 ```csharp
 /// <summary>
-/// 取得訂單資訊。
+/// Issues a new API key for the given tenant + consumer.
 /// </summary>
-/// <param name="orderId">訂單編號。</param>
-/// <param name="cancel">取消權杖。</param>
-/// <returns>訂單資訊，若找不到則回傳 Failure。</returns>
-public async Task<Result<OrderResponse, Failure>> GetOrderAsync(
-    int orderId, 
-    CancellationToken cancel)
-{
-}
+/// <param name="command">Creation parameters validated upstream.</param>
+/// <param name="cancel">Cancellation token propagated to all I/O.</param>
+/// <returns>The created key on success, otherwise a Failure.</returns>
+public async Task<Result<CreateApiKeyResponse, Failure>> HandleAsync(
+    CreateApiKeyCommand command,
+    CancellationToken cancel = default);
 ```
 
 ### 何時該寫註解
@@ -164,40 +176,89 @@ public async Task<Result<OrderResponse, Failure>> GetOrderAsync(
 
 ```csharp
 // ❌ BAD: 解釋顯而易見的事
-// 取得訂單
-var order = await GetOrderAsync(orderId);
+// 取得 API Key
+var key = await repository.GetByIdAsync(keyId, cancel);
 
 // ✅ GOOD: 解釋為什麼
-// 使用迴圈而非 LINQ，效能測試顯示在 10k+ 筆時快 3 倍
-foreach (var order in orders)
-{
-    total += order.Amount;
-}
+// Active count is bounded per (consumer, environment, tenant) — guard before insert
+// to avoid race-condition over-issue.
+var activeCount = await repository.CountActiveAsync(consumerId, environment, tenantId, cancel);
 ```
 
 ---
 
 ## E. API 路由命名
 
+本專案使用 **Minimal API**，每個 slice 一個 `static class *Endpoint` 並暴露 `Map(IEndpointRouteBuilder)`。
+
 ```csharp
-// ✅ 本專案 API 路由規範
-[ApiController]
-[Route("api/v1/[controller]")]  // lowerCamelCase
-public class OrderController : SystemController
+// ✅ 本專案 Endpoint 範例：CreateApiKeyEndpoint.cs
+public static class CreateApiKeyEndpoint
 {
-    [HttpGet("{id}")]           // RESTful
-    public async Task<IActionResult> GetOrder(int id) { }
-    
-    [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request) { }
-    
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrderRequest request) { }
-    
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteOrder(int id) { }
+    public record Request(
+        string Name,
+        string Environment,
+        IReadOnlyList<string> Scopes,
+        DateTimeOffset ExpiresAt);
+
+    public static void Map(IEndpointRouteBuilder app)
+    {
+        app.MapPost(
+            "/api/v1/tenants/{tenantId}/consumers/{consumerId}/keys",
+            async (
+                string tenantId,
+                string consumerId,
+                Request request,
+                ICreateApiKeyHandler handler,
+                CancellationToken cancel) =>
+            {
+                var command = new CreateApiKeyCommand(
+                    TenantId: tenantId,
+                    ConsumerId: consumerId,
+                    Name: request.Name,
+                    Environment: request.Environment,
+                    Scopes: request.Scopes,
+                    ExpiresAt: request.ExpiresAt);
+
+                var result = await handler.HandleAsync(command, cancel);
+                if (result.IsFailure)
+                {
+                    return result.Error.Code switch
+                    {
+                        // 將 Failure code 對應到 Results.NotFound / Conflict / UnprocessableEntity / ...
+                        _ => Results.Problem(result.Error.Code)
+                    };
+                }
+
+                return Results.Created(
+                    $"/api/v1/tenants/{tenantId}/consumers/{consumerId}/keys/{result.Value.KeyId}",
+                    result.Value);
+            });
+    }
 }
 ```
+
+Endpoint 們由 BC Module 集中註冊：
+
+```csharp
+// ✅ KeyLifecycleModule.cs
+public static class KeyLifecycleModule
+{
+    public static IServiceCollection AddKeyLifecycleModule(this IServiceCollection services)
+    {
+        services.AddScoped<ICreateApiKeyHandler, CreateApiKeyHandler>();
+        return services;
+    }
+
+    public static IEndpointRouteBuilder MapKeyLifecycleEndpoints(this IEndpointRouteBuilder app)
+    {
+        CreateApiKeyEndpoint.Map(app);
+        return app;
+    }
+}
+```
+
+URL 規範：`/api/v{n}/<resource hierarchy>` — lowercase、複數名詞、RESTful 動詞透過 HTTP method 表達。
 
 ---
 
@@ -210,7 +271,7 @@ public record PG_EVENT_CONNECTION_STRING : EnvironmentVariable;
 public record ASPNETCORE_ENVIRONMENT : EnvironmentVariable;
 
 // 使用方式
-public class MyService(SYS_REDIS_URL redisUrl)
+public class CacheService(SYS_REDIS_URL redisUrl)
 {
     private readonly string _connectionString = redisUrl.Value;
 }
@@ -223,25 +284,39 @@ public class MyService(SYS_REDIS_URL redisUrl)
 ### 一個類別一個檔案
 
 ```
-// 正確
-OrderService.cs       → public class OrderService
-IOrderService.cs      → public interface IOrderService
-OrderStatus.cs        → public enum OrderStatus
+✅ 正確
+CreateApiKeyHandler.cs     → public class CreateApiKeyHandler
+ICreateApiKeyHandler.cs    → public interface ICreateApiKeyHandler
+ApiKeyStatus.cs            → public enum ApiKeyStatus
 
-// 例外：相關的小型類別可以放在一起
-OrderModels.cs        → OrderRequest, OrderResponse (相關 DTO)
+⚠️ 例外：與 Endpoint 緊密耦合的小 record（例如 inbound Request）可以與 Endpoint
+   放同一檔，提升 slice 內聚性。
 ```
 
-### Request/Response 命名
+### Command / Response 命名
 
 ```csharp
-// Request: [Action][Domain]Request
-public class CreateOrderRequest { }
-public class UpdateOrderRequest { }
-public class GetOrdersRequest { }
+// Command: [Action][Aggregate]Command
+public record CreateApiKeyCommand(
+    string TenantId,
+    string ConsumerId,
+    string Name,
+    string Environment,
+    IReadOnlyList<string> Scopes,
+    DateTimeOffset ExpiresAt);
 
-// Response: [Action][Domain]Response 或 [Domain]Response
-public class GetOrderResponse { }
-public class GetOrdersResponse { }
-public class CreateOrderResponse { }
+// Response: [Action][Aggregate]Response
+public record CreateApiKeyResponse(
+    Guid KeyId,
+    string ConsumerId,
+    string TenantId,
+    string Name,
+    string KeyPrefix,
+    string RawKey,
+    string Environment,
+    IReadOnlyList<string> Scopes,
+    string LifecycleStatus,
+    Guid PolicyId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset ExpiresAt);
 ```

@@ -83,8 +83,8 @@ public async Task<Result<OrderSummary, Failure>> GetOrderSummaryAsync(
 ### ConfigureAwait(false) in Libraries
 
 ```csharp
-// ✅ 共用 Library 中使用（非 ASP.NET Controller）
-// JobBank1111.CommonUtility 專案中
+// ✅ 共用 Library 中使用（例如 SharedKernel 內的非 ASP.NET 程式碼）
+//    Endpoint/Handler 中不需要 ConfigureAwait(false)，ASP.NET Core 沒有 sync context。
 public async Task<string> ProcessDataAsync(string input, CancellationToken cancel = default)
 {
     var result = await _externalService.CallAsync(input, cancel).ConfigureAwait(false);
@@ -172,11 +172,15 @@ public async Task<Result<Order, Failure>> GetOrderWithTimeoutAsync(
 
 ### Safe Fire and Forget
 
+> ⚠️ Fire-and-forget 屬於邊界行為，本專案應放在 Background Service / Hosted Service /
+> Infrastructure 層（這些層才允許持有 `ILogger`）。Service / Handler 不應直接 spawn
+> fire-and-forget Task — 改為發 domain event，讓 background processor 處理。
+
 ```csharp
 // ❌ 危險 - 例外遺失
 _ = SendEmailAsync(order);
 
-// ✅ 安全的 Fire and Forget
+// ✅ 安全的 Fire and Forget（位於 Hosted Service / Background Service 等邊界）
 _ = Task.Run(async () =>
 {
     try

@@ -89,45 +89,52 @@ public async Task GetOrderAsync_WhenOrderNotFound_ShouldReturnFailure()
 ### 專案結構
 
 ```
-src/be/
-├── JobBank1111.Event.Test/              # Unit Tests
-│   └── Events/
-│       └── [Domain]/
-│           └── Services/
-│               └── [Name]ServiceTests.cs
-│
-└── JobBank1111.Event.IntegrationTest/   # Integration Tests (Reqnroll BDD)
-    └── Features/
-        └── [Feature].feature
+backend/tests/
+├── FunctionalTests/                     # Reqnroll BDD functional tests
+│   ├── ApiKeyManagement.FunctionalTests.csproj
+│   └── Features/
+│       └── {BoundedContext}/*.feature
+├── Architecture.Tests/                  # NetArchTest architecture rules
+│   └── ApiKeyManagement.Architecture.Tests.csproj
+└── TestInfrastructure/                  # Shared test helpers, fixtures, builders
+    └── ApiKeyManagement.TestInfrastructure.csproj
 ```
+
+> Handler unit tests are not yet split into a dedicated project. When/if a
+> `backend/tests/UnitTests/` project is introduced, Handler-level unit tests
+> belong there; until then, do not write unit tests against a path that does
+> not exist.
 
 ### Test Class 組織
 
+Service 與 Handler 不持有 `ILogger`（CLAUDE.md 規則），因此測試也不需要 mock logger：
+
 ```csharp
-public class OrderServiceTests
+public class CreateApiKeyHandlerTests
 {
-    // 使用 NSubstitute 建立 Mock
-    private readonly IOrderRepository _orderRepository = Substitute.For<IOrderRepository>();
-    private readonly IFailureProvider _failureProvider = Substitute.For<IFailureProvider>();
-    private readonly ILogger<OrderService> _logger = Substitute.For<ILogger<OrderService>>();
-    private readonly OrderService _service;
-    
-    public OrderServiceTests()
+    private readonly IConsumerValidator _consumerValidator = Substitute.For<IConsumerValidator>();
+    private readonly IApiKeyRepository _keyRepository = Substitute.For<IApiKeyRepository>();
+    private readonly IScopeRegistry _scopeRegistry = Substitute.For<IScopeRegistry>();
+    private readonly IAccessPolicyService _accessPolicyService = Substitute.For<IAccessPolicyService>();
+    private readonly CreateApiKeyHandler _handler;
+
+    public CreateApiKeyHandlerTests()
     {
-        _service = new OrderService(
-            _orderRepository,
-            _failureProvider,
-            _logger);
+        _handler = new CreateApiKeyHandler(
+            _consumerValidator,
+            _keyRepository,
+            _scopeRegistry,
+            _accessPolicyService);
     }
-    
+
     [Fact]
-    public async Task GetOrderAsync_WhenOrderExists_ShouldReturnOrder()
+    public async Task HandleAsync_WhenAllGuardsPass_ShouldReturnCreatedKey()
     {
         // ...
     }
-    
+
     [Fact]
-    public async Task GetOrderAsync_WhenOrderNotFound_ShouldReturnFailure()
+    public async Task HandleAsync_WhenActiveKeyLimitExceeded_ShouldReturnFailure()
     {
         // ...
     }
@@ -217,9 +224,13 @@ name.Should().Contain("123");
 |------|------------|
 | Repository（外部依賴） | 被測試的類別本身 |
 | HttpClient / API 呼叫 | 簡單的 Value Objects |
-| 時間相關操作 | Pure functions |
+| 時間相關操作（`IClock`/`TimeProvider`） | Pure functions |
 | 檔案系統操作 | 靜態工具方法 |
-| ILogger | - |
+| 跨 BC 介面（`SharedKernel.Contracts.I*`） | Result/Failure 等 SharedKernel primitives |
+
+> ⚠️ Service 與 Handler 不持有 `ILogger`，因此測試端**不需要**也**不應該**
+> mock `ILogger<T>`。Boundary 層（Endpoint、Middleware、Pipeline Behavior）的
+> logging 行為通常透過整合/功能測試驗證，而非單元測試。
 
 ---
 

@@ -160,7 +160,6 @@ public async Task<Result<ExternalResponse, Failure>> CallExternalApiAsync(Cancel
 本專案使用 `UnhandledExceptionMiddleware` 處理未捕捉的例外：
 
 ```csharp
-// 已實作於 JobBank1111.Event.WebAPI.Middlewares.UnhandledExceptionMiddleware
 // 自動將未處理例外轉換為 Failure 回應
 ```
 
@@ -182,7 +181,7 @@ public async Task<Result<ExternalResponse, Failure>> CallExternalApiAsync(Cancel
 ## E. ErrorCode 常用值
 
 ```csharp
-// 常用 ErrorCode（定義於 JobBank1111.Event.Utility.ErrorHandling.ErrorCode）
+// 常用 ErrorCode
 ErrorCode.Unauthorized      // 401 未授權
 ErrorCode.Forbidden         // 403 禁止存取
 ErrorCode.NotFound          // 404 找不到資源
