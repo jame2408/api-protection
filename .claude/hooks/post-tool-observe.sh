@@ -5,9 +5,14 @@
 #
 # Secret handling: tool_input and tool_response are passed to Python via stdin
 # (NOT shell-substituted into source) and scrubbed by recursively walking the
-# JSON tree. This avoids shell/JSON-to-Python injection and ensures values whose
-# keys look sensitive (token, secret, password, api_key, authorization, etc.)
-# are redacted regardless of where they appear.
+# JSON tree. This avoids shell/JSON-to-Python injection and applies two layers
+# of redaction:
+#   1. Key-based: values whose keys look sensitive (token, secret, password,
+#      api_key, authorization, etc.) are fully replaced with **REDACTED**.
+#   2. Value-based: string leaves are scanned for known secret shapes (Bearer
+#      tokens, sk-/sk-ant- prefixed keys, JWTs, GitHub tokens, AWS access keys)
+#      and redacted in-place even when the surrounding key name looks benign
+#      (e.g. embedded inside a command string or stdout).
 
 INPUT=$(cat)
 
@@ -36,11 +41,34 @@ SENSITIVE_KEY = re.compile(
 )
 REDACTED = "**REDACTED**"
 
+# Value-level patterns: applied to every string leaf, regardless of key name.
+# Targeted to well-known secret shapes to keep false positives low.
+VALUE_PATTERNS = [
+    # Bearer <token>: redact the token portion, keep the prefix for context.
+    (re.compile(r"(?i)\b(Bearer)\s+[A-Za-z0-9._\-+/=]{8,}"), r"\1 **REDACTED**"),
+    # JWT (three base64url-ish segments separated by dots, header starts with eyJ).
+    (re.compile(r"\beyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+"), REDACTED),
+    # OpenAI / Anthropic style keys: sk-..., sk-ant-...
+    (re.compile(r"\bsk-(?:ant-)?[A-Za-z0-9_\-]{16,}"), REDACTED),
+    # GitHub tokens (PAT, OAuth, user-to-server, server-to-server, refresh).
+    (re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"), REDACTED),
+    # AWS access key id.
+    (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), REDACTED),
+]
+
+def scrub_string(s):
+    out = s
+    for pat, repl in VALUE_PATTERNS:
+        out = pat.sub(repl, out)
+    return out
+
 def scrub(value):
     if isinstance(value, dict):
         return {k: (REDACTED if SENSITIVE_KEY.search(k) else scrub(v)) for k, v in value.items()}
     if isinstance(value, list):
         return [scrub(v) for v in value]
+    if isinstance(value, str):
+        return scrub_string(value)
     return value
 
 try:
