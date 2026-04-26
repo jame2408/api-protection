@@ -9,7 +9,7 @@
       "Bash(brew --version)",
       "Bash(brew search:*)",
       "Bash(brew info:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api repos/:*)"
     ]
   },
   "hooks": {
