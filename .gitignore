@@ -50,3 +50,5 @@ Thumbs.db
 # Claude Code — local settings and unrelated skills
 .claude/settings.local.json
 .claude/skills/buddy-reroll/
+# Hook-generated runtime artifacts (observations + flagged pending lessons)
+.claude/*.jsonl

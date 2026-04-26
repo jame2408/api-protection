@@ -6,9 +6,10 @@
 # Read hook input from stdin
 INPUT=$(cat)
 
-# Determine project root (same dir as this hook's .claude parent)
+# Determine project root: this script lives at <project>/.claude/hooks/, so
+# go up two levels (hooks -> .claude -> project root).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LESSONS_FILE="$PROJECT_ROOT/tasks/lessons.md"
 
 # Only inject on first prompt of a session (transcript has 1 message = new session)
