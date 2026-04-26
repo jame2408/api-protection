@@ -14,17 +14,17 @@ public class ConsumerValidatorService(ITenantQueryContext db) : IConsumerValidat
             .FirstOrDefaultAsync(t => t.Id == tenantId, cancel);
 
         if (tenant is null)
-            return new ConsumerValidationResult(false, "TENANT_NOT_FOUND");
+            return new ConsumerValidationResult(false, ConsumerValidationFailureCodes.TenantNotFound);
 
         if (tenant.Status == TenantStatus.Suspended)
-            return new ConsumerValidationResult(false, "TENANT_SUSPENDED");
+            return new ConsumerValidationResult(false, ConsumerValidationFailureCodes.TenantSuspended);
 
         var consumer = await db.Consumers
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == consumerId && c.TenantId == tenantId, cancel);
 
         if (consumer is null)
-            return new ConsumerValidationResult(false, "CONSUMER_NOT_FOUND");
+            return new ConsumerValidationResult(false, ConsumerValidationFailureCodes.ConsumerNotFound);
 
         return new ConsumerValidationResult(true);
     }

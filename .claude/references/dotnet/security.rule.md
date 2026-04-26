@@ -85,7 +85,7 @@ public async Task<IActionResult> GetUserProfile(int id, CancellationToken cancel
     var talentNo = User.GetTalentNo();
     if (talentNo != id)
     {
-        return this.Failure(FailureProvider.CreateFailure(ErrorCode.Forbidden));
+        return this.Failure(FailureProvider.CreateFailure(UserProfileFailureCodes.Forbidden));
     }
     
     var result = await _userService.GetProfileAsync(id, cancel);
@@ -121,7 +121,7 @@ public async Task<IActionResult> FetchUrl([FromQuery] string url, CancellationTo
 {
     if (!IsAllowedUrl(url))
     {
-        return this.Failure(FailureProvider.CreateFailure(ErrorCode.Forbidden, "URL not allowed"));
+        return this.Failure(FailureProvider.CreateFailure(FetchUrlFailureCodes.HostNotAllowed));
     }
     
     var content = await _httpClient.GetStringAsync(url, cancel);
@@ -167,12 +167,12 @@ public IActionResult GetFile([FromQuery] string filename)
     // 確保路徑在允許的目錄內
     if (!fullPath.StartsWith(basePath))
     {
-        return this.Failure(FailureProvider.CreateFailure(ErrorCode.Forbidden, "Invalid filename"));
+        return this.Failure(FailureProvider.CreateFailure(GetFileFailureCodes.InvalidFilename));
     }
     
     if (!System.IO.File.Exists(fullPath))
     {
-        return this.Failure(FailureProvider.CreateFailure(ErrorCode.NotFound));
+        return this.Failure(FailureProvider.CreateFailure(GetFileFailureCodes.FileNotFound));
     }
     
     return File(System.IO.File.ReadAllBytes(fullPath), "application/octet-stream");

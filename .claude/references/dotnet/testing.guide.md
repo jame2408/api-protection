@@ -71,14 +71,14 @@ public async Task GetOrderAsync_WhenOrderNotFound_ShouldReturnFailure()
     // Arrange
     const int invalidId = -1;
     _orderRepository.GetByIdAsync(invalidId, Arg.Any<CancellationToken>())
-        .Returns(FailureProvider.CreateFailure(ErrorCode.NotFound));
+        .Returns(FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound));
     
     // Act
     var result = await _service.GetOrderAsync(invalidId, CancellationToken.None);
     
     // Assert
     result.IsFailure.Should().BeTrue();
-    result.Error.Code.Should().Be(ErrorCode.NotFound);
+    result.Error.Code.Should().Be(GetOrderFailureCodes.OrderNotFound);
 }
 ```
 
@@ -160,9 +160,9 @@ _orderRepository.GetByIdAsync(1, Arg.Any<CancellationToken>())
 _orderRepository.GetByIdAsync(1, Arg.Any<CancellationToken>())
     .Returns(Result.Success<Order, Failure>(new Order { Id = 1 }));
 
-// 回傳 Failure
+// 回傳 Failure（引用 per-BC 常數）
 _orderRepository.GetByIdAsync(-1, Arg.Any<CancellationToken>())
-    .Returns(FailureProvider.CreateFailure(ErrorCode.NotFound));
+    .Returns(FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound));
 
 // 拋出例外
 _orderRepository.GetByIdAsync(-1, Arg.Any<CancellationToken>())
@@ -206,7 +206,7 @@ items.Should().AllSatisfy(item =>
 result.IsSuccess.Should().BeTrue();
 result.IsFailure.Should().BeTrue();
 result.Value.Should().NotBeNull();
-result.Error.Code.Should().Be(ErrorCode.NotFound);
+result.Error.Code.Should().Be(GetOrderFailureCodes.OrderNotFound);
 
 // 字串 Assertions
 name.Should().NotBeNullOrEmpty();

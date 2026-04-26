@@ -148,7 +148,7 @@ var order = await context.Orders
 
 if (order is null)
 {
-    return FailureProvider.CreateFailure(ErrorCode.NotFound, "訂單不存在");
+    return FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound);
 }
 
 var customerName = order.Customer?.Name ?? "Unknown";

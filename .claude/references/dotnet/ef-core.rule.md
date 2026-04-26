@@ -50,7 +50,7 @@ public async Task<Result<Order, Failure>> GetByIdAsync(int id, CancellationToken
         .FirstOrDefaultAsync(o => o.Id == id, cancel);
 
     if (order is null)
-        return FailureProvider.CreateFailure("NOT_FOUND");
+        return FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound);
 
     return order;
 }

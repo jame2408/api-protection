@@ -17,7 +17,7 @@ public async Task<Result<OrderResponse, Failure>> GetOrderAsync(int orderId, Can
     var order = await _repository.GetByIdAsync(orderId, cancel);
     if (order is null)
     {
-        return FailureProvider.CreateFailure(ErrorCode.NotFound, "訂單不存在");
+        return FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound);
     }
     
     return new OrderResponse { Id = order.Id, Total = order.Total };
@@ -37,15 +37,53 @@ public async Task<OrderResponse> GetOrderAsync(int orderId)
 
 ### Failure 建立規則
 
+> 本專案 `Failure` 形狀為 `record Failure(string Code)` — 單一字串 Code 欄位，不含 message / metadata。
+> Failure code 必須以 **per-BC 常數類別** 集中宣告，避免裸字串散落。
+
 ```csharp
-// ✅ 使用 FailureProvider 建立 Failure（注入或靜態方法）
-return FailureProvider.CreateFailure(ErrorCode.Unauthorized);
-return FailureProvider.CreateFailure(ErrorCode.NotFound, "找不到資源");
-return FailureProvider.CreateFailure(ErrorCode.ValidationError, "驗證失敗", new { Field = "email" });
+// ✅ 使用 FailureProvider 建立 Failure，並引用 per-BC 常數
+return FailureProvider.CreateFailure(CreateApiKeyFailureCodes.KeyLimitExceeded);
+return FailureProvider.CreateFailure(ConsumerValidationFailureCodes.TenantNotFound);
 
 // ❌ 禁止直接 new Failure
-return new Failure(ErrorCode.NotFound, "找不到資源"); // ❌ 禁止
+return new Failure("KEY_LIMIT_EXCEEDED"); // ❌ 禁止
+
+// ❌ 禁止裸字串（typo 風險、無 IDE 跳轉、無集中索引）
+return FailureProvider.CreateFailure("KEY_LIMIT_EXCEEDED"); // ❌ 應改用常數
+
+// ❌ 禁止假設不存在的多載（CreateFailure 只接受 string code）
+return FailureProvider.CreateFailure(ErrorCode.NotFound, "找不到資源"); // ❌ 不存在的 enum / 多載
 ```
+
+### Failure Code 常數宣告
+
+```csharp
+// BC-internal code → 放 BC slice 內
+namespace ApiKeyManagement.KeyLifecycle.CreateApiKey;
+
+public static class CreateApiKeyFailureCodes
+{
+    public const string KeyLimitExceeded = "KEY_LIMIT_EXCEEDED";
+    public const string KeyNameDuplicate = "KEY_NAME_DUPLICATE";
+    public const string ScopeNotFound = "SCOPE_NOT_FOUND";
+    public const string ValidationErrorPrefix = "VALIDATION_ERROR";
+}
+
+// Cross-BC contract code → 放 contract 附近（SharedKernel/Contracts）
+namespace ApiKeyManagement.SharedKernel.Contracts;
+
+public static class ConsumerValidationFailureCodes
+{
+    public const string TenantNotFound = "TENANT_NOT_FOUND";
+    public const string TenantSuspended = "TENANT_SUSPENDED";
+    public const string ConsumerNotFound = "CONSUMER_NOT_FOUND";
+}
+```
+
+> 規則：
+> - **不預先建立 Common code 常數類別** — 真正跨多 BC 共用時再抽。
+> - 常數類別命名：`{BC 或 Slice}FailureCodes`，flat `public static class` + `public const string`。
+> - Endpoint 分流時 `switch` arm 引用常數；前綴比對用 `StartsWith(CreateApiKeyFailureCodes.ValidationErrorPrefix)`。
 
 ### Result 檢查
 
@@ -95,7 +133,7 @@ public async Task<IActionResult> GetOrder(int id, CancellationToken cancel)
 // ✅ 直接建立 Failure（權限檢查等）
 if (!User.Identity?.IsAuthenticated ?? true)
 {
-    return this.Failure(FailureProvider.CreateFailure(ErrorCode.Unauthorized));
+    return this.Failure(FailureProvider.CreateFailure(GetOrderFailureCodes.Unauthorized));
 }
 ```
 
@@ -118,7 +156,7 @@ public async Task<Result<Order, Failure>> GetByIdAsync(int id, CancellationToken
         
         if (order is null)
         {
-            return FailureProvider.CreateFailure(ErrorCode.NotFound);
+            return FailureProvider.CreateFailure(OrderRepositoryFailureCodes.NotFound);
         }
         
         return order;
@@ -126,7 +164,7 @@ public async Task<Result<Order, Failure>> GetByIdAsync(int id, CancellationToken
     catch (DbException ex)
     {
         _logger.LogError(ex, "資料庫查詢失敗: OrderId={OrderId}", id);
-        return FailureProvider.CreateFailure(ErrorCode.DatabaseError, ex.Message);
+        return FailureProvider.CreateFailure(OrderRepositoryFailureCodes.DatabaseError);
     }
 }
 ```
@@ -148,10 +186,13 @@ public async Task<Result<ExternalResponse, Failure>> CallExternalApiAsync(Cancel
     catch (HttpRequestException ex)
     {
         _logger.LogError(ex, "外部 API 呼叫失敗");
-        return FailureProvider.CreateFailure(ErrorCode.ExternalServiceError, ex.Message);
+        return FailureProvider.CreateFailure(ExternalApiFailureCodes.ExternalServiceError);
     }
 }
 ```
+
+> 例外的 `ex.Message` 不會進入 `Failure`（Failure 只有 Code）。診斷資訊由 boundary
+> logger 透過 `_logger.LogError(ex, ...)` 處理，Failure 僅向上傳遞穩定的 code。
 
 ---
 
@@ -171,6 +212,7 @@ public async Task<Result<ExternalResponse, Failure>> CallExternalApiAsync(Cancel
 |-------|-------------------|----------|
 | **Service 拋例外** | Service 層使用 `throw` 處理商業邏輯 | 🔴 Critical |
 | **new Failure()** | 直接建立 `new Failure()` 而非使用 FailureProvider | 🔴 Critical |
+| **裸字串 Failure code** | `CreateFailure("FOO")` 而非引用 `*FailureCodes.Foo` | 🟡 Warning |
 | **未檢查 Result** | 直接使用 `.Value` 未檢查 `.IsFailure` | 🔴 Critical |
 | **Empty Catch** | `catch { }` 或 `catch (Exception) { }` 不處理 | 🔴 Critical |
 | **throw ex** | `throw ex;` 而非 `throw;`（遺失堆疊追蹤） | 🟡 Bug |
@@ -178,15 +220,13 @@ public async Task<Result<ExternalResponse, Failure>> CallExternalApiAsync(Cancel
 
 ---
 
-## E. ErrorCode 常用值
+## E. Failure Code 常數位置
 
-```csharp
-// 常用 ErrorCode
-ErrorCode.Unauthorized      // 401 未授權
-ErrorCode.Forbidden         // 403 禁止存取
-ErrorCode.NotFound          // 404 找不到資源
-ErrorCode.ValidationError   // 400 驗證錯誤
-ErrorCode.DatabaseError     // 500 資料庫錯誤
-ErrorCode.ExternalServiceError // 502 外部服務錯誤
-ErrorCode.UnknownError      // 500 未知錯誤
-```
+| 範圍 | 位置 | 範例 |
+|------|------|------|
+| Slice/BC 內部 | BC slice 資料夾內 | `KeyLifecycle/CreateApiKey/CreateApiKeyFailureCodes.cs` |
+| 跨 BC contract | contract 同一資料夾 | `SharedKernel/Contracts/ConsumerValidationFailureCodes.cs` |
+| Common（多 BC 共用） | 不預先建立 | 真正出現第二個使用者時再抽 |
+
+> 沒有 `ErrorCode` enum — 本專案 `Failure.Code` 是 `string`。
+> Code 字面值（例如 `"TENANT_NOT_FOUND"`）為 HTTP 回應的穩定 contract，常數命名（PascalCase）只是 IDE 端的取用便利。

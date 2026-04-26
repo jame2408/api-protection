@@ -30,7 +30,7 @@ public async Task<Result<OrderResponse, Failure>> GetOrderAsync(
     var order = await _repository.GetByIdAsync(orderId, cancel);
     if (order is null)
     {
-        return FailureProvider.CreateFailure(ErrorCode.NotFound);
+        return FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound);
     }
     
     return new OrderResponse { Id = order.Id, Total = order.Total };
@@ -165,7 +165,7 @@ public async Task<Result<Order, Failure>> GetOrderWithTimeoutAsync(
     }
     catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
     {
-        return FailureProvider.CreateFailure(ErrorCode.Timeout, "操作逾時");
+        return FailureProvider.CreateFailure(GetOrderFailureCodes.Timeout);
     }
 }
 ```

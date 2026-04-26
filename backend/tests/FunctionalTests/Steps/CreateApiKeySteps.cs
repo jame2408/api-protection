@@ -334,6 +334,9 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     {
         var map = new Dictionary<string, (HttpStatusCode Status, string ErrorCode)>
         {
+            // API wire contract — keep literals here to lock external HTTP error codes.
+            // Production code uses *FailureCodes.* constants; this map intentionally
+            // re-states the strings so a constant value drift would surface as a test failure.
             ["租戶不存在"]            = (HttpStatusCode.NotFound,            "TENANT_NOT_FOUND"),
             ["租戶未啟用"]            = (HttpStatusCode.Forbidden,           "TENANT_SUSPENDED"),
             ["Consumer 不屬於該租戶"] = (HttpStatusCode.NotFound,            "CONSUMER_NOT_FOUND"),

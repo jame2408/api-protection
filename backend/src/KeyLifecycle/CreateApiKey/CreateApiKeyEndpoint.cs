@@ -1,3 +1,4 @@
+using ApiKeyManagement.SharedKernel.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -38,14 +39,14 @@ public static class CreateApiKeyEndpoint
                 {
                     return result.Error.Code switch
                     {
-                        "TENANT_NOT_FOUND"       => Results.NotFound(new { error = result.Error.Code }),
-                        "CONSUMER_NOT_FOUND"     => Results.NotFound(new { error = result.Error.Code }),
-                        "TENANT_SUSPENDED"       => Results.Json(new { error = result.Error.Code }, statusCode: 403),
-                        "KEY_LIMIT_EXCEEDED"     => Results.Conflict(new { error = result.Error.Code }),
-                        "KEY_NAME_DUPLICATE"     => Results.Conflict(new { error = result.Error.Code }),
-                        "SCOPE_NOT_FOUND"        => Results.UnprocessableEntity(new { error = result.Error.Code }),
-                        "EXPIRES_AT_EXCEEDS_MAX" => Results.UnprocessableEntity(new { error = result.Error.Code }),
-                        _ when result.Error.Code.StartsWith("VALIDATION_ERROR") =>
+                        ConsumerValidationFailureCodes.TenantNotFound    => Results.NotFound(new { error = result.Error.Code }),
+                        ConsumerValidationFailureCodes.ConsumerNotFound  => Results.NotFound(new { error = result.Error.Code }),
+                        ConsumerValidationFailureCodes.TenantSuspended   => Results.Json(new { error = result.Error.Code }, statusCode: 403),
+                        CreateApiKeyFailureCodes.KeyLimitExceeded        => Results.Conflict(new { error = result.Error.Code }),
+                        CreateApiKeyFailureCodes.KeyNameDuplicate        => Results.Conflict(new { error = result.Error.Code }),
+                        CreateApiKeyFailureCodes.ScopeNotFound           => Results.UnprocessableEntity(new { error = result.Error.Code }),
+                        CreateApiKeyFailureCodes.ExpiresAtExceedsMax     => Results.UnprocessableEntity(new { error = result.Error.Code }),
+                        _ when result.Error.Code.StartsWith(CreateApiKeyFailureCodes.ValidationErrorPrefix) =>
                             Results.BadRequest(new { error = result.Error.Code }),
                         _ => Results.Problem(result.Error.Code)
                     };
