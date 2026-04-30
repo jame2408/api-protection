@@ -23,33 +23,16 @@ body="$(cat comment.md)"
 gh pr comment <ID> --body-file comment.md
 ```
 
-## GitLab: `glab api` POST note (preferred in this repo)
-
-1. Prepare `comment.md` with Markdown.
-2. Post via API (use `--raw-field` for Markdown body):
-
-Same-repo (default, relies on current git repo context):
+Cross-repo:
 
 ```bash
-body="$(cat comment.md)"
-
-# Endpoint uses project inferred by glab via :fullpath
-glab api projects/:fullpath/merge_requests/<MR_IID>/notes --method POST -f "body=$body"
+gh pr comment <ID> -R owner/repo --body-file comment.md
 ```
 
-Cross-repo (recommended: explicit project ID + `-R`):
+Verification (recommended): fetch comments and search for your stable marker:
 
 ```bash
-body="$(cat comment.md)"
+marker="ai-code-review:github-pr:<ID>:bug-01"
 
-glab api -R "group/namespace/project" "projects/<PROJECT_ID>/merge_requests/<MR_IID>/notes" --method POST -f "body=$body"
-```
-
-Verification (recommended): fetch notes and search for your stable marker:
-
-```bash
-marker="ai-code-review:gitlab-mr:<MR_IID>:bug-01"
-
-# Use cross-repo form when needed
-glab api -R "group/namespace/project" "projects/<PROJECT_ID>/merge_requests/<MR_IID>/notes" --method GET | grep -F "$marker"
+gh pr view <ID> --json comments --jq '.comments[].body' | grep -F "$marker"
 ```

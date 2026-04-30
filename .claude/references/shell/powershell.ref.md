@@ -29,7 +29,7 @@ Example:
 ```powershell
 Set-Location "D:\path\to\repo"
 $body = Get-Content -Path "comment.md" -Raw -Encoding UTF8
-# ... then run glab/gh
+# ... then run gh
 ```
 
 ## GitHub: Prefer `gh pr comment --body-file`
@@ -38,26 +38,15 @@ $body = Get-Content -Path "comment.md" -Raw -Encoding UTF8
 gh pr comment <ID> --body-file comment.md
 ```
 
-## GitLab: `glab api` POST note (preferred in this repo)
+Cross-repo:
 
 ```powershell
-$body = Get-Content -Path "comment.md" -Raw -Encoding UTF8
-
-# Same-repo: Endpoint uses project inferred by glab via :fullpath
-glab api projects/:fullpath/merge_requests/<MR_IID>/notes --method POST -f "body=$body"
-```
-
-Cross-repo (recommended):
-
-```powershell
-$body = Get-Content -Path "comment.md" -Raw -Encoding UTF8
-
-glab api -R "group/namespace/project" "projects/<PROJECT_ID>/merge_requests/<MR_IID>/notes" --method POST -f "body=$body"
+gh pr comment <ID> -R "owner/repo" --body-file comment.md
 ```
 
 ## UTF-8 Display Notes (Chinese looks garbled in console)
 
-If the GitLab UI shows correct content but your PowerShell console displays `�`:
+If the GitHub UI shows correct content but your PowerShell console displays `�`:
 
 ```powershell
 # Set console output encoding to UTF-8 for this session

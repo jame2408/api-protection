@@ -3,15 +3,15 @@ name: code-review
 description: |
   Technical code review workflow (警察/審計員角色).
   Triggered by: review, audit, security, bug finding keywords.
-  - PR/MR Mode: Contains PR/MR ID or URL → Review GitLab MR or GitHub PR
-  - Self Mode: No PR/MR specified → Review local changes
-  VCS platform (GitLab/GitHub) is detected from git remote; commands from `vcs-platform-commands.ref.md`.
-  
+  - PR Mode: Contains GitHub PR ID or URL → Review GitHub PR
+  - Self Mode: No PR specified → Review local changes
+  This project uses GitHub only; commands from `vcs-platform-commands.ref.md`.
+
   Required capabilities for Phase 2.5 (Impact & Dependency Analysis):
   - Exact search in repo (e.g. grep)
   - Semantic search in repo (optional)
   - Read file contents
-  - Run git + VCS CLI commands (glab/gh; may require network)
+  - Run git + GitHub CLI commands (gh; may require network)
 metadata:
   trigger: /code-review, /review, or "review" keywords
 ---
@@ -79,11 +79,11 @@ References are loaded dynamically based on **file suffix**. See **Phase 3** for 
 | `*.guide.md` | ❌ Skip | 開發指南、教學文件 |
 | `*.ref.md` | ❌ Skip by default | 純參考資料（僅在 SKILL.md **明確點名** 時才讀取，例如 VCS 指令、posting、runtime/shell mapping） |
 
-### VCS Platform Commands (PR/MR Mode)
+### VCS Platform Commands (PR Mode)
 
 | File | Purpose |
 |------|---------|
-| `{CONFIG_ROOT}/references/vcs/vcs-platform-commands.ref.md` | GitLab/GitHub 指令對照、平台偵測、URL/ID 提取規則。PR/MR Mode 必讀。 |
+| `{CONFIG_ROOT}/references/vcs/vcs-platform-commands.ref.md` | GitHub `gh` 指令對照、URL/ID 提取規則。PR Mode 必讀。 |
 
 ### Directory Structure (Project Root Relative)
 
@@ -119,22 +119,21 @@ References are loaded dynamically based on **file suffix**. See **Phase 3** for 
 | **安全類** | 「安全」「漏洞」「資安」 | `security`, `vulnerability` |
 | **指令類** | `/code-review`、`/review` | (explicit commands) |
 
-### 平台偵測（PR/MR Mode 必須）
+### 平台偵測（PR Mode 必須）
 
-進入 PR/MR Mode 前，從 `git remote get-url origin` 偵測 VCS 平台：
-- 含 `gitlab` → GitLab（使用 glab）
+進入 PR Mode 前，從 `git remote get-url origin` 確認為 GitHub remote：
 - 含 `github` → GitHub（使用 gh）
-- 無法偵測時預設 GitLab
+- 否則 → 不進入 PR Mode；fallback 到 Self Mode 或請使用者確認
 
 > 指令對照表見 `{CONFIG_ROOT}/references/vcs/vcs-platform-commands.ref.md`
 
 ### 模式判定邏輯
 
 ```
-Step 1: 檢查是否包含 PR/MR 識別
-  - 包含 GitLab URL (merge_requests/123) 或 GitHub URL (pull/123) → PR/MR Mode
-  - 包含 "MR" 或 "PR" + 數字 (e.g., "MR 249", "PR#42") → PR/MR Mode
-  - 包含 `/code-review <number>` → PR/MR Mode
+Step 1: 檢查是否包含 PR 識別
+  - 包含 GitHub URL (pull/123) → PR Mode
+  - 包含 "PR" + 數字 (e.g., "PR#42") → PR Mode
+  - 包含 `/code-review <number>` → PR Mode
   - 以上皆無 → Self Mode
 
 Step 2: 確認觸發條件
@@ -146,11 +145,9 @@ Step 2: 確認觸發條件
 
 | Trigger Example | Mode | Data Source |
 |-----------------|------|-------------|
-| `/code-review 249` | PR/MR | 依 git remote 決定 GitLab MR 或 GitHub PR |
-| `review MR 249` | PR/MR | GitLab MR |
-| `review PR 42` | PR/MR | GitHub PR |
-| `https://gitlab.../merge_requests/94` | PR/MR | GitLab MR |
-| `https://github.../pull/42` | PR/MR | GitHub PR |
+| `/code-review 249` | PR | GitHub PR #249 |
+| `review PR 42` | PR | GitHub PR |
+| `https://github.../pull/42` | PR | GitHub PR |
 | `/code-review` 或 `/review` | Self | `git diff HEAD` |
 | `幫我 review 這段程式` | Self | `git diff HEAD` |
 | `檢查有沒有安全問題` | Self | `git diff HEAD` |
@@ -169,16 +166,16 @@ Step 2: 確認觸發條件
 
 ---
 
-### PR/MR Review Mode
+### PR Review Mode
 
-1. **偵測平台**：讀取 `vcs-platform-commands.ref.md`，依 git remote 決定 GitLab/GitHub
-2. **Fetch 詳情與 diff**：依平台執行對應指令（GitLab: `glab mr view/diff`，GitHub: `gh pr view/diff`）
-3. **確保 workspace 一致**：依平台 checkout（GitLab: `glab mr checkout`，GitHub: `gh pr checkout`）詳見 Phase 2.5 Step 2.5.0
+1. **確認 GitHub remote**：讀取 `vcs-platform-commands.ref.md`，從 git remote 確認為 GitHub
+2. **Fetch 詳情與 diff**：執行 `gh pr view <ID>` 與 `gh pr diff <ID>`
+3. **確保 workspace 一致**：執行 `gh pr checkout <ID>` 切換到 PR 的 source branch（詳見 Phase 2.5 Step 2.5.0）
 4. **Impact & Dependency Analysis**：從 diff 抽出關鍵實體，在專案內搜尋引用/定義（不只審 diff）
 5. Load language-specific references
 6. Apply review rules to **diff + 影響面**
 7. Output to chat
-8. (Optional) Post findings to PR/MR as comment（依平台讀取對應 posting ref）
+8. (Optional) Post findings to PR as comment（讀取 `code-review-posting-github.ref.md`）
 
 ### Self Review Mode
 
@@ -199,20 +196,17 @@ Step 2: 確認觸發條件
 - ELSE IF request contains `/code-review` 或 `/review` → 觸發
 - ELSE → **不觸發此 Skill，交由其他 Skill 處理**
 
-**Step 2: Mode Detection (PR/MR vs Self)**
-- IF request contains GitLab URL (`merge_requests/(\d+)`) → Extract ID → **PR/MR Mode** (GitLab)
-- ELSE IF request contains GitHub URL (`pull/(\d+)`) → Extract ID → **PR/MR Mode** (GitHub)
-- ELSE IF request contains MR reference (`MR\s*#?\s*(\d+)`) → Extract ID → **PR/MR Mode** (GitLab)
-- ELSE IF request contains PR reference (`PR\s*#?\s*(\d+)`) → Extract ID → **PR/MR Mode** (GitHub)
-- ELSE IF request contains `/code-review <number>` → Extract ID，依 git remote 決定平台 → **PR/MR Mode**
+**Step 2: Mode Detection (PR vs Self)**
+- IF request contains GitHub URL (`pull/(\d+)`) → Extract ID → **PR Mode**
+- ELSE IF request contains PR reference (`PR\s*#?\s*(\d+)`) → Extract ID → **PR Mode**
+- ELSE IF request contains `/code-review <number>` → Extract ID → **PR Mode**
 - ELSE → **Self Mode**
 
-**Step 3A: PR/MR Mode**
-1. 讀取 `vcs-platform-commands.ref.md`，依 git remote 偵測平台
-2. IF GitLab：Clear proxy 後執行 `glab mr view <ID>`、`glab mr diff <ID>`
-3. IF GitHub：執行 `gh pr view <ID>`、`gh pr diff <ID>`
-4. IF PR/MR is draft/WIP → STOP, inform user "PR/MR is draft, skipping review"
-5. ELSE → 執行對應 checkout 指令（`glab mr checkout` 或 `gh pr checkout`）切換至 source branch（Phase 2.5 搜尋需本機一致）→ Go to Step 4
+**Step 3A: PR Mode**
+1. 讀取 `vcs-platform-commands.ref.md` 確認 GitHub remote
+2. Clear proxy（如需）後執行 `gh pr view <ID>`、`gh pr diff <ID>`
+3. IF PR is draft/WIP → STOP, inform user "PR is draft, skipping review"
+4. ELSE → 執行 `gh pr checkout <ID>` 切換至 source branch（Phase 2.5 搜尋需本機一致）→ Go to Step 4
 
 **Step 3B: Self Mode**
 
@@ -249,9 +243,9 @@ git --no-pager diff --name-only HEAD | wc -l
 5. Generate findings based on Confidence Scoring；僅依 diff 推論且未在專案內驗證者，不得標為確定 Bug。
 
 **Step 5: Output**
-- IF PR/MR Mode:
-  - Output review to chat (using PR/MR Mode template)
-  - IF user explicitly requests → 依平台讀取 `{CONFIG_ROOT}/references/vcs/code-review-posting-gitlab.ref.md` 或 `{CONFIG_ROOT}/references/vcs/code-review-posting-github.ref.md` 並 Post comment
+- IF PR Mode:
+  - Output review to chat (using PR Mode template)
+  - IF user explicitly requests → 讀取 `{CONFIG_ROOT}/references/vcs/code-review-posting-github.ref.md` 並 Post comment
 - IF Self Mode:
   - Output review to chat only (using Self Mode template)
   - DO NOT post anywhere external
@@ -296,11 +290,11 @@ git --no-pager diff --name-only HEAD | wc -l
 | **Medium (100-500 lines)** | Review by file, focus on integration points |
 | **Large (>500 lines)** | Architecture review first, then critical paths only |
 
-**Skip review if (PR/MR Mode):**
-- PR/MR is draft/WIP
-- PR/MR is automated (dependabot, renovate)
-- PR/MR is trivial (typo fix, comment update)
-- You already reviewed this PR/MR
+**Skip review if (PR Mode):**
+- PR is draft/WIP
+- PR is automated (dependabot, renovate)
+- PR is trivial (typo fix, comment update)
+- You already reviewed this PR
 
 **Skip review if (Self Mode):**
 - No changes detected (`git diff` is empty)
@@ -310,8 +304,8 @@ git --no-pager diff --name-only HEAD | wc -l
 
 ## Phase 2: Context Gathering
 
-### PR/MR Mode
-1. **Read the PR/MR description** - Understand the intent
+### PR Mode
+1. **Read the PR description** - Understand the intent
 2. **Identify changed components** - Which layers are affected?
 3. **Check for project guidelines** - `CONTRIBUTING.md`, `CLAUDE.md`(or `AGENT.md`, or `GEMINI.md`), `.editorconfig`
 4. **Detect tech stack** - Check file extensions and project files
@@ -344,10 +338,10 @@ git --no-pager diff --name-only HEAD | wc -l
 
 | 模式 | 前置動作 | 目的 |
 |------|----------|------|
-| **PR/MR Mode** | 1. 依平台執行 checkout（GitLab: `glab mr checkout <ID>`，GitHub: `gh pr checkout <ID>`）<br>2. 確認該 branch 已與 remote 同步（必要時 `git pull`） | 確保搜尋的本機程式碼與 PR/MR 實際變更一致 |
+| **PR Mode** | 1. 執行 `gh pr checkout <ID>`<br>2. 確認該 branch 已與 remote 同步（必要時 `git pull`） | 確保搜尋的本機程式碼與 PR 實際變更一致 |
 | **Self Mode** | 可選：提醒使用者確認當前 branch，若有需要可 `git pull --rebase` | 降低合併時與 remote 衝突的風險 |
 
-**PR/MR Mode 實務**：在執行 fetch view/diff 之後、Phase 2.5 搜尋之前，應先執行對應 checkout 指令（見 `vcs-platform-commands.ref.md`），確保 workspace 處於該 PR/MR 的 source branch 且為最新。
+**PR Mode 實務**：在執行 fetch view/diff 之後、Phase 2.5 搜尋之前，應先執行 `gh pr checkout <ID>`（見 `vcs-platform-commands.ref.md`），確保 workspace 處於該 PR 的 source branch 且為最新。
 
 ### Step 2.5.1: 從 Diff 抽出關鍵實體
 
@@ -535,16 +529,14 @@ Before reporting an issue found in Step 3:
 
 | Mode | Template 路徑 |
 |------|---------------|
-| PR/MR Mode | `{SKILL_DIR}/templates/report-pr-mode.md` |
+| PR Mode | `{SKILL_DIR}/templates/report-pr-mode.md` |
 | Self Mode | `{SKILL_DIR}/templates/report-self-mode.md` |
 
 > `{SKILL_DIR}` = 本 SKILL 所在目錄（例如 `.claude/skills/code-review` 或 `{CONFIG_ROOT}/skills/code-review`）
 
 ---
 
-**PR/MR Mode 發布留言**：依平台讀取對應檔案（見 `vcs-platform-commands.ref.md` 的 Posting Comments 區塊）：
-- GitLab → `{CONFIG_ROOT}/references/vcs/code-review-posting-gitlab.ref.md`
-- GitHub → `{CONFIG_ROOT}/references/vcs/code-review-posting-github.ref.md`
+**PR Mode 發布留言**：讀取 `{CONFIG_ROOT}/references/vcs/code-review-posting-github.ref.md`（見 `vcs-platform-commands.ref.md` 的 Posting Comments 區塊）。
 
 ---
 
