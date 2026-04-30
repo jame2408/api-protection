@@ -53,7 +53,7 @@ public async Task GetOrderAsync_WhenOrderExists_ShouldReturnSuccessResult()
     const int orderId = 1;
     var expectedOrder = new Order { Id = orderId, Total = 100 };
     _orderRepository.GetByIdAsync(orderId, Arg.Any<CancellationToken>())
-        .Returns(Result.Success<Order, Failure>(expectedOrder));
+        .Returns(expectedOrder);
     
     // Act
     var result = await _service.GetOrderAsync(orderId, CancellationToken.None);
@@ -71,7 +71,7 @@ public async Task GetOrderAsync_WhenOrderNotFound_ShouldReturnFailure()
     // Arrange
     const int invalidId = -1;
     _orderRepository.GetByIdAsync(invalidId, Arg.Any<CancellationToken>())
-        .Returns(FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound));
+        .Returns((Order?)null);
     
     // Act
     var result = await _service.GetOrderAsync(invalidId, CancellationToken.None);
@@ -156,12 +156,12 @@ _orderRepository.GetByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
 _orderRepository.GetByIdAsync(1, Arg.Any<CancellationToken>())
     .Returns(new Order { Id = 1 });
 
-// 回傳 Result
-_orderRepository.GetByIdAsync(1, Arg.Any<CancellationToken>())
-    .Returns(Result.Success<Order, Failure>(new Order { Id = 1 }));
+// 回傳 Result（Handler / Service dependency 使用 implicit conversion）
+_orderService.GetOrderAsync(1, Arg.Any<CancellationToken>())
+    .Returns(new OrderResponse { Id = 1 });
 
 // 回傳 Failure（引用 per-BC 常數）
-_orderRepository.GetByIdAsync(-1, Arg.Any<CancellationToken>())
+_orderService.GetOrderAsync(-1, Arg.Any<CancellationToken>())
     .Returns(FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound));
 
 // 拋出例外

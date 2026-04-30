@@ -65,37 +65,43 @@ var connectionString = configuration.GetConnectionString("Default");
 
 | Risk Level | Pattern | Example |
 |------------|---------|---------|
-| 🔴 Critical | 敏感資料的公開端點 | 沒有 `[Authorize]` 的管理端點 |
-| 🟡 High | 缺少角色檢查 | 管理操作沒有 `[Authorize(Roles="Admin")]` |
+| 🔴 Critical | 敏感資料的公開端點 | 沒有 `.RequireAuthorization()` 的管理端點 |
+| 🟡 High | 缺少角色檢查 | 管理操作沒有 `.RequireAuthorization("Admin")` 或等效 policy |
 
 ```csharp
 // ❌ 缺少授權
-[HttpGet("users/{id}/profile")]
-public async Task<IActionResult> GetUserProfile(int id)
+app.MapGet("/users/{id}/profile", async (
+    int id,
+    IUserProfileService userProfileService,
+    CancellationToken cancel) =>
 {
-    return Ok(await _userService.GetProfile(id));
-}
+    var profile = await userProfileService.GetProfileAsync(id, cancel);
+    return Results.Ok(profile);
+});
 
-// ✅ 本專案使用 [Authenticate] 或 [Authorize]
-[Authenticate]
-[HttpGet("users/{id}/profile")]
-public async Task<IActionResult> GetUserProfile(int id, CancellationToken cancel = default)
+// ✅ Minimal API 使用 RequireAuthorization，並檢查資源所有權（防止 IDOR）
+app.MapGet("/users/{id}/profile", async (
+    int id,
+    ClaimsPrincipal user,
+    IUserProfileService userProfileService,
+    CancellationToken cancel) =>
 {
-    // 檢查使用者是否有權存取此 profile（防止 IDOR）
-    var talentNo = User.GetTalentNo();
+    var talentNo = user.GetTalentNo();
     if (talentNo != id)
     {
-        return this.Failure(FailureProvider.CreateFailure(UserProfileFailureCodes.Forbidden));
+        return Results.Json(
+            new { error = UserProfileFailureCodes.Forbidden },
+            statusCode: StatusCodes.Status403Forbidden);
     }
-    
-    var result = await _userService.GetProfileAsync(id, cancel);
+
+    var result = await userProfileService.GetProfileAsync(id, cancel);
     if (result.IsFailure)
     {
-        return this.Failure(result.Error);
+        return Results.Problem(result.Error.Code);
     }
-    
-    return Ok(result.Value);
-}
+
+    return Results.Ok(result.Value);
+}).RequireAuthorization();
 ```
 
 ---
@@ -108,25 +114,29 @@ public async Task<IActionResult> GetUserProfile(int id, CancellationToken cancel
 
 ```csharp
 // ❌ SSRF 風險 - 使用者可存取內部服務
-[HttpGet("fetch")]
-public async Task<IActionResult> FetchUrl([FromQuery] string url)
+app.MapGet("/fetch", async (
+    string url,
+    HttpClient httpClient,
+    CancellationToken cancel) =>
 {
-    var content = await _httpClient.GetStringAsync(url); // 危險!
-    return Ok(content);
-}
+    var content = await httpClient.GetStringAsync(url, cancel); // 危險!
+    return Results.Ok(content);
+});
 
 // ✅ 驗證並白名單 URL
-[HttpGet("fetch")]
-public async Task<IActionResult> FetchUrl([FromQuery] string url, CancellationToken cancel = default)
+app.MapGet("/fetch", async (
+    string url,
+    HttpClient httpClient,
+    CancellationToken cancel) =>
 {
     if (!IsAllowedUrl(url))
     {
-        return this.Failure(FailureProvider.CreateFailure(FetchUrlFailureCodes.HostNotAllowed));
+        return Results.BadRequest(new { error = FetchUrlFailureCodes.HostNotAllowed });
     }
-    
-    var content = await _httpClient.GetStringAsync(url, cancel);
-    return Ok(content);
-}
+
+    var content = await httpClient.GetStringAsync(url, cancel);
+    return Results.Ok(content);
+});
 
 private static bool IsAllowedUrl(string url)
 {
@@ -146,37 +156,35 @@ private static bool IsAllowedUrl(string url)
 
 ```csharp
 // ❌ Path Traversal 風險
-[HttpGet("files")]
-public IActionResult GetFile([FromQuery] string filename)
+app.MapGet("/files", (string filename) =>
 {
     var path = Path.Combine("uploads", filename);
-    return File(System.IO.File.ReadAllBytes(path), "application/octet-stream");
+    return Results.File(File.ReadAllBytes(path), "application/octet-stream");
     // 使用者可傳入 "../../../etc/passwd" 或 "..\..\web.config"
-}
+});
 
 // ✅ 驗證並清理路徑
-[HttpGet("files")]
-public IActionResult GetFile([FromQuery] string filename)
+app.MapGet("/files", (string filename) =>
 {
     // 移除路徑分隔符
     var safeName = Path.GetFileName(filename);
-    
+
     var basePath = Path.GetFullPath("uploads");
     var fullPath = Path.GetFullPath(Path.Combine(basePath, safeName));
-    
+
     // 確保路徑在允許的目錄內
-    if (!fullPath.StartsWith(basePath))
+    if (!fullPath.StartsWith(basePath, StringComparison.Ordinal))
     {
-        return this.Failure(FailureProvider.CreateFailure(GetFileFailureCodes.InvalidFilename));
+        return Results.BadRequest(new { error = GetFileFailureCodes.InvalidFilename });
     }
-    
-    if (!System.IO.File.Exists(fullPath))
+
+    if (!File.Exists(fullPath))
     {
-        return this.Failure(FailureProvider.CreateFailure(GetFileFailureCodes.FileNotFound));
+        return Results.NotFound(new { error = GetFileFailureCodes.FileNotFound });
     }
-    
-    return File(System.IO.File.ReadAllBytes(fullPath), "application/octet-stream");
-}
+
+    return Results.File(File.ReadAllBytes(fullPath), "application/octet-stream");
+});
 ```
 
 ---
@@ -202,14 +210,14 @@ public class CreateOrderRequestValidator : AbstractValidator<CreateOrderRequest>
         RuleFor(x => x.CustomerName)
             .NotEmpty()
             .MaximumLength(100);
-        
+
         RuleFor(x => x.Email)
             .NotEmpty()
             .EmailAddress();
-        
+
         RuleFor(x => x.Amount)
             .GreaterThan(0);
-        
+
         RuleFor(x => x.Items)
             .NotEmpty()
             .Must(items => items.Sum(i => i.Quantity) <= 100)
@@ -226,13 +234,13 @@ public class CreateOrderRequestValidator : AbstractValidator<CreateOrderRequest>
 
 ```csharp
 // ❌ 記錄敏感資料
-_logger.LogInformation("User login: {Email}, Password: {Password}", email, password);
+logger.LogInformation("User login: {Email}, Password: {Password}", email, password);
 
 // ✅ 遮蔽敏感資料
-_logger.LogInformation("User login: {Email}", email);
+logger.LogInformation("User login: {Email}", email);
 
 // ✅ 使用結構化日誌記錄安全的資料
-_logger.LogInformation("User {UserId} logged in from {IpAddress}", userId, ipAddress);
+logger.LogInformation("User {UserId} logged in from {IpAddress}", userId, ipAddress);
 ```
 
 ### Response Data
@@ -262,7 +270,7 @@ public class UserResponse
 |-------|-------------------|----------|
 | SQL Injection | `$"SELECT...{var}"`, `+ variable +` in SQL | 🔴 Critical |
 | Hardcoded Secrets | `password =`, `apiKey =`, `connectionString =` literals | 🔴 Critical |
-| Missing Auth | 敏感端點沒有 `[Authorize]` 或 `[Authenticate]` | 🔴 Critical |
+| Missing Auth | 敏感端點沒有 `.RequireAuthorization()` 或等效 policy | 🔴 Critical |
 | SSRF | `HttpClient.Get*(userInput)` | 🔴 Critical |
 | Path Traversal | `File.*` 使用使用者輸入 | 🔴 Critical |
 | XSS | `Html.Raw(userInput)` | 🔴 Critical |

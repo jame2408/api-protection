@@ -10,9 +10,18 @@
 
 ```csharp
 // ✅ 本專案使用 cancel 作為參數名，並給預設值
-public async Task<Result<Order, Failure>> GetOrderAsync(int id, CancellationToken cancel = default)
+public class GetOrderHandler(IOrderRepository orderRepository)
 {
-    return await _repository.GetByIdAsync(id, cancel);
+    public async Task<Result<OrderResponse, Failure>> HandleAsync(
+        int id,
+        CancellationToken cancel = default)
+    {
+        var order = await orderRepository.GetByIdAsync(id, cancel);
+        if (order is null)
+            return FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound);
+
+        return new OrderResponse { Id = order.Id, Total = order.Total };
+    }
 }
 
 // ❌ 不使用 cancellationToken（太長）
@@ -22,18 +31,21 @@ public async Task<Order> GetOrderAsync(int id, CancellationToken cancellationTok
 ### 搭配 Result Pattern
 
 ```csharp
-// ✅ 本專案 Service 層標準寫法
-public async Task<Result<OrderResponse, Failure>> GetOrderAsync(
-    int orderId, 
-    CancellationToken cancel = default)
+// ✅ 本專案 Handler / Service 標準寫法
+public class GetOrderHandler(IOrderRepository orderRepository)
 {
-    var order = await _repository.GetByIdAsync(orderId, cancel);
-    if (order is null)
+    public async Task<Result<OrderResponse, Failure>> HandleAsync(
+        int orderId,
+        CancellationToken cancel = default)
     {
-        return FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound);
+        var order = await orderRepository.GetByIdAsync(orderId, cancel);
+        if (order is null)
+        {
+            return FailureProvider.CreateFailure(GetOrderFailureCodes.OrderNotFound);
+        }
+
+        return new OrderResponse { Id = order.Id, Total = order.Total };
     }
-    
-    return new OrderResponse { Id = order.Id, Total = order.Total };
 }
 ```
 
@@ -44,39 +56,48 @@ public async Task<Result<OrderResponse, Failure>> GetOrderAsync(
 ### Async All The Way
 
 ```csharp
-// ✅ 從 Controller 到 Repository 全程 async
-[HttpGet("{id}")]
-public async Task<IActionResult> GetOrder(int id, CancellationToken cancel = default)
+// ✅ 從 Minimal API endpoint 到 Handler / Repository 全程 async
+app.MapGet("/orders/{id}", async (
+    int id,
+    IGetOrderHandler handler,
+    CancellationToken cancel) =>
 {
-    var result = await _orderService.GetOrderAsync(id, cancel);
+    var result = await handler.HandleAsync(id, cancel);
     if (result.IsFailure)
     {
-        return this.Failure(result.Error);
+        return Results.NotFound(new { error = result.Error.Code });
     }
-    return Ok(result.Value);
-}
+
+    return Results.Ok(result.Value);
+});
 ```
 
 ### Task.WhenAll 並行執行
 
 ```csharp
 // ✅ 並行執行多個獨立操作
-public async Task<Result<OrderSummary, Failure>> GetOrderSummaryAsync(
-    int orderId, 
-    CancellationToken cancel = default)
+public class GetOrderSummaryHandler(
+    IOrderRepository orderRepository,
+    IOrderItemRepository itemRepository,
+    ICustomerRepository customerRepository)
 {
-    var orderTask = _orderRepository.GetByIdAsync(orderId, cancel);
-    var itemsTask = _itemRepository.GetByOrderIdAsync(orderId, cancel);
-    var customerTask = _customerRepository.GetByOrderIdAsync(orderId, cancel);
-    
-    await Task.WhenAll(orderTask, itemsTask, customerTask);
-    
-    return new OrderSummary
+    public async Task<Result<OrderSummary, Failure>> HandleAsync(
+        int orderId,
+        CancellationToken cancel = default)
     {
-        Order = orderTask.Result,
-        Items = itemsTask.Result,
-        Customer = customerTask.Result,
-    };
+        var orderTask = orderRepository.GetByIdAsync(orderId, cancel);
+        var itemsTask = itemRepository.GetByOrderIdAsync(orderId, cancel);
+        var customerTask = customerRepository.GetByOrderIdAsync(orderId, cancel);
+
+        await Task.WhenAll(orderTask, itemsTask, customerTask);
+
+        return new OrderSummary
+        {
+            Order = orderTask.Result,
+            Items = itemsTask.Result,
+            Customer = customerTask.Result,
+        };
+    }
 }
 ```
 
@@ -85,10 +106,13 @@ public async Task<Result<OrderSummary, Failure>> GetOrderSummaryAsync(
 ```csharp
 // ✅ 共用 Library 中使用（例如 SharedKernel 內的非 ASP.NET 程式碼）
 //    Endpoint/Handler 中不需要 ConfigureAwait(false)，ASP.NET Core 沒有 sync context。
-public async Task<string> ProcessDataAsync(string input, CancellationToken cancel = default)
+public class ExternalDataProcessor(IExternalService externalService)
 {
-    var result = await _externalService.CallAsync(input, cancel).ConfigureAwait(false);
-    return result;
+    public async Task<string> ProcessDataAsync(string input, CancellationToken cancel = default)
+    {
+        var result = await externalService.CallAsync(input, cancel).ConfigureAwait(false);
+        return result;
+    }
 }
 ```
 
@@ -99,7 +123,7 @@ public async Task<string> ProcessDataAsync(string input, CancellationToken cance
 ### 禁止 .Result / .Wait()
 
 ```csharp
-// ❌ DEADLOCK 風險!
+// ❌ Blocking async call 會浪費 thread pool，並可能造成 deadlock / starvation
 var order = GetOrderAsync(id).Result;
 GetOrderAsync(id).Wait();
 var order = GetOrderAsync(id).GetAwaiter().GetResult();
@@ -108,11 +132,11 @@ var order = GetOrderAsync(id).GetAwaiter().GetResult();
 var order = await GetOrderAsync(id, cancel);
 ```
 
-**為什麼會 Deadlock？**
-1. ASP.NET 有 synchronization context
-2. `.Result` 阻塞執行緒等待完成
-3. async 的 continuation 需要同一條執行緒
-4. 執行緒被阻塞 → continuation 無法執行 → Deadlock
+**為什麼要避免 blocking async？**
+1. `.Result` / `.Wait()` 會阻塞目前 thread 等待 async work 完成
+2. 高併發下容易造成 thread pool starvation
+3. 在有 synchronization context 的環境中可能造成 deadlock
+4. 錯誤處理也會變差，例外常被包成 `AggregateException`
 
 ### 禁止 async void
 
@@ -153,12 +177,12 @@ var orders = await Task.WhenAll(tasks);
 
 ```csharp
 public async Task<Result<Order, Failure>> GetOrderWithTimeoutAsync(
-    int id, 
+    int id,
     CancellationToken cancel = default)
 {
     using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel);
     cts.CancelAfter(TimeSpan.FromSeconds(30));
-    
+
     try
     {
         return await GetOrderAsync(id, cts.Token);
@@ -189,7 +213,7 @@ _ = Task.Run(async () =>
     }
     catch (Exception ex)
     {
-        _logger.LogError(ex, "Failed to send email for order {OrderId}", order.Id);
+        logger.LogError(ex, "Failed to send email for order {OrderId}", order.Id);
     }
 });
 ```
@@ -200,9 +224,9 @@ _ = Task.Run(async () =>
 
 | Pattern | Issue | Severity |
 |---------|-------|----------|
-| `.Result` | Async Deadlock | 🔴 Critical |
-| `.Wait()` | Async Deadlock | 🔴 Critical |
-| `.GetAwaiter().GetResult()` | Async Deadlock | 🔴 Critical |
+| `.Result` | Async Deadlock / Thread Pool Starvation | 🔴 Critical |
+| `.Wait()` | Async Deadlock / Thread Pool Starvation | 🔴 Critical |
+| `.GetAwaiter().GetResult()` | Async Deadlock / Thread Pool Starvation | 🔴 Critical |
 | `async void` | Unobserved exceptions | 🔴 Critical |
 | `await` in `foreach` | Sequential when parallelizable | 🟡 Performance |
 | Missing `CancellationToken` | Can't cancel long operations | 🟡 Warning |
