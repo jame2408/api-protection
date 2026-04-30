@@ -42,6 +42,7 @@
 
 - [ADR-001: Tech Stack](./adr/adr-001-tech-stack.md) — 技術選型決策
 - [ADR-002: Project Structure](./adr/adr-002-project-structure.md) — 專案結構與架構模式
+- [ADR-003: Error Handling and Cross-BC Contracts](./adr/adr-003-error-handling-and-cross-bc-contracts.md) — Repository、Handler、HTTP boundary 與跨 BC contract 的錯誤處理責任分工
 
 ## 資料夾結構
 
@@ -67,5 +68,6 @@ docs/
 │   └── tenant-management.md
 └── adr/                       ← 架構決策紀錄
     ├── adr-001-tech-stack.md
-    └── adr-002-project-structure.md
+    ├── adr-002-project-structure.md
+    └── adr-003-error-handling-and-cross-bc-contracts.md
 ```

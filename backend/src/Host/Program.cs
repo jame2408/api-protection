@@ -1,3 +1,4 @@
+using ApiKeyManagement.Api.Middleware;
 using ApiKeyManagement.AccessPolicy;
 using ApiKeyManagement.Infrastructure;
 using ApiKeyManagement.KeyLifecycle;
@@ -17,6 +18,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+app.UseMiddleware<UnhandledExceptionMiddleware>();
 
 app.MapKeyLifecycleEndpoints();
 
