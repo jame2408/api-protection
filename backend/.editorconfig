@@ -1,0 +1,12 @@
+root = true
+
+# `dotnet format whitespace` 子命令是 hardcoded、不接受 IDE0055 嚴重度調整。
+# 唯一能讓它跳過特定檔案的 editorconfig 設定是 `generated_code = true`。
+# 本專案有兩個檔案以欄位對齊提升可讀性（HTTP status switch、BDD 期望表），
+# 對它們使用此設定，讓 dotnet format 視為 generated 而完整跳過。其餘檔案維持
+# 嚴格 whitespace 規則。
+[**/CreateApiKeyEndpoint.cs]
+generated_code = true
+
+[**/CreateApiKeySteps.cs]
+generated_code = true
