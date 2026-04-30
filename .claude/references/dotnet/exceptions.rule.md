@@ -146,25 +146,27 @@ if (!User.Identity?.IsAuthenticated ?? true)
 ### Repository 層
 
 ```csharp
-// ✅ Repository 捕捉 DB 例外並轉換為 Failure
-public async Task<Result<Order, Failure>> GetByIdAsync(int id, CancellationToken cancel)
+// ✅ Scoped Repository 直接注入 DbContext，捕捉 DB 例外並轉換為 Failure
+public class OrderRepository(AppDbContext db, ILogger<OrderRepository> logger) : IOrderRepository
 {
-    try
+    public async Task<Result<Order, Failure>> GetByIdAsync(int id, CancellationToken cancel)
     {
-        await using var context = await _contextFactory.CreateDbContextAsync(cancel);
-        var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == id, cancel);
-        
-        if (order is null)
+        try
         {
-            return FailureProvider.CreateFailure(OrderRepositoryFailureCodes.NotFound);
+            var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id, cancel);
+
+            if (order is null)
+            {
+                return FailureProvider.CreateFailure(OrderRepositoryFailureCodes.NotFound);
+            }
+
+            return order;
         }
-        
-        return order;
-    }
-    catch (DbException ex)
-    {
-        _logger.LogError(ex, "資料庫查詢失敗: OrderId={OrderId}", id);
-        return FailureProvider.CreateFailure(OrderRepositoryFailureCodes.DatabaseError);
+        catch (DbException ex)
+        {
+            logger.LogError(ex, "資料庫查詢失敗: OrderId={OrderId}", id);
+            return FailureProvider.CreateFailure(OrderRepositoryFailureCodes.DatabaseError);
+        }
     }
 }
 ```

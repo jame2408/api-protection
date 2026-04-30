@@ -80,8 +80,7 @@ var orders = _context.Orders.ToList()
     .Where(o => o.Status == OrderStatus.Active)
     .Take(10);
 
-// ✅ 先在資料庫過濾
-await using var context = await _contextFactory.CreateDbContextAsync(cancel);
+// ✅ 先在資料庫過濾（Scoped Repository 直接使用注入的 DbContext）
 var orders = await context.Orders
     .Where(o => o.Status == OrderStatus.Active)
     .Take(10)
@@ -179,7 +178,6 @@ var allItems = orders.SelectMany(o => o.Items).ToList();
 
 ```csharp
 // ❌ 載入所有資料後在記憶體內 GroupBy
-await using var context = await _contextFactory.CreateDbContextAsync(cancel);
 var ordersByCustomer = (await context.Orders.ToListAsync(cancel))
     .GroupBy(o => o.CustomerId);
 

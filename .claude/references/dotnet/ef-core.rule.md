@@ -180,41 +180,49 @@ var filtered = orders.Where(o => MyCustomMethod(o.Data));
 ### Implicit Transaction (SaveChanges)
 
 ```csharp
-// ✅ SaveChanges 自動包裝在 transaction 中
-await using var context = await _contextFactory.CreateDbContextAsync(cancel);
+// ✅ Scoped Repository 直接使用注入的 DbContext，SaveChanges 自動包裝在 transaction 中
+public class OrderRepository(AppDbContext db) : IOrderRepository
+{
+    public async Task SaveOrderWithPaymentAsync(Order order, Payment payment, CancellationToken cancel = default)
+    {
+        db.Orders.Add(order);
+        db.Payments.Add(payment);
 
-var order = new Order { /* ... */ };
-context.Orders.Add(order);
-
-var payment = new Payment { OrderId = order.Id };
-context.Payments.Add(payment);
-
-await context.SaveChangesAsync(cancel); // 單一 transaction
+        await db.SaveChangesAsync(cancel); // 單一 transaction
+    }
+}
 ```
 
 ### Explicit Transaction
 
 ```csharp
-// ✅ 跨多個 SaveChanges 的操作
-await using var context = await _contextFactory.CreateDbContextAsync(cancel);
-await using var transaction = await context.Database.BeginTransactionAsync(cancel);
+// ✅ 跨多個 SaveChanges 的操作 — Scoped Repository 直接使用注入的 DbContext
+public class OrderRepository(AppDbContext db, IExternalService externalService) : IOrderRepository
+{
+    public async Task ProcessAsync(CancellationToken cancel = default)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancel);
 
-try
-{
-    await context.SaveChangesAsync(cancel);
-    
-    // 外部操作
-    await _externalService.NotifyAsync(cancel);
-    
-    await context.SaveChangesAsync(cancel);
-    await transaction.CommitAsync(cancel);
-}
-catch
-{
-    await transaction.RollbackAsync(cancel);
-    throw;
+        try
+        {
+            await db.SaveChangesAsync(cancel);
+
+            // 外部操作
+            await externalService.NotifyAsync(cancel);
+
+            await db.SaveChangesAsync(cancel);
+            await transaction.CommitAsync(cancel);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancel);
+            throw;
+        }
+    }
 }
 ```
+
+> ⚠️ **例外**：Background Service / Singleton 才使用 `IDbContextFactory<T>` 並透過 `await using var context = await contextFactory.CreateDbContextAsync(cancel);` 取得短生命週期 context。Scoped Repository / Service 不適用此模式（重複參考 §A 的注入規則）。
 
 ---
 
