@@ -277,7 +277,7 @@ Action = Refactor
 
 | Skill | Relationship |
 |-------|--------------|
-| **[code-review](../code-review/SKILL.md)** | code-review 專注於 MR diff 檢查，使用 `*.rule.md` |
+| **[code-review](../code-review/SKILL.md)** | code-review 專注於 PR diff 檢查，使用 `*.rule.md` |
 | **coding-style** (this) | 日常開發時套用，依情境載入不同文件 |
 
 ---

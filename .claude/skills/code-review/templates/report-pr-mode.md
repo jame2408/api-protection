@@ -1,6 +1,6 @@
-# Code Review Report Template (PR/MR Mode)
+# Code Review Report Template (PR Mode)
 
-Output structure for PR/MR Mode. Replace placeholders with actual values.
+Output structure for PR Mode. Replace placeholders with actual values.
 
 ---
 
