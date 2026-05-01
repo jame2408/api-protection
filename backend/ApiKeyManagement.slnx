@@ -31,6 +31,9 @@
   <Folder Name="/tests/FunctionalTests/">
     <Project Path="tests/FunctionalTests/ApiKeyManagement.FunctionalTests.csproj" />
   </Folder>
+  <Folder Name="/tests/SharedKernel.Tests/">
+    <Project Path="tests/SharedKernel.Tests/ApiKeyManagement.SharedKernel.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/TestInfrastructure/">
     <Project Path="tests/TestInfrastructure/ApiKeyManagement.TestInfrastructure.csproj" />
   </Folder>

@@ -90,7 +90,7 @@ _Error Handling (Critical — zero tolerance):_
 - NEVER use `new Failure()` — all failures created via `FailureProvider.CreateFailure()`
 - NEVER access `.Value` without checking `.IsFailure` first
 - NEVER use empty catch blocks; NEVER use `throw ex;` (use `throw;`)
-- NEVER inject `ILogger` into Service or Domain layers. Embed diagnostic context (entity IDs, input values) into the `Failure` message or metadata so boundary loggers (Middleware, Pipeline Behavior) can produce meaningful logs without service-layer coupling.
+- NEVER inject `ILogger` into Service, Domain, or Handler layers. Diagnostic context (entity IDs, input values, tenant scope) is captured at the boundary — Endpoint, Middleware, Pipeline Behavior, or Background Service — by reading `HttpContext`, the inbound Command, or the Query object. `Failure.Code` is the only thing Service / Handler propagates upward; it is a stable string contract, never a free-form message. See `docs/adr/adr-004-failure-shape-and-claude-md-alignment.md`.
 
 _Code Quality:_
 - Async methods must accept `CancellationToken cancel` and propagate it to every I/O call — EF Core queries, `SaveChangesAsync`, HTTP clients, and message bus operations. NEVER silently drop it.
