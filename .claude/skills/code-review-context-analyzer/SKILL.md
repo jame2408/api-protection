@@ -2,16 +2,16 @@
 name: code-review-context-analyzer
 description: Analyze GitHub PR code diffs to generate intent summaries, logic walkthroughs, and Mermaid architecture diagrams. Use when reviewing pull requests, examining git diffs, or when the user asks for a code review context report.
 metadata:
+  version: 1.0.0
   trigger: '"Please analyze this diff" or when reviewing PRs'
 ---
 
 # Code Review Context Analyzer
 
-**Core Philosophy**: Move beyond line-by-line syntax comparison to intent-level understanding. Transform raw diffs into high-dimensional, instantly digestible information.
-
-- **De-noise**: Filter out formatting changes and trivial log modifications; focus on logic flow.
-- **Holistic view**: Assume every single-file change may trigger a butterfly effect; always resolve cross-file dependencies.
-- **Visual-first**: Prefer diagrams over text to reduce cognitive load.
+**Principles**:
+- **De-noise**: Filter formatting and log-only changes; focus on logic flow.
+- **Holistic view**: Resolve cross-file dependencies — single-file changes can cascade.
+- **Visual-first**: Prefer diagrams over text.
 
 ## Execution Process
 
