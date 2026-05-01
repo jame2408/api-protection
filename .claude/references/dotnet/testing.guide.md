@@ -43,6 +43,8 @@ public void CalculateTotal_WhenCartIsEmpty_ShouldReturnZero()
 
 ## C. Test Structure (AAA Pattern)
 
+> **Caveat**：以下範例 body 假設在 §D 的 Test Class fixture 結構中執行；其中 `_orderRepository` / `_service` 是 xUnit / NSubstitute test fixture 的 private mock field，**不是** production field-based DI。Production class 接收依賴請走 Primary Constructor（見 ADR-005 §1 與 `di.rule.md` / `exceptions.rule.md` 範例）；本檔的 fixture 風格僅適用於 `backend/tests/`。
+
 ### 搭配 Result Pattern
 
 ```csharp
@@ -144,6 +146,8 @@ public class CreateApiKeyHandlerTests
 ---
 
 ## E. NSubstitute 用法
+
+> **Caveat（同 §C）**：以下 `_orderRepository` / `_orderService` 為 §D Test Class 的 fixture private mock field，僅適用於測試專案；production code 接收依賴請改用 Primary Constructor（ADR-005 §1）。
 
 ### 基本 Setup
 

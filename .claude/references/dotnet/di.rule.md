@@ -76,6 +76,7 @@ services.AddSysEnvironments(); // 在 Host/Program.cs 或對應 Module 註冊
 // 注入使用
 public class CacheService(SYS_REDIS_URL redisUrl)
 {
+    // ADR-005 §3 settings snapshot exception: cache the env var value once at construction.
     private readonly string _connectionString = redisUrl.Value;
 }
 ```
