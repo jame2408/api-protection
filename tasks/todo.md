@@ -79,7 +79,7 @@ Each item below is tagged 🐞 (real drift to fix), 🏗️ (scaffolding — spe
 
 1. **Endpoint error responses don't follow RFC 9457 ProblemDetails** (`api-spec.md` §2.2). Production `CreateApiKeyEndpoint.cs:42-51` returns `{ error: "..." }`; spec mandates `{ type, title, status, detail, errorCode, errors[] }`. The fallback `Results.Problem(result.Error.Code)` also passes `Code` as `detail` instead of `errorCode`.
 2. **`CreateApiKeyResponse.cs` missing `truncatedKey` field** that `api-spec.md` §3.2.1 specifies (e.g. `"...a9B3"` for UI display).
-3. **`lifecycleStatus` wire-format inconsistency.** `api-spec.md` example uses PascalCase (`"Active"`); production serialises `apiKey.Status.ToString()` from `ApiKeyStatus` enum which is `ALL_CAPS` (`"ACTIVE"`). Spec query-param contract (`status=Active|Rotating|...`) confirms PascalCase. Fix via EF / JSON value converter; do not rename the enum to PascalCase if `ALL_CAPS` was a deliberate code-side choice — but pick one and align.
+3. ~~**`lifecycleStatus` wire-format inconsistency.**~~ ✅ Resolved by ADR-006 (2026-05-02). Decision opposite to the original suggestion: `ApiKeyStatus` enum **was** renamed to PascalCase, paired with `JsonStringEnumConverter(allowIntegerValues: false)`; DTO type changed from `string` to `ApiKeyStatus`; functional tests now lock raw JSON wire literal `"Active"` via `JsonDocument`.
 4. **`VALIDATION_ERROR` prefix matches too loosely** (`CreateApiKeyEndpoint.cs:49`, `CreateApiKeyFailureCodes.cs:11`). Tighten to `"VALIDATION_ERROR:"` so unrelated codes starting with the same letters can't accidentally fall into 400. Already in old follow-ups; promoted to actionable.
 
 ### B. Security: PRD-mandated invariants not yet honoured 🐞

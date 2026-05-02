@@ -47,14 +47,14 @@ Feature: 更新 IP 白名單
 
   Scenario: 成功設定 IP 白名單
     Given 金鑰 "key-A" 的 AccessPolicy 存在
-    And   "key-A" 狀態為 ACTIVE（非終態）
+    And   "key-A" 狀態為 Active（非終態）
     When  Consumer 將 "key-A" 的 IP 白名單更新為 ["192.168.1.0/24", "10.0.0.0/8"]
     Then  AccessPolicy 的 ipAllowlist 更新為 ["192.168.1.0/24", "10.0.0.0/8"]
     And   系統產生 PolicyUpdated 事件，changedFields 包含 "ipAllowlist"，含 before 和 after
 
   Scenario: 清空白名單 — 回到預設開放
     Given 金鑰 "key-A" 的 AccessPolicy 存在，ipAllowlist 為 ["192.168.1.0/24"]
-    And   "key-A" 狀態為 ACTIVE
+    And   "key-A" 狀態為 Active
     When  Consumer 將 "key-A" 的 IP 白名單更新為空集合
     Then  AccessPolicy 的 ipAllowlist 更新為空集合（不限制 IP）
     And   系統產生 PolicyUpdated 事件
@@ -68,19 +68,19 @@ Feature: 更新 IP 白名單
 
   Scenario: 關聯金鑰已在終態 — 拒絕更新
     Given 金鑰 "key-A" 的 AccessPolicy 存在
-    And   "key-A" 狀態為 EXPIRED
+    And   "key-A" 狀態為 Expired
     When  Consumer 嘗試更新 "key-A" 的 IP 白名單
     Then  更新失敗，錯誤原因為「金鑰已在終態，無法修改 Policy」
 
   Scenario: CIDR 格式不合法 — 拒絕更新
     Given 金鑰 "key-A" 的 AccessPolicy 存在
-    And   "key-A" 狀態為 ACTIVE
+    And   "key-A" 狀態為 Active
     When  Consumer 將 IP 白名單更新為 ["not-a-cidr"]
     Then  更新失敗，錯誤原因為「CIDR 格式不合法」
 
   Scenario: 包含 0.0.0.0/0 全開白名單 — 拒絕更新
     Given 金鑰 "key-A" 的 AccessPolicy 存在
-    And   "key-A" 狀態為 ACTIVE
+    And   "key-A" 狀態為 Active
     When  Consumer 將 IP 白名單更新為 ["192.168.1.0/24", "0.0.0.0/0"]
     Then  更新失敗，錯誤原因為「禁止使用 0.0.0.0/0，如需不限制請使用空集合」
 ```
@@ -96,7 +96,7 @@ Feature: 更新速率限制
 
   Scenario: 成功更新速率限制
     Given 金鑰 "key-A" 的 AccessPolicy 存在
-    And   "key-A" 狀態為 ACTIVE（非終態）
+    And   "key-A" 狀態為 Active（非終態）
     When  Consumer 更新 "key-A" 的速率限制：quotaLimit 10000, quotaPeriod 1hour, rateLimit 100, burstLimit 200
     Then  AccessPolicy 的 rateLimitConfig 更新為指定值
     And   系統產生 PolicyUpdated 事件，changedFields 包含 "rateLimitConfig"，含 before 和 after
@@ -110,7 +110,7 @@ Feature: 更新速率限制
 
   Scenario: 關聯金鑰已在終態 — 拒絕更新
     Given 金鑰 "key-A" 的 AccessPolicy 存在
-    And   "key-A" 狀態為 REVOKED
+    And   "key-A" 狀態為 Revoked
     When  Consumer 嘗試更新 "key-A" 的速率限制
     Then  更新失敗，錯誤原因為「金鑰已在終態，無法修改 Policy」
 

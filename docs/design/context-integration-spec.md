@@ -336,7 +336,7 @@ Output (Success): {
 
 Errors:
   KEY_NOT_FOUND          — 金鑰不存在
-  KEY_IN_TERMINAL_STATE  — 金鑰已在終態（EXPIRED / REVOKED），無需鎖定
+  KEY_IN_TERMINAL_STATE  — 金鑰已在終態（Expired / Revoked），無需鎖定
   KEY_ALREADY_LOCKED     — 金鑰已被鎖定
   KEY_ALREADY_SUSPENDED  — 金鑰已被暫停（人為處置優先，不覆蓋）
   UNAUTHORIZED           — 呼叫端身份驗證失敗
@@ -368,7 +368,7 @@ UNAUTHORIZED            → 緊急告警（系統間認證可能失效）
 
 **冪等性保證：**
 
-KL 端的 LockKey 天然冪等——金鑰已為 LOCKED 時回傳 KEY_ALREADY_LOCKED，Monitoring 視為成功。
+KL 端的 LockKey 天然冪等——金鑰已為 Locked 時回傳 KEY_ALREADY_LOCKED，Monitoring 視為成功。
 
 ---
 
@@ -381,13 +381,13 @@ KL 端的 LockKey 天然冪等——金鑰已為 LOCKED 時回傳 KEY_ALREADY_LO
 | Event | 投影動作 | 需主動快取失效 |
 |:------|:---------|:---------------|
 | KeyCreated | 建立新的 KeyValidationView 條目 | 否（首次使用時自然回源） |
-| KeyRotationInitiated | 舊金鑰 status → ROTATING | 否 |
-| KeyRevoked | status → REVOKED | **是** |
-| KeyExpired | status → EXPIRED | 否（已過期金鑰不會再被查詢） |
-| KeyLocked | status → LOCKED | **是** |
-| KeyUnlocked | status → ACTIVE | 否（延遲恢復不構成安全風險） |
-| KeySuspended | status → SUSPENDED | **是** |
-| KeyResumed | status → ACTIVE | 否 |
+| KeyRotationInitiated | 舊金鑰 status → Rotating | 否 |
+| KeyRevoked | status → Revoked | **是** |
+| KeyExpired | status → Expired | 否（已過期金鑰不會再被查詢） |
+| KeyLocked | status → Locked | **是** |
+| KeyUnlocked | status → Active | 否（延遲恢復不構成安全風險） |
+| KeySuspended | status → Suspended | **是** |
+| KeyResumed | status → Active | 否 |
 | PolicyCreated | 填入初始 ipAllowlist + rateLimitConfig | 否 |
 | PolicyUpdated | 更新 ipAllowlist / rateLimitConfig | **是** |
 
@@ -517,8 +517,8 @@ ValidationAttempt {
 
 ```
 {
-  oldKeyId:      UUID             — 進入 ROTATING 的舊金鑰
-  newKeyId:      UUID             — 新建的 ACTIVE 金鑰
+  oldKeyId:      UUID             — 進入 Rotating 的舊金鑰
+  newKeyId:      UUID             — 新建的 Active 金鑰
   graceDeadline: Timestamp        — 寬限期截止時間
 }
 ```
@@ -548,7 +548,7 @@ ValidationAttempt {
 ```
 {
   keyId:          UUID
-  previousStatus: LifecycleStatus — 過期前的狀態（ACTIVE / ROTATING / SUSPENDED）
+  previousStatus: LifecycleStatus — 過期前的狀態（Active / Rotating / Suspended）
 }
 ```
 

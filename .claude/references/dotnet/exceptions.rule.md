@@ -193,7 +193,7 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
             k.ConsumerId == consumerId &&
             k.Environment == environment &&
             k.TenantId == tenantId &&
-            k.Status == ApiKeyStatus.ACTIVE,
+            k.Status == ApiKeyStatus.Active,
             cancel);
 }
 ```

@@ -112,13 +112,13 @@ EventToAuditEntry(envelope: EventEnvelope):
 | 來源事件 | snapshotBefore | snapshotAfter | reason |
 |:---------|:---------------|:--------------|:-------|
 | KeyCreated | null | 完整金鑰屬性（不含 hash） | — |
-| KeyRotationInitiated | { status: ACTIVE } | { status: ROTATING, successorKeyId } | — |
-| KeyRevoked | { status: previousStatus } | { status: REVOKED } | payload.reason |
-| KeyExpired | { status: previousStatus } | { status: EXPIRED } | — |
-| KeyLocked | { status: ACTIVE } | { status: LOCKED } | payload.reason |
-| KeyUnlocked | { status: LOCKED } | { status: ACTIVE } | — |
-| KeySuspended | { status: ACTIVE } | { status: SUSPENDED } | payload.reason |
-| KeyResumed | { status: SUSPENDED } | { status: ACTIVE } | — |
+| KeyRotationInitiated | { status: Active } | { status: Rotating, successorKeyId } | — |
+| KeyRevoked | { status: previousStatus } | { status: Revoked } | payload.reason |
+| KeyExpired | { status: previousStatus } | { status: Expired } | — |
+| KeyLocked | { status: Active } | { status: Locked } | payload.reason |
+| KeyUnlocked | { status: Locked } | { status: Active } | — |
+| KeySuspended | { status: Active } | { status: Suspended } | payload.reason |
+| KeyResumed | { status: Suspended } | { status: Active } | — |
 | PolicyCreated | null | 完整策略配置 | — |
 | PolicyUpdated | payload.before | payload.after | — |
 | AnomalyDetected | null | payload.details | — |

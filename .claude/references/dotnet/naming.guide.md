@@ -316,7 +316,7 @@ public record CreateApiKeyResponse(
     string RawKey,
     string Environment,
     IReadOnlyList<string> Scopes,
-    string LifecycleStatus,
+    ApiKeyStatus LifecycleStatus,
     Guid PolicyId,
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt);

@@ -20,6 +20,10 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
+        Converters =
+        {
+            new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false),
+        },
     };
 
     private AppDbContext Db =>
@@ -66,10 +70,10 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         // no-op: consumer absent from DB
     }
 
-    [Given(@"""(.*)"" 在 Production 環境的 ACTIVE 金鑰數為 (\d+)，上限為 (\d+)")]
+    [Given(@"""(.*)"" 在 Production 環境的 Active 金鑰數為 (\d+)，上限為 (\d+)")]
     public async Task GivenActiveKeyCount(string consumerId, int current, int limit)
     {
-        // Seed `current` ACTIVE keys for this consumer in Production
+        // Seed `current` Active keys for this consumer in Production
         for (var i = 0; i < current; i++)
         {
             var (key, _) = ApiKey.Create(
@@ -283,14 +287,15 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     // Then
     // -------------------------------------------------------------------------
 
-    [Then(@"金鑰狀態為 ACTIVE")]
+    [Then(@"金鑰狀態為 Active")]
     public void ThenKeyStatusIsActive()
     {
         _ctx.Response!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
 
-        var body = JsonSerializer.Deserialize<CreateApiKeyResponse>(_ctx.ResponseBody!, JsonOptions);
-        body.Should().NotBeNull();
-        body!.LifecycleStatus.Should().Be("ACTIVE");
+        // ADR-006: assert raw JSON literal to lock the wire-format string,
+        // not just the round-tripped enum value.
+        using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+        doc.RootElement.GetProperty("lifecycleStatus").GetString().Should().Be("Active");
     }
 
     [Then(@"系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、environment、scopes、keyPrefix、expiresAt、policyId")]

@@ -5,12 +5,12 @@ Feature: 建立 API 金鑰
   Scenario: 成功建立金鑰
     Given 租戶 "tenant-A" 狀態為 Active
     And   Consumer "consumer-1" 屬於 "tenant-A"
-    And   "consumer-1" 在 Production 環境的 ACTIVE 金鑰數為 3，上限為 10
+    And   "consumer-1" 在 Production 環境的 Active 金鑰數為 3，上限為 10
     And   "consumer-1" 在 Production 環境沒有名為 "order-service-key" 的金鑰
     And   Scopes "orders:read", "orders:write" 已在 Scope Registry 註冊
     And   指定到期時間為 180 天後，未超過最大允許有效期
     When  "consumer-1" 在 Production 環境建立金鑰，名稱 "order-service-key"，scopes ["orders:read", "orders:write"]，到期 180 天後
-    Then  金鑰狀態為 ACTIVE
+    Then  金鑰狀態為 Active
     And   系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、environment、scopes、keyPrefix、expiresAt、policyId
     And   系統回傳金鑰明文（Display Once）
     And   同一交易內建立預設 AccessPolicy
@@ -35,8 +35,8 @@ Feature: 建立 API 金鑰
     Then  建立失敗，錯誤原因為「Consumer 不屬於該租戶」
 
   @ignore
-  Scenario: ACTIVE 金鑰數達到上限 — 拒絕建立
-    Given "consumer-1" 在 Production 環境的 ACTIVE 金鑰數為 10，上限為 10
+  Scenario: Active 金鑰數達到上限 — 拒絕建立
+    Given "consumer-1" 在 Production 環境的 Active 金鑰數為 10，上限為 10
     When  "consumer-1" 在 Production 環境建立新金鑰
     Then  建立失敗，錯誤原因為「超過金鑰數量上限」
 

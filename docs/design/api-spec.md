@@ -495,7 +495,7 @@ JWT Claims：
 | TENANT_NOT_FOUND | 404 | Tenant 不存在（I1） |
 | CONSUMER_NOT_FOUND | 404 | Consumer 不存在或不屬於該 Tenant（I1） |
 | TENANT_SUSPENDED | 403 | Tenant 已暫停（I1） |
-| KEY_LIMIT_EXCEEDED | 409 | 同 Consumer + Environment 下 ACTIVE 金鑰數達上限 |
+| KEY_LIMIT_EXCEEDED | 409 | 同 Consumer + Environment 下 Active 金鑰數達上限 |
 | KEY_NAME_DUPLICATE | 409 | 同 Consumer + Environment 下名稱重複 |
 | SCOPE_NOT_FOUND | 422 | Scope 不存在於 Registry |
 | EXPIRES_AT_EXCEEDS_MAX | 422 | 超過最大允許有效期 |
@@ -640,7 +640,7 @@ JWT Claims：
 |:----------|:-----|:-----|
 | NOT_FOUND | 404 | 金鑰不存在 |
 | INVALID_STATE_TRANSITION | 409 | 金鑰狀態非 Active |
-| ROTATION_IN_PROGRESS | 409 | 同 Consumer + Environment 下已有 ROTATING 金鑰（INV-4） |
+| ROTATION_IN_PROGRESS | 409 | 同 Consumer + Environment 下已有 Rotating 金鑰（INV-4） |
 | KEY_ALREADY_EXPIRED | 409 | 金鑰已到期，無法輪替 |
 
 ---
@@ -717,7 +717,7 @@ JWT Claims：
 | Authorization | SecurityAdmin |
 | Command | C4: UnlockKey |
 
-> 僅 SecurityAdmin 可解鎖。LOCKED 狀態僅由系統（Monitoring）觸發，解鎖是人工確認安全後的操作。
+> 僅 SecurityAdmin 可解鎖。Locked 狀態僅由系統（Monitoring）觸發，解鎖是人工確認安全後的操作。
 
 **Response `200 OK`：**
 

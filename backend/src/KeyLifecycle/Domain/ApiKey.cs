@@ -50,7 +50,7 @@ public class ApiKey : AggregateRoot<Guid>
             Name = name,
             Environment = environment,
             Scopes = scopes,
-            Status = ApiKeyStatus.ACTIVE,
+            Status = ApiKeyStatus.Active,
             KeyPrefix = prefix,
             KeyHash = keyHash,
             CreatedAt = DateTimeOffset.UtcNow,

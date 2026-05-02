@@ -114,7 +114,7 @@ backend/src/
 | 租戶 / Tenant / Consumer | TenantManagement |
 | 金鑰建立 / CreateApiKey | KeyLifecycle |
 | AccessPolicy / 預設 policy | AccessPolicy |
-| ACTIVE 金鑰數 / 上限 | KeyLifecycle（guard） |
+| Active 金鑰數 / 上限 | KeyLifecycle（guard） |
 | Scope Registry | KeyLifecycle（ScopeRegistry） |
 
 ---
@@ -153,12 +153,15 @@ public async Task WhenCreateApiKey(...)
 }
 
 // Then 步驟範例
-[Then(@"金鑰狀態為 ACTIVE")]
-public async Task ThenKeyStatusIsActive()
+// 依 ADR-006：必須以 raw JSON literal 鎖定 wire format，
+// 不可只 deserialize 後比 enum value。
+[Then(@"金鑰狀態為 Active")]
+public Task ThenKeyStatusIsActive()
 {
     _ctx.Response.StatusCode.Should().Be(HttpStatusCode.Created);
-    var body = JsonSerializer.Deserialize<CreateApiKeyResponse>(_ctx.ResponseBody!);
-    body!.Status.Should().Be("ACTIVE");
+    using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+    doc.RootElement.GetProperty("lifecycleStatus").GetString().Should().Be("Active");
+    return Task.CompletedTask;
 }
 ```
 

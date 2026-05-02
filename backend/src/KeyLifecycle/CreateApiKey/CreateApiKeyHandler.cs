@@ -72,7 +72,7 @@ public class CreateApiKeyHandler(
             RawKey: rawKey,
             Environment: apiKey.Environment,
             Scopes: apiKey.Scopes,
-            LifecycleStatus: apiKey.Status.ToString(),
+            LifecycleStatus: apiKey.Status,
             PolicyId: apiKey.PolicyId,
             CreatedAt: apiKey.CreatedAt,
             ExpiresAt: apiKey.ExpiresAt);

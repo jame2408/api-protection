@@ -34,12 +34,12 @@ Feature: 建立 API 金鑰
   Scenario: 成功建立金鑰
     Given 租戶 "tenant-A" 狀態為 Active
     And   Consumer "consumer-1" 屬於 "tenant-A"
-    And   "consumer-1" 在 Production 環境的 ACTIVE 金鑰數為 3，上限為 10
+    And   "consumer-1" 在 Production 環境的 Active 金鑰數為 3，上限為 10
     And   "consumer-1" 在 Production 環境沒有名為 "order-service-key" 的金鑰
     And   Scopes "orders:read", "orders:write" 已在 Scope Registry 註冊
     And   指定到期時間為 180 天後，未超過最大允許有效期
     When  "consumer-1" 在 Production 環境建立金鑰，名稱 "order-service-key"，scopes ["orders:read", "orders:write"]，到期 180 天後
-    Then  金鑰狀態為 ACTIVE
+    Then  金鑰狀態為 Active
     And   系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、environment、scopes、keyPrefix、expiresAt、policyId
     And   系統回傳金鑰明文（Display Once）
     And   同一交易內建立預設 AccessPolicy
@@ -61,8 +61,8 @@ Feature: 建立 API 金鑰
     When  "consumer-2" 嘗試在 "tenant-A" 下建立金鑰
     Then  建立失敗，錯誤原因為「Consumer 不屬於該租戶」
 
-  Scenario: ACTIVE 金鑰數達到上限 — 拒絕建立
-    Given "consumer-1" 在 Production 環境的 ACTIVE 金鑰數為 10，上限為 10
+  Scenario: Active 金鑰數達到上限 — 拒絕建立
+    Given "consumer-1" 在 Production 環境的 Active 金鑰數為 10，上限為 10
     When  "consumer-1" 在 Production 環境建立新金鑰
     Then  建立失敗，錯誤原因為「超過金鑰數量上限」
 
@@ -101,11 +101,11 @@ Feature: 輪替金鑰
   # --- Guard 全部通過 ---
 
   Scenario: 成功啟動金鑰輪替
-    Given 金鑰 "key-A" 狀態為 ACTIVE，尚未到期
-    And   同一 Consumer + Environment 下沒有其他 ROTATING 金鑰
+    Given 金鑰 "key-A" 狀態為 Active，尚未到期
+    And   同一 Consumer + Environment 下沒有其他 Rotating 金鑰
     When  Consumer 對 "key-A" 發起輪替，寬限期為 24 小時
-    Then  "key-A" 狀態變為 ROTATING
-    And   系統建立新金鑰 "key-B"，狀態為 ACTIVE
+    Then  "key-A" 狀態變為 Rotating
+    And   系統建立新金鑰 "key-B"，狀態為 Active
     And   "key-A".successorKeyId 指向 "key-B"
     And   "key-B".predecessorKeyId 指向 "key-A"
     And   "key-A".graceDeadline 設為 24 小時後
@@ -115,19 +115,19 @@ Feature: 輪替金鑰
 
   # --- 逐 Guard 反向 ---
 
-  Scenario: 金鑰非 ACTIVE 狀態 — 拒絕輪替
-    Given 金鑰 "key-A" 狀態為 SUSPENDED
+  Scenario: 金鑰非 Active 狀態 — 拒絕輪替
+    Given 金鑰 "key-A" 狀態為 Suspended
     When  Consumer 對 "key-A" 發起輪替
-    Then  輪替失敗，錯誤原因為「金鑰狀態非 ACTIVE」
+    Then  輪替失敗，錯誤原因為「金鑰狀態非 Active」
 
-  Scenario: 同 Consumer + Environment 下已有 ROTATING 金鑰 — 拒絕輪替
-    Given 金鑰 "key-A" 狀態為 ACTIVE
-    And   同一 Consumer + Environment 下已有 "key-C" 狀態為 ROTATING
+  Scenario: 同 Consumer + Environment 下已有 Rotating 金鑰 — 拒絕輪替
+    Given 金鑰 "key-A" 狀態為 Active
+    And   同一 Consumer + Environment 下已有 "key-C" 狀態為 Rotating
     When  Consumer 對 "key-A" 發起輪替
     Then  輪替失敗，錯誤原因為「已有進行中的輪替」
 
   Scenario: 金鑰已到期 — 拒絕輪替
-    Given 金鑰 "key-A" 狀態為 ACTIVE，但已到期
+    Given 金鑰 "key-A" 狀態為 Active，但已到期
     When  Consumer 對 "key-A" 發起輪替
     Then  輪替失敗，錯誤原因為「金鑰已到期，無法輪替」
 
@@ -136,10 +136,10 @@ Feature: 輪替金鑰
   # --- Guard 全部通過 ---
 
   Scenario: 寬限期到期 — 自動完成輪替
-    Given 金鑰 "key-A" 狀態為 ROTATING
+    Given 金鑰 "key-A" 狀態為 Rotating
     And   當前時間已超過 "key-A" 的 graceDeadline
     When  System Agent 執行寬限期掃描
-    Then  "key-A" 狀態變為 REVOKED
+    Then  "key-A" 狀態變為 Revoked
     And   清除 successorKeyId / predecessorKeyId 關聯
     And   系統產生 KeyGracePeriodExpired 事件，包含 keyId、successorKeyId
     And   觸發主動快取失效
@@ -147,15 +147,15 @@ Feature: 輪替金鑰
   # --- 逐 Guard 反向 ---
 
   Scenario: 寬限期尚未到期 — 不處理
-    Given 金鑰 "key-A" 狀態為 ROTATING
+    Given 金鑰 "key-A" 狀態為 Rotating
     And   當前時間尚未超過 "key-A" 的 graceDeadline
     When  System Agent 執行寬限期掃描
-    Then  "key-A" 狀態保持 ROTATING，不產生任何事件
+    Then  "key-A" 狀態保持 Rotating，不產生任何事件
 
-  Scenario: 非 ROTATING 狀態 — 拒絕完成寬限期
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+  Scenario: 非 Rotating 狀態 — 拒絕完成寬限期
+    Given 金鑰 "key-A" 狀態為 Active
     When  System Agent 對 "key-A" 執行 CompleteGracePeriod
-    Then  操作被忽略，錯誤原因為「金鑰狀態非 ROTATING」
+    Then  操作被忽略，錯誤原因為「金鑰狀態非 Rotating」
 ```
 
 ---
@@ -170,20 +170,20 @@ Feature: 鎖定與解鎖金鑰
   # --- Guard 全部通過 ---
 
   Scenario: 系統偵測到異常 — 自動鎖定金鑰
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     When  System 以 ruleId "impossible-travel"、severity HIGH 鎖定 "key-A"，原因為「異地同時存取」
-    Then  "key-A" 狀態變為 LOCKED
+    Then  "key-A" 狀態變為 Locked
     And   系統產生 KeyLocked 事件，包含 keyId、ruleId、reason、evidence
 
   # --- 逐 Guard 反向 ---
 
-  Scenario: 金鑰非 ACTIVE 狀態 — 拒絕鎖定
-    Given 金鑰 "key-A" 狀態為 SUSPENDED
+  Scenario: 金鑰非 Active 狀態 — 拒絕鎖定
+    Given 金鑰 "key-A" 狀態為 Suspended
     When  System 對 "key-A" 發出鎖定命令
-    Then  鎖定失敗，錯誤原因為「金鑰狀態非 ACTIVE」
+    Then  鎖定失敗，錯誤原因為「金鑰狀態非 Active」
 
   Scenario: 非 System 角色嘗試鎖定 — 拒絕
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     When  Security Admin（人為操作者）對 "key-A" 發出鎖定命令
     Then  鎖定失敗，錯誤原因為「只有系統可以鎖定金鑰」
 
@@ -192,21 +192,21 @@ Feature: 鎖定與解鎖金鑰
   # --- Guard 全部通過 ---
 
   Scenario: Security Admin 解鎖金鑰
-    Given 金鑰 "key-A" 狀態為 LOCKED
+    Given 金鑰 "key-A" 狀態為 Locked
     And   操作者為 Security Admin
     When  Security Admin 對 "key-A" 發出解鎖命令
-    Then  "key-A" 狀態變為 ACTIVE
+    Then  "key-A" 狀態變為 Active
     And   系統產生 KeyUnlocked 事件，包含 keyId、unlockedBy
 
   # --- 逐 Guard 反向 ---
 
-  Scenario: 金鑰非 LOCKED 狀態 — 拒絕解鎖
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+  Scenario: 金鑰非 Locked 狀態 — 拒絕解鎖
+    Given 金鑰 "key-A" 狀態為 Active
     When  Security Admin 對 "key-A" 發出解鎖命令
-    Then  解鎖失敗，錯誤原因為「金鑰狀態非 LOCKED」
+    Then  解鎖失敗，錯誤原因為「金鑰狀態非 Locked」
 
   Scenario: 操作者權限不足 — 拒絕解鎖
-    Given 金鑰 "key-A" 狀態為 LOCKED
+    Given 金鑰 "key-A" 狀態為 Locked
     And   操作者為一般 Consumer
     When  操作者對 "key-A" 發出解鎖命令
     Then  解鎖失敗，錯誤原因為「權限不足」
@@ -224,32 +224,32 @@ Feature: 暫停與恢復金鑰
   # --- Guard 全部通過 ---
 
   Scenario: 成功暫停金鑰
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     And   操作者為 Security Admin（人為操作者）
     When  Security Admin 暫停 "key-A"，原因為「維護排程」
-    Then  "key-A" 狀態變為 SUSPENDED
+    Then  "key-A" 狀態變為 Suspended
     And   系統產生 KeySuspended 事件，包含 keyId、suspendedBy、reason
 
   # --- 逐 Guard 反向 ---
 
-  Scenario: 金鑰非 ACTIVE 狀態 — 拒絕暫停
-    Given 金鑰 "key-A" 狀態為 LOCKED
+  Scenario: 金鑰非 Active 狀態 — 拒絕暫停
+    Given 金鑰 "key-A" 狀態為 Locked
     When  Security Admin 暫停 "key-A"，原因為「維護排程」
-    Then  暫停失敗，錯誤原因為「金鑰狀態非 ACTIVE」
+    Then  暫停失敗，錯誤原因為「金鑰狀態非 Active」
 
   Scenario: System 嘗試暫停 — 拒絕
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     When  System（非人為操作者）對 "key-A" 發出暫停命令
     Then  暫停失敗，錯誤原因為「暫停操作僅限人為操作」
 
   Scenario: 操作者無暫停權限 — 拒絕
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     And   操作者為一般 Consumer（無暫停權限）
     When  操作者暫停 "key-A"，原因為「維護排程」
     Then  暫停失敗，錯誤原因為「權限不足」
 
   Scenario: 未提供暫停原因 — 拒絕
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     And   操作者為 Security Admin
     When  Security Admin 暫停 "key-A"，未提供原因
     Then  暫停失敗，錯誤原因為「必須提供暫停原因」
@@ -259,21 +259,21 @@ Feature: 暫停與恢復金鑰
   # --- Guard 全部通過 ---
 
   Scenario: 成功恢復金鑰
-    Given 金鑰 "key-A" 狀態為 SUSPENDED
+    Given 金鑰 "key-A" 狀態為 Suspended
     And   操作者具備恢復權限
     When  操作者恢復 "key-A"
-    Then  "key-A" 狀態變為 ACTIVE
+    Then  "key-A" 狀態變為 Active
     And   系統產生 KeyResumed 事件，包含 keyId、resumedBy
 
   # --- 逐 Guard 反向 ---
 
-  Scenario: 金鑰非 SUSPENDED 狀態 — 拒絕恢復
-    Given 金鑰 "key-A" 狀態為 LOCKED
+  Scenario: 金鑰非 Suspended 狀態 — 拒絕恢復
+    Given 金鑰 "key-A" 狀態為 Locked
     When  操作者恢復 "key-A"
-    Then  恢復失敗，錯誤原因為「金鑰狀態非 SUSPENDED」
+    Then  恢復失敗，錯誤原因為「金鑰狀態非 Suspended」
 
   Scenario: 操作者無恢復權限 — 拒絕恢復
-    Given 金鑰 "key-A" 狀態為 SUSPENDED
+    Given 金鑰 "key-A" 狀態為 Suspended
     And   操作者為一般 Consumer（無恢復權限）
     When  操作者恢復 "key-A"
     Then  恢復失敗，錯誤原因為「權限不足」
@@ -288,54 +288,54 @@ Feature: 撤銷金鑰
 
   # --- 各來源狀態的正向場景 ---
 
-  Scenario: 從 ACTIVE 狀態撤銷
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+  Scenario: 從 Active 狀態撤銷
+    Given 金鑰 "key-A" 狀態為 Active
     When  操作者撤銷 "key-A"，原因為「不再使用」
-    Then  "key-A" 狀態變為 REVOKED
-    And   系統產生 KeyRevoked 事件，previousStatus 為 ACTIVE
+    Then  "key-A" 狀態變為 Revoked
+    And   系統產生 KeyRevoked 事件，previousStatus 為 Active
     And   觸發主動快取失效
 
-  Scenario: 從 ROTATING 狀態撤銷 — 同時清除輪替關聯
-    Given 金鑰 "key-A" 狀態為 ROTATING，successorKeyId 為 "key-B"
+  Scenario: 從 Rotating 狀態撤銷 — 同時清除輪替關聯
+    Given 金鑰 "key-A" 狀態為 Rotating，successorKeyId 為 "key-B"
     When  操作者撤銷 "key-A"，原因為「安全疑慮」
-    Then  "key-A" 狀態變為 REVOKED
+    Then  "key-A" 狀態變為 Revoked
     And   清除 "key-A" 與 "key-B" 之間的 successorKeyId / predecessorKeyId 關聯
-    And   系統產生 KeyRevoked 事件，previousStatus 為 ROTATING
+    And   系統產生 KeyRevoked 事件，previousStatus 為 Rotating
     And   觸發主動快取失效
 
-  Scenario: 從 LOCKED 狀態撤銷
-    Given 金鑰 "key-A" 狀態為 LOCKED
+  Scenario: 從 Locked 狀態撤銷
+    Given 金鑰 "key-A" 狀態為 Locked
     When  Security Admin 撤銷 "key-A"，原因為「確認遭入侵」
-    Then  "key-A" 狀態變為 REVOKED
-    And   系統產生 KeyRevoked 事件，previousStatus 為 LOCKED
+    Then  "key-A" 狀態變為 Revoked
+    And   系統產生 KeyRevoked 事件，previousStatus 為 Locked
     And   觸發主動快取失效
 
-  Scenario: 從 SUSPENDED 狀態撤銷
-    Given 金鑰 "key-A" 狀態為 SUSPENDED
+  Scenario: 從 Suspended 狀態撤銷
+    Given 金鑰 "key-A" 狀態為 Suspended
     When  操作者撤銷 "key-A"，原因為「永久停用」
-    Then  "key-A" 狀態變為 REVOKED
-    And   系統產生 KeyRevoked 事件，previousStatus 為 SUSPENDED
+    Then  "key-A" 狀態變為 Revoked
+    And   系統產生 KeyRevoked 事件，previousStatus 為 Suspended
     And   觸發主動快取失效
 
   # --- Guard 反向 ---
 
   Scenario: 金鑰已在終態 — 拒絕撤銷
-    Given 金鑰 "key-A" 狀態為 EXPIRED
+    Given 金鑰 "key-A" 狀態為 Expired
     When  操作者撤銷 "key-A"，原因為「補撤銷」
     Then  撤銷失敗，錯誤原因為「金鑰已在終態，無法撤銷」
 
   Scenario: 未提供撤銷原因 — 拒絕
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     When  操作者撤銷 "key-A"，未提供原因
     Then  撤銷失敗，錯誤原因為「必須提供撤銷原因」
 
   # --- 特殊場景：Secret Scanner ---
 
   Scenario: Secret Scanner 偵測到金鑰洩漏 — 批次自動撤銷
-    Given 金鑰 "key-A"（prefix "pk_live_abc"）狀態為 ACTIVE
+    Given 金鑰 "key-A"（prefix "pk_live_abc"）狀態為 Active
     And   Secret Scanner 在公開儲存庫偵測到 prefix "pk_live_abc"
     When  Secret Scanner 對所有符合該 prefix 的非終態金鑰發出撤銷命令
-    Then  "key-A" 狀態變為 REVOKED
+    Then  "key-A" 狀態變為 Revoked
     And   系統產生 KeyRevoked 事件，reason 為 "Key leaked in public repository"
     And   系統通知 Security Admin 和 Consumer
     And   觸發主動快取失效
@@ -350,45 +350,45 @@ Feature: 金鑰到期處理
 
   # --- 各來源狀態的正向場景 ---
 
-  Scenario: ACTIVE 金鑰到期
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+  Scenario: Active 金鑰到期
+    Given 金鑰 "key-A" 狀態為 Active
     And   當前時間已超過 "key-A" 的 expiresAt
     When  System Agent 執行到期掃描
-    Then  "key-A" 狀態變為 EXPIRED
-    And   系統產生 KeyExpired 事件，previousStatus 為 ACTIVE
+    Then  "key-A" 狀態變為 Expired
+    And   系統產生 KeyExpired 事件，previousStatus 為 Active
 
-  Scenario: ROTATING 金鑰到期
-    Given 金鑰 "key-A" 狀態為 ROTATING
+  Scenario: Rotating 金鑰到期
+    Given 金鑰 "key-A" 狀態為 Rotating
     And   當前時間已超過 "key-A" 的 expiresAt
     When  System Agent 執行到期掃描
-    Then  "key-A" 狀態變為 EXPIRED
-    And   系統產生 KeyExpired 事件，previousStatus 為 ROTATING
+    Then  "key-A" 狀態變為 Expired
+    And   系統產生 KeyExpired 事件，previousStatus 為 Rotating
 
-  Scenario: SUSPENDED 金鑰到期
-    Given 金鑰 "key-A" 狀態為 SUSPENDED
+  Scenario: Suspended 金鑰到期
+    Given 金鑰 "key-A" 狀態為 Suspended
     And   當前時間已超過 "key-A" 的 expiresAt
     When  System Agent 執行到期掃描
-    Then  "key-A" 狀態變為 EXPIRED
-    And   系統產生 KeyExpired 事件，previousStatus 為 SUSPENDED
+    Then  "key-A" 狀態變為 Expired
+    And   系統產生 KeyExpired 事件，previousStatus 為 Suspended
 
-  Scenario: LOCKED 金鑰到期 — 轉為 REVOKED 以保留安全上下文
-    Given 金鑰 "key-A" 狀態為 LOCKED，原始鎖定 ruleId 為 "impossible-travel"
+  Scenario: Locked 金鑰到期 — 轉為 Revoked 以保留安全上下文
+    Given 金鑰 "key-A" 狀態為 Locked，原始鎖定 ruleId 為 "impossible-travel"
     And   當前時間已超過 "key-A" 的 expiresAt
     When  System Agent 執行到期掃描
-    Then  "key-A" 狀態變為 REVOKED（非 EXPIRED）
+    Then  "key-A" 狀態變為 Revoked（非 Expired）
     And   系統產生 KeyRevoked 事件，reason 包含原始鎖定 ruleId
     And   觸發主動快取失效
 
   # --- Guard 反向 ---
 
   Scenario: 金鑰尚未到期 — 不處理
-    Given 金鑰 "key-A" 狀態為 ACTIVE
+    Given 金鑰 "key-A" 狀態為 Active
     And   當前時間尚未超過 "key-A" 的 expiresAt
     When  System Agent 執行到期掃描
-    Then  "key-A" 不在掃描結果中，狀態保持 ACTIVE
+    Then  "key-A" 不在掃描結果中，狀態保持 Active
 
   Scenario: 金鑰已在終態 — 不處理
-    Given 金鑰 "key-A" 狀態為 REVOKED
+    Given 金鑰 "key-A" 狀態為 Revoked
     When  System Agent 執行到期掃描
     Then  "key-A" 不在掃描結果中，不產生任何事件
 ```

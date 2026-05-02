@@ -27,14 +27,14 @@ Input:    { consumerId, tenantId, name, environment, scopes, expiresAt }
 Guard:
   Tenant 存在 AND 狀態為 Active                               (I1: ValidateConsumer)
   AND Consumer 存在 AND 屬於該 Tenant                         (I1: ValidateConsumer)
-  AND 同 Consumer + Environment 的 ACTIVE 金鑰數 < 上限        (Repository 查詢)
+  AND 同 Consumer + Environment 的 Active 金鑰數 < 上限        (Repository 查詢)
   AND name 在同 Consumer + Environment 內不重複                (Repository 查詢)
   AND 所有 scopes 存在於 Scope Registry                        (Registry 查詢)
   AND scopes 至少包含一個                                      (輸入驗證)
   AND expiresAt > now                                          (輸入驗證)
   AND expiresAt ≤ now + 最大允許有效期                          (輸入驗證)
 
-State:    → ACTIVE（新建）
+State:    → Active（新建）
 Event:    KeyCreated { keyId, consumerId, tenantId, environment, scopes, keyPrefix, expiresAt, policyId }
 
 Side Effect:
@@ -51,13 +51,13 @@ Actor:    Consumer / Service Owner
 Input:    { keyId, tenantId, gracePeriod? }
 
 Guard:
-  金鑰狀態 = ACTIVE
-  AND 同 Consumer + Environment 下無其他 ROTATING 金鑰          (INV-4)
+  金鑰狀態 = Active
+  AND 同 Consumer + Environment 下無其他 Rotating 金鑰          (INV-4)
   AND expiresAt > now（金鑰尚未到期）
 
 State:
-  Key A: ACTIVE → ROTATING
-  Key B: → ACTIVE（新建）
+  Key A: Active → Rotating
+  Key B: → Active（新建）
 
 Event:    KeyRotationInitiated { oldKeyId, newKeyId, graceDeadline }
 
@@ -78,10 +78,10 @@ Actor:    System（Monitoring / DetectionRule）
 Input:    { keyId, tenantId, ruleId, severity, reason, detectedAt, evidence }
 
 Guard:
-  金鑰狀態 = ACTIVE                                            (INV-5)
+  金鑰狀態 = Active                                            (INV-5)
   AND Actor.type = System                                      (INV-5)
 
-State:    ACTIVE → LOCKED
+State:    Active → Locked
 Event:    KeyLocked { keyId, ruleId, reason, evidence }
 ```
 
@@ -93,10 +93,10 @@ Actor:    Security Admin
 Input:    { keyId, tenantId }
 
 Guard:
-  金鑰狀態 = LOCKED
+  金鑰狀態 = Locked
   AND 操作者具備 Security Admin 權限
 
-State:    LOCKED → ACTIVE
+State:    Locked → Active
 Event:    KeyUnlocked { keyId, unlockedBy }
 ```
 
@@ -108,12 +108,12 @@ Actor:    Security Admin / Service Owner
 Input:    { keyId, tenantId, reason }
 
 Guard:
-  金鑰狀態 = ACTIVE                                            (INV-6)
+  金鑰狀態 = Active                                            (INV-6)
   AND Actor.type = User                                        (INV-6)
   AND 操作者具備暫停權限
   AND reason 不為空
 
-State:    ACTIVE → SUSPENDED
+State:    Active → Suspended
 Event:    KeySuspended { keyId, suspendedBy, reason }
 ```
 
@@ -125,10 +125,10 @@ Actor:    Security Admin / Service Owner
 Input:    { keyId, tenantId }
 
 Guard:
-  金鑰狀態 = SUSPENDED
+  金鑰狀態 = Suspended
   AND 操作者具備恢復權限
 
-State:    SUSPENDED → ACTIVE
+State:    Suspended → Active
 Event:    KeyResumed { keyId, resumedBy }
 ```
 
@@ -140,20 +140,20 @@ Actor:    Security Admin / Service Owner / Secret Scanner
 Input:    { keyId, tenantId, reason }
 
 Guard:
-  金鑰狀態 ∈ { ACTIVE, ROTATING, LOCKED, SUSPENDED }           (非終態)
+  金鑰狀態 ∈ { Active, Rotating, Locked, Suspended }           (非終態)
   AND reason 不為空                                             (INV-7)
 
 State:（依來源狀態）
-  ACTIVE    → REVOKED
-  ROTATING  → REVOKED
-  LOCKED    → REVOKED
-  SUSPENDED → REVOKED
+  Active    → Revoked
+  Rotating  → Revoked
+  Locked    → Revoked
+  Suspended → Revoked
 
 Event:    KeyRevoked { keyId, previousStatus, reason, revokedBy }
 
 Side Effect:
   1. 觸發主動快取失效（Pub/Sub 廣播至所有 Gateway 節點）
-  2. 若來源狀態為 ROTATING：清除 successorKeyId / predecessorKeyId 關聯
+  2. 若來源狀態為 Rotating：清除 successorKeyId / predecessorKeyId 關聯
 ```
 
 #### C8: ExpireKey
@@ -165,24 +165,24 @@ Input:    { keyId, tenantId }
 
 Guard:
   now ≥ expiresAt
-  AND 金鑰狀態 ∈ { ACTIVE, ROTATING, SUSPENDED, LOCKED }       (非終態)
+  AND 金鑰狀態 ∈ { Active, Rotating, Suspended, Locked }       (非終態)
 
 State:（依當前狀態分流 — ADR-03）
-  ACTIVE    → EXPIRED
-  ROTATING  → EXPIRED
-  SUSPENDED → EXPIRED
-  LOCKED    → REVOKED（保留安全上下文）
+  Active    → Expired
+  Rotating  → Expired
+  Suspended → Expired
+  Locked    → Revoked（保留安全上下文）
 
 Event:
-  LOCKED → REVOKED:
-    KeyRevoked { keyId, previousStatus: LOCKED,
+  Locked → Revoked:
+    KeyRevoked { keyId, previousStatus: Locked,
       reason: "System: locked key expired (original lock rule: {ruleId})",
       revokedBy: System }
-  其他 → EXPIRED:
+  其他 → Expired:
     KeyExpired { keyId, previousStatus }
 
 Side Effect:
-  LOCKED → REVOKED 時觸發主動快取失效
+  Locked → Revoked 時觸發主動快取失效
 ```
 
 #### C9: CompleteGracePeriod
@@ -193,10 +193,10 @@ Actor:    System Agent（定時掃描）
 Input:    { keyId, tenantId }
 
 Guard:
-  金鑰狀態 = ROTATING
+  金鑰狀態 = Rotating
   AND now ≥ graceDeadline
 
-State:    ROTATING → REVOKED
+State:    Rotating → Revoked
 
 Event:    KeyGracePeriodExpired { keyId, successorKeyId }
 
@@ -209,13 +209,13 @@ Side Effect:
 
 | # | 不變條件 | 驗證時機 | 由誰驗證 |
 |:--|:---------|:---------|:---------|
-| INV-1 | 終態不可逆 | 所有命令 | Aggregate：EXPIRED / REVOKED 拒絕所有轉換 |
-| INV-2 | ROTATING 必有 Successor | C2 | Aggregate：rotate() 設定 successorKeyId |
-| INV-3 | Successor 必為 ACTIVE | C2 | Application Service：建立 Key B 後驗證 |
-| INV-4 | 單一 ROTATING | C2 | Application Service：Repository 查詢 |
-| INV-5 | LOCKED 僅限系統 | C3 | Aggregate：檢查 Actor.type = System |
-| INV-6 | SUSPENDED 僅限人為 | C5 | Aggregate：檢查 Actor.type = User |
-| INV-7 | 撤銷必須有因 | C7, C8(LOCKED) | Aggregate：reason 非空 |
+| INV-1 | 終態不可逆 | 所有命令 | Aggregate：Expired / Revoked 拒絕所有轉換 |
+| INV-2 | Rotating 必有 Successor | C2 | Aggregate：rotate() 設定 successorKeyId |
+| INV-3 | Successor 必為 Active | C2 | Application Service：建立 Key B 後驗證 |
+| INV-4 | 單一 Rotating | C2 | Application Service：Repository 查詢 |
+| INV-5 | Locked 僅限系統 | C3 | Aggregate：檢查 Actor.type = System |
+| INV-6 | Suspended 僅限人為 | C5 | Aggregate：檢查 Actor.type = User |
+| INV-7 | 撤銷必須有因 | C7, C8(Locked) | Aggregate：reason 非空 |
 | INV-8 | 環境不可變 | — | Aggregate：environment 為不可變欄位 |
 
 **職責分界原則：**
@@ -227,19 +227,19 @@ Side Effect:
 
 | Transition | From → To | Command |
 |:-----------|:----------|:--------|
-| T1 | ACTIVE → ROTATING | C2: RotateKey |
-| T2 | ACTIVE → LOCKED | C3: LockKey |
-| T3 | ACTIVE → SUSPENDED | C5: SuspendKey |
-| T4 | ACTIVE → REVOKED | C7: RevokeKey |
-| T5 | ACTIVE → EXPIRED | C8: ExpireKey |
-| T6 | ROTATING → REVOKED | C7: RevokeKey / C9: CompleteGracePeriod |
-| T7 | ROTATING → EXPIRED | C8: ExpireKey |
-| T8 | LOCKED → ACTIVE | C4: UnlockKey |
-| T9 | LOCKED → REVOKED | C7: RevokeKey |
-| T10 | LOCKED → REVOKED | C8: ExpireKey |
-| T11 | SUSPENDED → ACTIVE | C6: ResumeKey |
-| T12 | SUSPENDED → REVOKED | C7: RevokeKey |
-| T13 | SUSPENDED → EXPIRED | C8: ExpireKey |
+| T1 | Active → Rotating | C2: RotateKey |
+| T2 | Active → Locked | C3: LockKey |
+| T3 | Active → Suspended | C5: SuspendKey |
+| T4 | Active → Revoked | C7: RevokeKey |
+| T5 | Active → Expired | C8: ExpireKey |
+| T6 | Rotating → Revoked | C7: RevokeKey / C9: CompleteGracePeriod |
+| T7 | Rotating → Expired | C8: ExpireKey |
+| T8 | Locked → Active | C4: UnlockKey |
+| T9 | Locked → Revoked | C7: RevokeKey |
+| T10 | Locked → Revoked | C8: ExpireKey |
+| T11 | Suspended → Active | C6: ResumeKey |
+| T12 | Suspended → Revoked | C7: RevokeKey |
+| T13 | Suspended → Expired | C8: ExpireKey |
 
 ---
 
@@ -369,10 +369,10 @@ ApiKeyRepository {
 
 ```
 1.  keyA = repo.findById(keyId, tenantId)                — 取得 Key A
-2.  guard: keyA.status = ACTIVE                          — 狀態檢查
+2.  guard: keyA.status = Active                          — 狀態檢查
 3.  guard: keyA.expiresAt > now                          — 尚未到期
-4.  repo.existsRotatingByConsumerAndEnv(...)              — Guard: 無其他 ROTATING
-5.  keyA.initiateRotation(gracePeriod)                    — Key A: ACTIVE → ROTATING
+4.  repo.existsRotatingByConsumerAndEnv(...)              — Guard: 無其他 Rotating
+5.  keyA.initiateRotation(gracePeriod)                    — Key A: Active → Rotating
 6.  (keyB, rawKey) = factory.create(...)                  — 產生 Key B
 7.  keyA.setSuccessor(keyB.keyId)                         — 建立關聯
 8.  keyB.setPredecessor(keyA.keyId)

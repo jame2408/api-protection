@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ApiKeyManagement.Api.Middleware;
 using ApiKeyManagement.AccessPolicy;
 using ApiKeyManagement.Infrastructure;
@@ -11,6 +12,14 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddTenantManagementModule();
 builder.Services.AddKeyLifecycleModule();
 builder.Services.AddAccessPolicyModule();
+
+// ADR-006: enum string wire format aligned with PascalCase enum members.
+// allowIntegerValues=false rejects numeric enum values in request bodies.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(allowIntegerValues: false));
+});
 
 var app = builder.Build();
 

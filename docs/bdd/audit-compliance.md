@@ -30,10 +30,10 @@ Feature: 審計記錄寫入
     And   tenantId 為 "tenant-A"
 
   Scenario: Key Lifecycle 狀態變更事件 → 包含 before/after 與 reason（I3）
-    Given Key Lifecycle 發布 KeyRevoked 事件，keyId "key-A", previousStatus ACTIVE, reason "安全疑慮"
+    Given Key Lifecycle 發布 KeyRevoked 事件，keyId "key-A", previousStatus Active, reason "安全疑慮"
     When  Audit 接收到該事件
     Then  系統建立 AuditEntry：action 為 KEY_REVOKED
-    And   snapshotBefore 為 { status: ACTIVE }，snapshotAfter 為 { status: REVOKED }
+    And   snapshotBefore 為 { status: Active }，snapshotAfter 為 { status: Revoked }
     And   reason 為「安全疑慮」
 
   Scenario: Access Policy 變更事件 → 產生審計記錄（I5）

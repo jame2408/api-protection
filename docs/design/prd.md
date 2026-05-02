@@ -81,7 +81,7 @@ API 金鑰不只是一個字串，它是一個帶有豐富上下文的物件。
 | Consumer ID | Foreign Key | 關聯至申請該金鑰的專案或組織 | 責任歸屬 |
 | Environment | Enum | 金鑰適用環境（Sandbox / Production）。測試金鑰禁止在生產環境生效 | 環境隔離 |
 | Scopes | Array of Strings | 授權的操作權限列表（如 `orders:read`, `refunds:create`） | 最小權限原則 |
-| Lifecycle Status | Enum | 當前狀態：ACTIVE, ROTATING, REVOKED, EXPIRED, LOCKED | 狀態機管控 |
+| Lifecycle Status | Enum | 當前狀態：Active, Rotating, Revoked, Expired, Locked | 狀態機管控 |
 | Created At | Timestamp | 金鑰生成時間 | 審計追蹤 |
 | Expires At | Timestamp | 金鑰失效時間點。系統不應允許「永久有效」的金鑰 | 週期性輪替 |
 | Last Used At | Timestamp | 最近一次成功驗證的時間，用於識別「殭屍金鑰」 | 清理與維護 |
@@ -158,7 +158,7 @@ API 金鑰不只是一個字串，它是一個帶有豐富上下文的物件。
 驗證邏輯遵循漏斗模型以節省資源：
 
 1. 格式檢查：檢查前綴與長度（記憶體操作，極快）
-2. 狀態檢查：從快取查 Key ID 狀態是否為 ACTIVE
+2. 狀態檢查：從快取查 Key ID 狀態是否為 Active
 3. IP 檢查：比對來源 IP 是否在白名單內
 4. 雜湊驗證：執行雜湊運算比對
 5. 權限檢查：確認金鑰是否擁有存取該 Endpoint 的 Scope
@@ -174,10 +174,10 @@ API 金鑰不只是一個字串，它是一個帶有豐富上下文的物件。
 最容易導致服務中斷的環節，需要精細的狀態管理。
 
 **R-ROT-01: 零停機輪替**
-支援「雙活狀態」（Dual Active State）。使用者觸發輪替時，系統生成新金鑰（Key B），並將舊金鑰（Key A）標記為 ROTATING。
+支援「雙活狀態」（Dual Active State）。使用者觸發輪替時，系統生成新金鑰（Key B），並將舊金鑰（Key A）標記為 Rotating。
 
 **R-ROT-02: 寬限期（Grace Period）**
-在可配置的寬限期內（如 24 小時或 7 天），Key A 與 Key B 同時有效，讓開發者有時間將客戶端更新為 Key B。寬限期結束後，系統自動將 Key A 轉為 REVOKED。
+在可配置的寬限期內（如 24 小時或 7 天），Key A 與 Key B 同時有效，讓開發者有時間將客戶端更新為 Key B。寬限期結束後，系統自動將 Key A 轉為 Revoked。
 
 **R-ROT-03: 強制輪替策略**
 高敏感服務應支援強制輪替（如每 90 天）。若開發者未在期限內輪替，系統發送多次警告，最終自動失效金鑰。
@@ -236,7 +236,7 @@ API 金鑰不只是一個字串，它是一個帶有豐富上下文的物件。
 
 系統應支援配置自動化規則（Rule Engine）：
 
-- 規則 A：若金鑰 K 在 1 分鐘內觸發超過 50 次 401/403 錯誤 → 自動轉為 LOCKED 並發送 Slack 通知給管理員
+- 規則 A：若金鑰 K 在 1 分鐘內觸發超過 50 次 401/403 錯誤 → 自動轉為 Locked 並發送 Slack 通知給管理員
 - 規則 B：若金鑰 K 來自未知的 ASN（如某個惡名昭彰的 VPN 提供商）→ 自動降級其速率限制
 
 ---
