@@ -43,7 +43,7 @@ public enum ApiKeyStatus
 }
 ```
 
-`CreateApiKeyHandler.cs:75` 序列化方式：
+`CreateApiKeyHandler` 內 response 組裝段的序列化方式：
 
 ```csharp
 LifecycleStatus: apiKey.Status.ToString()
@@ -156,7 +156,7 @@ return new CreateApiKeyResponse(
 實作要求：
 
 1. **Feature / step wording**：把 `backend/tests/FunctionalTests/Features/KeyLifecycle/*.feature` 全部 feature 檔中的 `ACTIVE / ROTATING / SUSPENDED / REVOKED / EXPIRED / LOCKED` 等狀態字面值同步改為 PascalCase，包括：
-   - `01_CreateApiKey.feature`（已知 :8、:13、:39 等行有 `ACTIVE`）
+   - `01_CreateApiKey.feature`（含 `ACTIVE` / `Then 金鑰狀態為 ACTIVE` 等字面值的所有 Scenario）
    - `02_RevokeKey.feature`
    - `03_SuspendResumeKey.feature`
    - `04_LockUnlockKey.feature`
@@ -180,8 +180,8 @@ return new CreateApiKeyResponse(
 
 **.claude/references（agent 學習材料 — 必改）**：
 
-- `.claude/references/dotnet/di.rule.md:55`：`ApiKeyStatus.ACTIVE` → `ApiKeyStatus.Active`
-- `.claude/references/dotnet/exceptions.rule.md:196`：`ApiKeyStatus.ACTIVE` → `ApiKeyStatus.Active`
+- `.claude/references/dotnet/di.rule.md`：所有 `ApiKeyStatus.ACTIVE` → `ApiKeyStatus.Active`
+- `.claude/references/dotnet/exceptions.rule.md`：所有 `ApiKeyStatus.ACTIVE` → `ApiKeyStatus.Active`
 - `naming.guide.md` §B「Enum PascalCase (singular)」已正確，僅需確認無 ALL_CAPS 範例。
 
 **design / detailed-design / bdd 文件（必改）**：
@@ -202,7 +202,7 @@ return new CreateApiKeyResponse(
 
 把 `ACTIVE / ROTATING / SUSPENDED / REVOKED / EXPIRED / LOCKED` 等狀態字面值改為 `Active / Rotating / Suspended / Revoked / Expired / Locked`。
 
-**驗收 grep**（acceptance commit 前必須歸零；優先用 `rg`，避開 BSD/GNU grep 的 `\b` / `\|` 平台差異）：
+**驗收 grep**（acceptance commit 前必須歸零；統一用 `git grep`，跨平台一致且無外部依賴，避開 BSD/GNU `grep` 的 `\b` / `\|` 行為差異）：
 
 ```bash
 # 1. C# enum reference 必須全 PascalCase
@@ -318,5 +318,5 @@ Rejected. 每個 member 都要標註、容易漏；且 enum member 自己違反 
 6. Functional test 必須以 raw JSON literal（如 `JsonDocument` + `GetString().Should().Be("Active")`）驗證 wire-format 字串；不可僅以 enum value 比較替代。
 7. Query string enum binding 由 Minimal API model binder 與 `Enum.TryParse` 處理，與 `JsonStringEnumConverter` 無關；list endpoint 實作時必須加 `?status=Active` 與 `?status=Bogus` 的 functional test。
 8. 本系統尚未部署，本次 enum rename 不需 data migration；未來如再有類似 enum rename 且涉及已部署環境，必須另開 ADR 並含 quoted identifier 的 Up/Down 對稱 migration 設計。
-9. enum 命名與 wire 字面值的同步範圍包含：`backend/src/`、`backend/tests/FunctionalTests/Features/`、`backend/tests/FunctionalTests/Steps/`、`.claude/references/`、`docs/design/`、`docs/detailed-design/`、`docs/bdd/`。acceptance commit 前依 §6 的 `rg` 驗收指令必須 0 命中（C# enum reference 與 wire 字面值兩條 grep 都要過）。
+9. enum 命名與 wire 字面值的同步範圍包含：`backend/src/`、`backend/tests/FunctionalTests/Features/`、`backend/tests/FunctionalTests/Steps/`、`.claude/references/`、`docs/design/`、`docs/detailed-design/`、`docs/bdd/`。acceptance commit 前依 §6 的 `git grep` 驗收指令必須 0 命中（C# enum reference 與 wire 字面值兩條 grep 都要過）。
 10. 任何提案修改 1–9，必須先開新 ADR。

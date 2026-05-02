@@ -36,6 +36,25 @@ _How Claude and the user collaborate — committed to the repo so it persists ac
 ### Configuration
 - `.claude/settings.json` holds shared defaults; `.claude/settings.local.json` holds machine-local overrides. Do not modify either unless explicitly requested.
 
+### Architecture Decision Records (ADR)
+- New ADRs MUST start from `docs/adr/_template.md`. Do not freeform; the template encodes the project's required structure (Status / Context / Decision / Rationale / Consequences / Alternatives Considered / Implementation Rules + governance clause).
+- File naming: `docs/adr/adr-NNN-kebab-case-title.md` (next available number).
+- Reference other docs by stable anchors (file + section heading, file + symbol, or quoted content) — never by `file:line`.
+- The final Implementation Rule MUST be the governance clause: "任何提案修改 1–N，必須先開新 ADR".
+- ADRs that touch reference docs / CLAUDE.md / examples MUST explicitly list "同步項目" — either as a one-liner under Status (when the list is short, like ADR-004) or as a Decision sub-section (when it's a substantive checklist, like ADR-005 §6 / ADR-006 §6). All sync edits MUST land in the same commit as the ADR.
+
+#### Validation
+- **Structural lint (mechanical)**: `scripts/adr-lint.sh` checks Status format, required sections, governance clause, file:line bans, filename numbering, Alternatives "Rejected." markers, and trade-off "Mitigation:" follow-ups. Pre-commit hook auto-runs it whenever `docs/adr/` is staged. Install once per clone via `scripts/install-git-hooks.sh`.
+- **Acceptance commands**: ADRs that promise repo-wide cleanups (grep归零、refactor across docs) MUST embed runnable verification commands in their Implementation Rules (see ADR-006 §6 for the canonical pattern). Run them before marking the ADR Accepted.
+- **Review checklist (judgment, not mechanical)** — apply to every ADR PR:
+  1. Context 是否並排引用實際衝突（程式碼 / 設計文件 / CLAUDE.md），而非泛泛敘述？
+  2. Decision 是否明確劃定「不在本 ADR 範圍」的邊界，避免被過度解讀？
+  3. Decision 每條是否附最小 code 範例（before/after 對比優先）？
+  4. Rationale 是否回答「為何選 X 而不選 Y」「為何不擴張」「為何不機械化」三類問題？
+  5. 至少列出 3 個 Alternatives？少於 3 個通常代表沒想夠。
+  6. Implementation Rules 每條是否「能被 review 打勾」（祈使句、可驗證）？
+  7. 同步項目是否在「同 commit」一起改，而非另開 PR？
+
 ### Intellectual Independence
 - Evaluate all suggestions critically. Never transcribe user text verbatim — compress, clarify, and find the more precise formulation.
 - If a suggestion has issues or contradicts existing rules, say so directly before implementing.

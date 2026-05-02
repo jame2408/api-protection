@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# pre-commit — repo-local hook.
+#
+# Runs scripts/adr-lint.sh whenever staged changes touch docs/adr/.
+# adr-lint reads the working tree, so to keep lint correctness we refuse to
+# proceed when docs/adr/ has unstaged changes (partial staging would let bad
+# index content slip through, or good index content get blocked by a dirty
+# working copy).
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Detect staged changes under docs/adr/ (any change type, including deletions)
+if git diff --cached --name-only -- 'docs/adr/' | grep -q .; then
+    # Refuse partial staging — adr-lint operates on working tree, not index
+    if git diff --name-only -- 'docs/adr/' | grep -q .; then
+        echo "[pre-commit] docs/adr/ has unstaged changes." >&2
+        echo "             adr-lint reads working tree, so partial staging is unsafe." >&2
+        echo "             Stage all docs/adr/ changes (or stash them) before committing:" >&2
+        git diff --name-only -- 'docs/adr/' | sed 's/^/               /' >&2
+        exit 1
+    fi
+
+    # Refuse untracked ADR files — they would be linted (working-tree glob) but
+    # not committed, masking staged numbering gaps and producing false failures.
+    untracked=$(git ls-files --others --exclude-standard -- 'docs/adr/adr-*.md')
+    if [[ -n "$untracked" ]]; then
+        echo "[pre-commit] docs/adr/ has untracked adr-*.md files." >&2
+        echo "             They would be linted but not committed, masking numbering gaps." >&2
+        echo "             Stage, remove, or .gitignore them before committing:" >&2
+        printf '%s\n' "$untracked" | sed 's/^/               /' >&2
+        exit 1
+    fi
+
+    echo "[pre-commit] docs/adr/ changes staged — running adr-lint…"
+    "$REPO_ROOT/scripts/adr-lint.sh" || {
+        echo
+        echo "[pre-commit] adr-lint failed. Fix violations or commit with --no-verify if intentional." >&2
+        exit 1
+    }
+fi

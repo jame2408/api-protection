@@ -8,13 +8,13 @@
 
 Accepted (2026-05-01)
 
-Superseded the contradictory wording at `CLAUDE.md:93`. CLAUDE.md edited in the same commit; `FailureProvider.CreateFailure` guard added in the same commit.
+Supersedes the contradictory wording in `CLAUDE.md` 的「Error Handling (Critical — zero tolerance)」段（原文要求把 entity ID / input value 塞進 `Failure.message` 或 `metadata`）。CLAUDE.md edited in the same commit; `FailureProvider.CreateFailure` guard added in the same commit.
 
 ---
 
 ## Context
 
-`CLAUDE.md:93` 寫：
+`CLAUDE.md` 「Error Handling (Critical — zero tolerance)」段原本寫：
 
 > NEVER inject `ILogger` into Service or Domain layers. Embed diagnostic context (entity IDs, input values) into the `Failure` message or metadata so boundary loggers (Middleware, Pipeline Behavior) can produce meaningful logs without service-layer coupling.
 
@@ -48,7 +48,7 @@ public record Failure(string Code);
 - 這些邊界拿到 `Failure.Code` 之後，從 `HttpContext`、Command 物件、Query 物件取得 entity ID、input value、tenant ID 等診斷 context，自行 structured log。
 - Service / Domain / Handler 只向上傳 `Failure.Code`，不負責 logging。
 
-### 3. 修正 `CLAUDE.md:93`
+### 3. 修正 `CLAUDE.md`「Error Handling」段
 
 新文字：
 

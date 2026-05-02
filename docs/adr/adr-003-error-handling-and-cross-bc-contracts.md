@@ -6,7 +6,7 @@
 
 ## Status
 
-Accepted
+Accepted (2026-04-30)
 
 ---
 
@@ -104,8 +104,11 @@ Repository raw return 保持責任單純：
 ### Negative / Trade-offs
 
 - Repository caller 不能只靠 `Result` 判斷所有錯誤；unexpected exception 會走 middleware。
+  - Mitigation: `UnhandledExceptionMiddleware` 統一捕捉並轉 5xx，logging context 在邊界補齊；caller 不需也不該感知 DB exception 細節。
 - 跨 BC contract DTO 需要維持 error code discipline，避免裸字串擴散。
+  - Mitigation: 規則 5 強制 contract DTO error code 必須來自 `*FailureCodes` 常數；架構測試可加驗 contract assembly 不出現裸字串 error code。
 - Handler 需要在 BC 邊界明確轉換 contract validation failure。
+  - Mitigation: 此轉換是 BC 邊界責任的一部分（與 ADR-004 §2 「邊界 logger 補診斷 context」對齊），範例放在 `.claude/references/dotnet/exceptions.rule.md`。
 
 ---
 
@@ -141,3 +144,4 @@ Rejected.
 6. Consuming Handler converts contract DTO error code to `Failure`.
 7. Endpoint / Controller maps `Failure.Code` to HTTP status code.
 8. `UnhandledExceptionMiddleware` handles unexpected exceptions at HTTP boundary.
+9. 任何提案修改 1–8，必須先開新 ADR。
