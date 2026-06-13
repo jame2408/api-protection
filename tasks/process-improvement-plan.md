@@ -337,7 +337,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 | 開環 / Phase | 狀態 | 落地 | commit |
 |---|---|---|---|
-| §3-A / Phase 2：Architecture.Tests | ✅ | BC 隔離（NetArchTest）+ Repository raw return + Handler 必回 Result + ILogger 邊界 + 命名 + FailureCodes shape + **Failure shape lock（ADR-004 §4，加欄位即 red）**，共 **13 tests**，各綠＋故意紅驗證 | `b86e0f5` `a0d1208` `a42f103` |
+| §3-A / Phase 2：Architecture.Tests | ✅ | BC 隔離（NetArchTest）+ Repository raw return + Handler 必回 Result + ILogger 邊界 + 命名 + FailureCodes shape + **Failure shape lock（ADR-004 §4，加欄位即 red）**，共 **13 tests**，各綠＋故意紅驗證 | `b86e0f5` `a0d1208` `d427001` |
 | 語法層級 lint | ✅ | `scripts/source-lint.sh`：禁 `new Failure(`（豁免 FailureProvider）、bare-string code、`cancel` 命名 | `a0d1208` `83dbf15` |
 | 本機 + CI 統一 gate | ✅ | `scripts/ci-checks.sh`（fast/full 雙模式）+ pre-commit（fast）/ pre-push（full）+ `.github/workflows/ci.yml`；本機與 CI 跑同一支腳本，不漂移 | `f621f61` `8088a9d` `b86e0f5` |
 | §4 Phase 6：PreToolUse hook | ✅ | `.claude/hooks/pre-tool-edit.py` + `settings.json`，寫的當下攔 4 個 pattern；刻意不攔 `throw`（合法 guard throw 會誤報） | `83dbf15` |
