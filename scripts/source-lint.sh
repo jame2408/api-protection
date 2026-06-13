@@ -19,6 +19,16 @@ if [[ -n "$new_failure" ]]; then
     status=1
 fi
 
+# Rule (exceptions.rule.md §E): failure codes are referenced via *FailureCodes constants,
+# never as a bare string literal — `CreateFailure("FOO")` should be `CreateFailure(XFailureCodes.Foo)`.
+bare_code=$(grep -rnE 'CreateFailure\("' "$SRC" --include='*.cs' \
+    | grep -v '/obj/' || true)
+if [[ -n "$bare_code" ]]; then
+    echo "[source-lint] bare-string failure code — use a *FailureCodes constant:" >&2
+    echo "$bare_code" | sed 's/^/  /' >&2
+    status=1
+fi
+
 # Rule (CLAUDE.md / naming.guide.md §B): CancellationToken parameters are named `cancel`,
 # never `cancellationToken` or `ct`.
 bad_cancel=$(grep -rnE 'CancellationToken (cancellationToken|ct)\b' "$SRC" --include='*.cs' \
