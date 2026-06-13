@@ -20,7 +20,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Identical gate to the local pre-commit hook — both run scripts/ci-checks.sh,
-      # so "passed locally" and "passed CI" cannot diverge.
-      - name: Run CI gate (scripts/ci-checks.sh)
-        run: bash scripts/ci-checks.sh
+      # Identical gate to the local pre-push hook — both run `ci-checks.sh full`,
+      # so "passed pre-push locally" and "passed CI" cannot diverge.
+      - name: Run CI gate (scripts/ci-checks.sh full)
+        run: bash scripts/ci-checks.sh full
