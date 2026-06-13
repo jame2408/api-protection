@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Hook: UserPromptSubmit
-# Purpose: Inject tasks/lessons.md into the first prompt of each session
-# so Claude always has lessons context without needing to be reminded.
+# Purpose: On the first prompt of each session, inject (1) a must-read rules
+# reminder and (2) tasks/lessons.md, so Claude has the project's rules and prior
+# lessons in context without needing to be reminded.
 
 # Read hook input from stdin
 INPUT=$(cat)
@@ -36,6 +37,19 @@ except Exception:
     exit 0
   fi
 fi
+
+# Must-read rules reminder — always on the first turn, before any lessons.
+# Uses globs + a pointer to CLAUDE.md §0 (the canonical rule) rather than a
+# hardcoded file list, so it does not go stale when rule files are added.
+echo "## 必讀規範（寫 backend code 前）"
+echo ""
+echo "寫任何 Handler / Service / Repository / Endpoint（production 或 test）之前，先載入規則 — 以 CLAUDE.md §0 Reference Loading 為準："
+echo "- \`.claude/references/dotnet/*.rule.md\` 與 \`.claude/references/general/*.rule.md\`"
+echo "- \`docs/adr/\` 內 Accepted 的 ADR（錯誤處理 / DI / 命名 / wire-format 決策）"
+echo "- \`docs/design/api-spec.md\`（你要碰的 endpoint 章節）"
+echo ""
+echo "這些規則是機械化強制的，不是建議：違規會在「寫的當下」被 PreToolUse hook 擋（\`.claude/hooks/pre-tool-edit.py\`），並由 Architecture.Tests 與 \`scripts/source-lint.sh\` 在 commit / push / CI 攔下（\`scripts/ci-checks.sh\`）。未讀就動手 = 高機率被擋、來回重做。"
+echo ""
 
 # Check if lessons.md exists and has actual entries (below the --- separator)
 if [ ! -f "$LESSONS_FILE" ]; then
