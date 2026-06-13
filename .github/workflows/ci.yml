@@ -1,0 +1,36 @@
+name: CI
+
+# Remote enforcement backstop for the defence loop. Local pre-commit (scripts/git-hooks/pre-commit)
+# and `dotnet format` can be bypassed with --no-verify or simply not installed; CI is the layer that
+# does not depend on anyone's memory. Set this workflow as a required status check on main so a red
+# build blocks merge.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest  # Docker is preinstalled — FunctionalTests use Testcontainers (Postgres).
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore backend/ApiKeyManagement.slnx
+
+      - name: Build
+        run: dotnet build backend/ApiKeyManagement.slnx --no-restore -c Release
+
+      - name: Format check
+        run: dotnet format backend/ApiKeyManagement.slnx --no-restore --verify-no-changes
+
+      - name: Test (unit + architecture + BDD functional)
+        run: dotnet test backend/ApiKeyManagement.slnx --no-build -c Release
+
+      - name: ADR structural lint
+        run: bash scripts/adr-lint.sh
