@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# pre-commit — repo-local hook.
+# pre-commit — runs the exact same gate as CI via scripts/ci-checks.sh
+# (single source of truth), so a commit that passes locally will pass CI too.
 #
-# Runs scripts/adr-lint.sh whenever staged changes touch docs/adr/.
-# adr-lint reads the working tree, so to keep lint correctness we refuse to
-# proceed when docs/adr/ has unstaged changes (partial staging would let bad
-# index content slip through, or good index content get blocked by a dirty
-# working copy).
+# The docs/adr/ partial-staging guard below is preserved from the original
+# adr-only hook: adr-lint (run inside ci-checks.sh) reads the working tree, so
+# when ADR files are staged we refuse to run against a dirty docs/adr/ working
+# copy that would not match what is being committed.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -31,11 +31,8 @@ if git diff --cached --name-only -- 'docs/adr/' | grep -q .; then
         printf '%s\n' "$untracked" | sed 's/^/               /' >&2
         exit 1
     fi
-
-    echo "[pre-commit] docs/adr/ changes staged — running adr-lint…"
-    "$REPO_ROOT/scripts/adr-lint.sh" || {
-        echo
-        echo "[pre-commit] adr-lint failed. Fix violations or commit with --no-verify if intentional." >&2
-        exit 1
-    }
 fi
+
+# Run the exact same gate as CI — single source of truth.
+# Bypass intentionally with `git commit --no-verify` (e.g. mid-WIP); CI still enforces.
+exec bash "$REPO_ROOT/scripts/ci-checks.sh"
