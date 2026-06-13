@@ -337,7 +337,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 | 開環 / Phase | 狀態 | 落地 | commit |
 |---|---|---|---|
-| §3-A / Phase 2：Architecture.Tests | ✅ | BC 隔離（NetArchTest）+ Repository raw return + Handler 必回 Result（reflection），後續加 ILogger 邊界 + 命名 + FailureCodes shape，共 **11 tests**，各綠＋故意紅驗證 | `b86e0f5` `a0d1208` |
+| §3-A / Phase 2：Architecture.Tests | ✅ | BC 隔離（NetArchTest）+ Repository raw return + Handler 必回 Result + ILogger 邊界 + 命名 + FailureCodes shape + **Failure shape lock（ADR-004 §4，加欄位即 red）**，共 **13 tests**，各綠＋故意紅驗證 | `b86e0f5` `a0d1208` `a42f103` |
 | 語法層級 lint | ✅ | `scripts/source-lint.sh`：禁 `new Failure(`（豁免 FailureProvider）、bare-string code、`cancel` 命名 | `a0d1208` `83dbf15` |
 | 本機 + CI 統一 gate | ✅ | `scripts/ci-checks.sh`（fast/full 雙模式）+ pre-commit（fast）/ pre-push（full）+ `.github/workflows/ci.yml`；本機與 CI 跑同一支腳本，不漂移 | `f621f61` `8088a9d` `b86e0f5` |
 | §4 Phase 6：PreToolUse hook | ✅ | `.claude/hooks/pre-tool-edit.py` + `settings.json`，寫的當下攔 4 個 pattern；刻意不攔 `throw`（合法 guard throw 會誤報） | `83dbf15` |
@@ -348,7 +348,6 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 - **§3-B / Phase 3**：API contract tests（RFC 9457 ProblemDetails、`truncatedKey` wire contract、failure→response mapping）— 未做。
 - **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — 未做。目前散在本 plan，本身就是「plan 變隱性規範」的風險。
-- **§3-A 殘項**：`Failure` shape lock reflection test（原列第 4 條 MVP；目前以 ADR-004 §4 文字為準，尚未寫測試）。
 - **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
 - **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
 - **既有 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`）、#35（`ROTATING` 殘留）。
