@@ -10,9 +10,11 @@ namespace ApiKeyManagement.Architecture.Tests;
 /// </summary>
 internal static class ArchitectureRules
 {
-    // Bounded contexts + Infrastructure: hold the repository interfaces and use-case handlers.
+    // SharedKernel + bounded contexts + Infrastructure: every production assembly the
+    // architecture rules inspect (repository interfaces, handlers, failure-code holders).
     private static readonly string[] ProductionAssemblies =
     [
+        "ApiKeyManagement.SharedKernel",
         "ApiKeyManagement.AccessPolicy",
         "ApiKeyManagement.Audit",
         "ApiKeyManagement.KeyLifecycle",
@@ -53,4 +55,17 @@ internal static class ArchitectureRules
 
     private static bool IsResult(Type type)
         => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Result<,>);
+
+    /// <summary>
+    /// True when any constructor of <paramref name="type"/> takes an <c>ILogger</c> or
+    /// <c>ILogger&lt;T&gt;</c> parameter. Detected by name + namespace so the test project needs no
+    /// Microsoft.Extensions.Logging package reference. Covers primary constructors (their parameters
+    /// surface as constructor parameters via reflection).
+    /// </summary>
+    public static bool InjectsLogger(Type type)
+        => type.GetConstructors().Any(ctor => ctor.GetParameters().Any(p => IsLogger(p.ParameterType)));
+
+    private static bool IsLogger(Type type)
+        => type.Namespace == "Microsoft.Extensions.Logging"
+           && (type.Name == "ILogger" || type.Name == "ILogger`1");
 }
