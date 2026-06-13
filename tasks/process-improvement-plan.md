@@ -361,4 +361,21 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
   → CI（同 full，待 GitHub）
 ```
 
-最內層（寫的當下）已補上；唯一休眠的是 CI（待 repo 上 GitHub）。涵蓋 8 類 CLAUDE.md / ADR 規則：BC 隔離、Repository raw return、Handler 必回 Result、ILogger 邊界、Handler/Repository/FailureCodes 命名、禁 `new Failure(`、bare-string code、`cancel` 命名。
+最內層（寫的當下）已補上；唯一休眠的是 CI（待 repo 上 GitHub）。涵蓋 9 類 CLAUDE.md / ADR 規則：BC 隔離、Repository raw return、Handler 必回 Result、ILogger 邊界、Handler/Repository/FailureCodes 命名、Failure shape lock、禁 `new Failure(`、bare-string code、`cancel` 命名。
+
+### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
+
+**現況（2026-06-13 收工）**：分支 `hardening/architecture-tests-mvp`，10 commits，**尚未 push**（無 remote）。Architecture.Tests 13 條全綠，本機四層 gate 上線。
+
+**下一步可做（依建議優先序，皆獨立可中斷）**：
+1. **API contract tests（§8.3 / Phase 3）** — 最高價值剩項：`CreateApiKeyEndpoint` 主要 failure cases 補 RFC 9457 ProblemDetails raw-JSON assertion、`truncatedKey` wire contract、failure code→response mapping。需 Docker（FunctionalTests 用 Testcontainers）。
+2. **governance ADR（§8.3 / Phase 1）** — 把散在本 plan 的治理規則（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR，避免 plan 變隱性規範。用 `docs/adr/_template.md`，過 `scripts/adr-lint.sh`。
+3. **skill must-read 強制（§8.3 / §3-D 殘項）** — `coding-style` / `code-review` SKILL.md 強制載入本專案 references + ADR；缺 `nodejs/`、`python/` 目錄時 skip-if-missing。
+4. **順手 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`，建議引入 `Directory.Packages.props` 一次解，見 todo #36）、#35（`tasks/bdd-progress.md` 殘留 `ROTATING`）。
+
+**卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
+
+**工作區未提交狀態（不要誤刪／誤併）**：
+- `CLAUDE.md`（M）、`tasks/todo.md`（M）：**session 前就存在的既有改動** + 我的 todo #20 落地狀態編輯，一直刻意排除在本分支 commit 外。要不要提交由擁有者決定；非本任務污染。
+
+**如何接上**：新 session 在分支 `hardening/architecture-tests-mvp` 上，讀本節（§8.5）+ §8.3 即知全貌；session-init hook 會自動注入 must-read 規則。挑上面 1–4 任一項續作即可。每條新檢驗記得「綠＋故意紅」驗證、進度同步回 §8.2/§8.3。
