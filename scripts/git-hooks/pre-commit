@@ -33,6 +33,8 @@ if git diff --cached --name-only -- 'docs/adr/' | grep -q .; then
     fi
 fi
 
-# Run the exact same gate as CI — single source of truth.
-# Bypass intentionally with `git commit --no-verify` (e.g. mid-WIP); CI still enforces.
-exec bash "$REPO_ROOT/scripts/ci-checks.sh"
+# Fast checks only (format + adr-lint, no build/test, no Docker) for quick feedback
+# on every commit. The full build+test gate runs at pre-push and in CI — both via
+# `ci-checks.sh full`, the single source of truth.
+# Bypass intentionally with `git commit --no-verify` (e.g. mid-WIP).
+exec bash "$REPO_ROOT/scripts/ci-checks.sh" fast

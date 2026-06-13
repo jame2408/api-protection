@@ -1,37 +1,61 @@
 #!/usr/bin/env bash
-# ci-checks.sh — the single source of truth for this repo's build/test gate.
+# ci-checks.sh — the single source of truth for this repo's checks.
 #
-# Run by BOTH:
-#   - the local pre-commit hook  (scripts/git-hooks/pre-commit)
-#   - CI                         (.github/workflows/ci.yml)
-# so that "passes locally" provably means "passes CI": the two gates are the
-# SAME script and cannot drift. Change a check here and both move together.
+# Two modes, one script (so the fast subset can never drift from the full gate):
+#   full  → restore + build + test + format + adr-lint   (pre-push hook AND CI)
+#   fast  → format + adr-lint only                        (pre-commit hook)
+#
+# Invariant: pre-push and CI both run `full`, so "passes pre-push" provably means
+# "passes CI". `fast` is a quick pre-commit early-warning — a strict subset of the
+# same commands, not a separate gate.
 #
 # Notes:
-#   - Checks the working tree (what is on disk), not the staged index. Save
-#     everything you intend to ship before committing.
-#   - The test step uses Testcontainers (FunctionalTests) and therefore needs
-#     Docker running. No Docker = the BDD scenarios fail, exactly as they would
-#     on a CI runner without Docker.
+#   - Checks the working tree (what is on disk), not the staged index.
+#   - `full` runs Testcontainers-based BDD tests, so it needs Docker running;
+#     `fast` does not touch Docker.
 set -euo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 SOLUTION="backend/ApiKeyManagement.slnx"
+MODE="${1:-full}"
 
-echo "[ci-checks] 1/5 restore"
-dotnet restore "$SOLUTION"
+format_check() {
+    echo "[ci-checks] format --verify-no-changes"
+    dotnet format "$SOLUTION" --verify-no-changes
+}
 
-echo "[ci-checks] 2/5 build (Release)"
-dotnet build "$SOLUTION" --no-restore -c Release
+adr_lint() {
+    echo "[ci-checks] adr structural lint"
+    bash "$REPO_ROOT/scripts/adr-lint.sh"
+}
 
-echo "[ci-checks] 3/5 format --verify-no-changes"
-dotnet format "$SOLUTION" --no-restore --verify-no-changes
+build_and_test() {
+    echo "[ci-checks] restore"
+    dotnet restore "$SOLUTION"
+    echo "[ci-checks] build (Release)"
+    dotnet build "$SOLUTION" --no-restore -c Release
+    echo "[ci-checks] test (unit + architecture + BDD functional)"
+    dotnet test "$SOLUTION" --no-build -c Release
+}
 
-echo "[ci-checks] 4/5 test (unit + architecture + BDD functional)"
-dotnet test "$SOLUTION" --no-build -c Release
+case "$MODE" in
+    fast)
+        # Cheap, Docker-free early warning for every commit.
+        format_check
+        adr_lint
+        ;;
+    full)
+        # Complete gate — identical to CI. Cheap checks first so a format/adr
+        # error fails in seconds instead of after a full build+test.
+        format_check
+        adr_lint
+        build_and_test
+        ;;
+    *)
+        echo "usage: ci-checks.sh [fast|full]" >&2
+        exit 2
+        ;;
+esac
 
-echo "[ci-checks] 5/5 adr structural lint"
-bash "$REPO_ROOT/scripts/adr-lint.sh"
-
-echo "[ci-checks] ✓ all checks passed"
+echo "[ci-checks] ✓ ${MODE} checks passed"
