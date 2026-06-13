@@ -30,6 +30,11 @@ adr_lint() {
     bash "$REPO_ROOT/scripts/adr-lint.sh"
 }
 
+source_lint() {
+    echo "[ci-checks] source lint (new Failure / cancel naming)"
+    bash "$REPO_ROOT/scripts/source-lint.sh"
+}
+
 build_and_test() {
     echo "[ci-checks] restore"
     dotnet restore "$SOLUTION"
@@ -44,12 +49,14 @@ case "$MODE" in
         # Cheap, Docker-free early warning for every commit.
         format_check
         adr_lint
+        source_lint
         ;;
     full)
-        # Complete gate — identical to CI. Cheap checks first so a format/adr
+        # Complete gate — identical to CI. Cheap checks first so a format/adr/source
         # error fails in seconds instead of after a full build+test.
         format_check
         adr_lint
+        source_lint
         build_and_test
         ;;
     *)
