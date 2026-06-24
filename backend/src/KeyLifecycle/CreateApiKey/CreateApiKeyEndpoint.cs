@@ -1,4 +1,4 @@
-using ApiKeyManagement.SharedKernel.Contracts;
+using ApiKeyManagement.KeyLifecycle.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -23,6 +23,7 @@ public static class CreateApiKeyEndpoint
                 string consumerId,
                 Request request,
                 ICreateApiKeyHandler handler,
+                HttpContext httpContext,
                 CancellationToken cancel) =>
             {
                 var command = new CreateApiKeyCommand(
@@ -37,19 +38,8 @@ public static class CreateApiKeyEndpoint
 
                 if (result.IsFailure)
                 {
-                    return result.Error.Code switch
-                    {
-                        ConsumerValidationFailureCodes.TenantNotFound    => Results.NotFound(new { error = result.Error.Code }),
-                        ConsumerValidationFailureCodes.ConsumerNotFound  => Results.NotFound(new { error = result.Error.Code }),
-                        ConsumerValidationFailureCodes.TenantSuspended   => Results.Json(new { error = result.Error.Code }, statusCode: 403),
-                        CreateApiKeyFailureCodes.KeyLimitExceeded        => Results.Conflict(new { error = result.Error.Code }),
-                        CreateApiKeyFailureCodes.KeyNameDuplicate        => Results.Conflict(new { error = result.Error.Code }),
-                        CreateApiKeyFailureCodes.ScopeNotFound           => Results.UnprocessableEntity(new { error = result.Error.Code }),
-                        CreateApiKeyFailureCodes.ExpiresAtExceedsMax     => Results.UnprocessableEntity(new { error = result.Error.Code }),
-                        _ when result.Error.Code.StartsWith(CreateApiKeyFailureCodes.ValidationErrorPrefix) =>
-                            Results.BadRequest(new { error = result.Error.Code }),
-                        _ => Results.Problem(result.Error.Code)
-                    };
+                    // RFC 9457 Problem Details; status/title/type mapping lives in ApiProblem (api-spec.md §2.2).
+                    return ApiProblem.FromFailure(result.Error, httpContext);
                 }
 
                 return Results.Created(

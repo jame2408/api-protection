@@ -321,6 +321,10 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         body.Should().NotBeNull();
         body!.RawKey.Should().NotBeNullOrEmpty();
         body.RawKey.Should().StartWith("apk_");
+
+        // truncatedKey: display-safe suffix "..." + last 4 of rawKey (api-spec.md §2.2).
+        body.TruncatedKey.Should().MatchRegex(@"^\.\.\..{4}$");
+        body.TruncatedKey.Should().Be("..." + body.RawKey[^4..]);
     }
 
     [Then(@"同一交易內建立預設 AccessPolicy")]
@@ -357,10 +361,22 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         var (expectedStatus, expectedErrorCode) = entry.Value;
 
         _ctx.Response!.StatusCode.Should().Be(expectedStatus);
+        _ctx.Response.Content.Headers.ContentType!.MediaType
+            .Should().Be("application/problem+json");
 
-        var body = JsonSerializer.Deserialize<ErrorResponse>(_ctx.ResponseBody!, JsonOptions);
-        body!.Error.Should().Be(expectedErrorCode);
+        // RFC 9457 Problem Details wire contract (api-spec.md §2.2). Locks every failure scenario
+        // that uses this step — including the @ignore'd ones, as they come online.
+        using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+        var root = doc.RootElement;
+        root.GetProperty("status").GetInt32().Should().Be((int)expectedStatus);
+        root.GetProperty("errorCode").GetString().Should().Be(expectedErrorCode);
+        root.GetProperty("title").GetString().Should().NotBeNullOrEmpty();
+        root.GetProperty("type").GetString().Should().EndWith(Kebab(expectedErrorCode));
+        root.TryGetProperty("traceId", out var traceId).Should().BeTrue();
+        traceId.GetString().Should().NotBeNullOrEmpty();
     }
 
-    private record ErrorResponse(string Error);
+    // Mirror of ApiProblem.ToKebab — the wire `type` suffix derives from the error code.
+    private static string Kebab(string code)
+        => code.ToLowerInvariant().Replace('_', '-').Replace(':', '-');
 }

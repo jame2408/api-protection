@@ -8,6 +8,7 @@ using ApiKeyManagement.TenantManagement;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddTenantManagementModule();
 builder.Services.AddKeyLifecycleModule();

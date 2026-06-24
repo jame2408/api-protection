@@ -343,10 +343,9 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | §4 Phase 6：PreToolUse hook | ✅ | `.claude/hooks/pre-tool-edit.py` + `settings.json`，寫的當下攔 4 個 pattern；刻意不攔 `throw`（合法 guard throw 會誤報） | `83dbf15` |
 | §3-D / Phase 4：agent reference loading | 🟡 | `session-init.sh` 注入 must-read（B1）✅；`coding-style` / `code-review` skill 強制載入 ⬜ | `19f5d45` |
 | §3-E / Phase 5：lessons 三類模板 | ✅ | `tasks/lessons.md`（模板早已在用，新增 3 條皆含落地欄位） | `a0d1208` `83dbf15` `19f5d45` |
+| §3-B / Phase 3：API contract（對齊 spec） | ✅ | error 改 RFC 9457 ProblemDetails（單一 helper `KeyLifecycle/Http/ApiProblem.cs`：type/title/status/errorCode/traceId）+ `CreateApiKeyResponse.truncatedKey`；functional step 改鎖 RFC 9457 wire contract（一改鎖住所有失敗場景含 @ignore）+ truncatedKey 斷言。綠＋故意紅驗證（改回 `{error}` → 場景紅） | （本次 Phase 3 commit） |
 
 ### 8.3 仍開環（接續 §3 / §4 未關閉項）
-
-- **§3-B / Phase 3**：API contract tests（RFC 9457 ProblemDetails、`truncatedKey` wire contract、failure→response mapping）— 未做。
 - **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — 未做。目前散在本 plan，本身就是「plan 變隱性規範」的風險。
 - **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
 - **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
@@ -365,13 +364,14 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 ### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
 
-**現況（2026-06-13 收工）**：分支 `hardening/architecture-tests-mvp`，10 commits，**尚未 push**（無 remote）。Architecture.Tests 13 條全綠，本機四層 gate 上線。
+**現況（2026-06-24 更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。Architecture.Tests 13 條全綠，本機四層 gate 上線，API error 契約已對齊 RFC 9457（§8.2）。
 
 **下一步可做（依建議優先序，皆獨立可中斷）**：
-1. **API contract tests（§8.3 / Phase 3）** — 最高價值剩項：`CreateApiKeyEndpoint` 主要 failure cases 補 RFC 9457 ProblemDetails raw-JSON assertion、`truncatedKey` wire contract、failure code→response mapping。需 Docker（FunctionalTests 用 Testcontainers）。
-2. **governance ADR（§8.3 / Phase 1）** — 把散在本 plan 的治理規則（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR，避免 plan 變隱性規範。用 `docs/adr/_template.md`，過 `scripts/adr-lint.sh`。
-3. **skill must-read 強制（§8.3 / §3-D 殘項）** — `coding-style` / `code-review` SKILL.md 強制載入本專案 references + ADR；缺 `nodejs/`、`python/` 目錄時 skip-if-missing。
-4. **順手 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`，建議引入 `Directory.Packages.props` 一次解，見 todo #36）、#35（`tasks/bdd-progress.md` 殘留 `ROTATING`）。
+1. **governance ADR（§8.3 / Phase 1）** — 把散在本 plan 的治理規則（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR，避免 plan 變隱性規範。用 `docs/adr/_template.md`，過 `scripts/adr-lint.sh`。
+2. **skill must-read 強制（§8.3 / §3-D 殘項）** — `coding-style` / `code-review` SKILL.md 強制載入本專案 references + ADR；缺 `nodejs/`、`python/` 目錄時 skip-if-missing。
+3. **順手 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`，建議引入 `Directory.Packages.props` 一次解，見 todo #36）、#35（`tasks/bdd-progress.md` 殘留 `ROTATING`）。
+
+> Phase 3（API contract 對齊 RFC 9457 + truncatedKey）已於 2026-06-24 完成，見 §8.2。
 
 **卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
 

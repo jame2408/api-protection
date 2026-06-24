@@ -69,6 +69,8 @@ public class CreateApiKeyHandler(
             TenantId: apiKey.TenantId,
             Name: apiKey.Name,
             KeyPrefix: apiKey.KeyPrefix,
+            // Display-safe suffix for identifying the key after rawKey is shown once (api-spec.md §2.2).
+            TruncatedKey: "..." + rawKey[^4..],
             RawKey: rawKey,
             Environment: apiKey.Environment,
             Scopes: apiKey.Scopes,
