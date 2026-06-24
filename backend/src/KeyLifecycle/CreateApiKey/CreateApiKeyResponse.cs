@@ -8,6 +8,7 @@ public record CreateApiKeyResponse(
     string TenantId,
     string Name,
     string KeyPrefix,
+    string TruncatedKey,
     string RawKey,
     string Environment,
     IReadOnlyList<string> Scopes,
