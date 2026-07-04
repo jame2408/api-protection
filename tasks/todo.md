@@ -85,7 +85,7 @@ Each item below is tagged 🐞 (real drift to fix), 🏗️ (scaffolding — spe
 ### B. Security: PRD-mandated invariants not yet honoured 🐞
 
 5. **Hash algorithm violates `prd.md` §5.2 + R-SEC-03.** Spec mandates Argon2id or PBKDF2-SHA256; `ApiKey.cs:101` uses `BCrypt.HashPassword(rawKey, workFactor: 4)`. Pick one of: (a) replace with Argon2id (`Konscious.Security.Cryptography.Argon2`), (b) replace with HMAC-SHA256(server-pepper, rawKey) — keys are 128-bit random so HMAC is technically sufficient and far faster on the hot path, (c) keep BCrypt and document the deviation in an ADR. **Independent of choice**, raise work factor / cost params to 2026 minimum. Decision needs a dedicated hash-algorithm ADR (ADR-004 has been taken by the Failure-shape decision; this would be a new ADR — likely ADR-007 or whatever number is next free at the time).
-6. **`BCrypt.Net-Next` version mismatch** between `KeyLifecycle/.csproj:5` (`4.0.3`) and `Infrastructure/.csproj:13` (`4.1.0`). Resolve before #5 is decided so we ship one version.
+6. ~~**`BCrypt.Net-Next` version mismatch** between `KeyLifecycle/.csproj:5` (`4.0.3`) and `Infrastructure/.csproj:13` (`4.1.0`).~~ ✅ Resolved (2026-07-04) via #36 — `backend/Directory.Packages.props` now centrally pins `BCrypt.Net-Next` to `4.1.0` for both projects.
 7. **Active-key-count guard is TOCTOU under concurrency** (`CreateApiKeyHandler.cs:23-32`). BDD `01_CreateApiKey.feature:38` covers the happy-path "limit reached" case but not the race. Add unique partial index or `IsolationLevel.Serializable` + treat `DbUpdateException` (unique violation) as the limit/duplicate failure.
 8. **Constant-time comparison reminder for the future validation hot-path** (`prd.md` R-VAL-01). Not yet implemented; flag in the validation slice when it lands. Use `CryptographicOperations.FixedTimeEquals` over byte arrays — never `string ==`.
 9. **Dev `appsettings.Development.json:9` commits a plaintext DB password.** Move to User Secrets / env var even for dev to avoid normalising the pattern.
@@ -104,12 +104,16 @@ Each item below is tagged 🐞 (real drift to fix), 🏗️ (scaffolding — spe
 
 ### D. Test infrastructure 🐞
 
-19. **`FluentAssertions 8.9.0` license non-compliance.** `tests/FunctionalTests/*.csproj:12`. Pin to `7.2.0` (last permissive-license OSS) or migrate to `AwesomeAssertions` / `Shouldly`. `testing.guide.md` already mandates `< 8.0`. Action before next release.
+19. ~~**`FluentAssertions 8.9.0` license non-compliance.** `tests/FunctionalTests/*.csproj:12`.~~ ✅ Resolved (2026-07-04) via #36 — `backend/Directory.Packages.props` now centrally pins `FluentAssertions` to `7.2.0` for every test project, including `FunctionalTests`.
 20. **`Architecture.Tests` is a stub** — zero `.cs` files, no `NetArchTest.Rules` PackageReference. The "0 tests discovered" already in todo is more than a discovery issue; nothing is *written*. Seed minimum tests:
-    - BC-isolation (`Types.InAssembly(...).Should().NotHaveDependencyOn(...)` between BCs except via `SharedKernel.Contracts`)
-    - Repository must not return `Result<T, Failure>`
-    - No `ILogger<>` in Domain / Service / Handler
-    - Naming: `*Handler` / `*Repository` / `*FailureCodes`
+    - **Status (2026-06-13, MVP 三條已落地 — 見 `tasks/process-improvement-plan.md` §8.2)**：NetArchTest.Rules 1.3.2 + FluentAssertions 7.2.0 加入；7 tests 綠（綠＋故意紅驗證）。
+    - [x] BC-isolation (`BoundedContextIsolationTests.cs`，NetArchTest，5 BC 配對；carve-out = SharedKernel)
+    - [x] Repository must not return `Result<T, Failure>` (`RepositoryReturnTypeTests.cs`，reflection)
+    - [x] Service/Handler 必回 `Result<T, Failure>` (`HandlerResultReturnTests.cs`，reflection，鎖定 `*Handler`；contract `*Service` 豁免)
+    - [x] No `ILogger<>` in Domain / Service / Handler (`LoggerBoundaryTests.cs`，reflection ctor-param)
+    - [x] Naming: `*Handler` / `*Repository` / `*FailureCodes` (`NamingConventionTests.cs`，reflection — 介面實作命名 + FailureCodes static/const-string shape)
+    - [x] 語法層級(reflection 看不到)→ `scripts/source-lint.sh`(接進 ci-checks.sh)：禁 `new Failure(`(豁免 FailureProvider)、`CancellationToken` 必名 `cancel`
+    - **第二批 (2026-06-13) 全數落地;Architecture.Tests 共 11 tests 綠(各綠＋故意紅驗證)。**
 21. **`ApiKeyManagementWebApplicationFactory.cs:28-29` uses `Environment.SetEnvironmentVariable(...)`** — process-wide leakage; parallel test classes will see last-write-wins. Switch to `builder.UseSetting(...)` or `ConfigureAppConfiguration`.
 22. **`TestHooks.cs:103-105` opens a fresh `NpgsqlConnection` per `ResetAsync`** instead of reusing the long-lived checkpoint connection at line 69. Pure overhead.
 23. **Testcontainers don't use `.WithReuse(true)`** — each local dev iteration pays the full container startup. Add reuse for dev productivity (CI behaviour unchanged).
@@ -133,6 +137,29 @@ Each item below is tagged 🐞 (real drift to fix), 🏗️ (scaffolding — spe
 32. Slack `xoxb-`/`xoxp-`, GitLab `glpat-` token shapes not yet covered by hook redaction. (Existing item above.)
 33. `post-tool-failure.sh` trace fields (`tool_use_id`, `duration_ms`, `is_interrupt`) not mirrored in pending lesson records. (Existing item above.)
 34. `session-init.sh` malformed-payload fallback semantics. (Existing item above.)
+
+---
+
+---
+
+## Cross-doc consistency sweep (2026-05-31)
+
+Deep cross-check of ADRs ↔ CLAUDE.md ↔ `.claude/references` ↔ production code ↔ `docs/design` + `docs/bdd` ↔ `.feature` ↔ skills. Decision-chain semantics verified **clean** (ADR-001/002/003/004/005/006 all hold against code: enum PascalCase 0-hit, `Failure` single-field, no MediatR, no Service/Domain/Handler `ILogger`, ADR-005 §6 sync comments landed, "121 scenarios" = 44+15+13+30+19 confirmed exact).
+
+### Status refresh against the 2026-04-30 backlog
+
+- ✅ Newly confirmed resolved since the review: **#12** (`code-review/SKILL.md` nodejs/python table — 0 hits), **#13** (`settings.local.json` `dotnet format` pattern — 0 hits), **#11** (resolved-by-decision: ADR-005 scoped test fixtures out + added `testing.guide.md:46` caveat).
+- ❌ Re-confirmed still open: **#6** (BCrypt 4.0.3 vs 4.1.0), **#9** (dev plaintext DB password), **#19** (FluentAssertions 8.9.0 vs 7.2.0), **#20** (Architecture.Tests stub — 0 `.cs` files).
+- This sweep's findings that were **already tracked**: Architecture.Tests empty = #20; FluentAssertions split = #19; BCrypt split = #6. No duplicate entries created for these.
+
+### Genuinely new items (prioritized)
+
+- [ ] **35. (P1, now)** `tasks/bdd-progress.md:36` residual `ROTATING` → `Rotating`. Last ALL_CAPS lifecycle literal after ADR-006's PascalCase unification. Out of ADR-006 §9 declared scope (`tasks/` not listed) so the acceptance grep missed it; still a real drift from the "code/DB/wire/docs aligned" goal. One-line fix, zero design impact.
+- [x] **36. (P2, pair with #6/#19)** ✅ Resolved (2026-07-04). Introduced `backend/Directory.Packages.props` (`ManagePackageVersionsCentrally=true`); every `PackageReference` across all 12 `.csproj` files now omits `Version` and resolves centrally. Root-cause fix for #6 (BCrypt pinned to `4.1.0`) and #19 (FluentAssertions pinned to `7.2.0` repo-wide). Packages that previously floated via `Version="*"` (`Microsoft.AspNetCore.Mvc.Testing`, `Reqnroll.xUnit`, `Respawn`, `Testcontainers.PostgreSql`, `Testcontainers.RabbitMq`) are now pinned to the version that was actually resolved at change time (`10.0.9` / `3.3.4` / `7.0.0` / `4.13.0` / `4.13.0`), so behavior is unchanged; future bumps go through this one file. Verified: `dotnet restore`/`build` clean, `scripts/ci-checks.sh full` green (6 unit + 13 architecture + 2/44 functional passing — rest are pre-existing `@ignore`d BDD scenarios, unrelated to this change).
+- [ ] **37. (P3, doc erratum — needs mechanism decision)** ADR-001 §3 `general/` inventory lists only `solid.rule.md`; `general/GEMINI.md` also exists. No functional conflict (CLAUDE.md §0 loads `general/*.rule.md`, GEMINI.md is excluded by suffix), pure inventory lag.
+- [ ] **38. (P3, doc erratum — needs mechanism decision)** ADR-002 §3 `tests/` tree omits `SharedKernel.Tests` (present in `.slnx`). Illustrative tree, low impact, but doc trails reality.
+  - ⚠️ #37/#38 touch Accepted ADR bodies → governance clause "任何提案修改 1–N 必須先開新 ADR" applies. Decide **erratum note vs new ADR** before editing; do **not** silently edit ADR bodies.
+- [ ] **39. (P4, tied to #20)** CLAUDE.md "Definition of Done" lists "Architecture tests pass (no BC cross-references via NetArchTest)" as an active gate, but Architecture.Tests is an empty shell (#20) so the gate is currently vacuous. Resolved automatically by seeding #20; alternatively soften CLAUDE.md wording. Do **not** edit CLAUDE.md independently of #20.
 
 ---
 
