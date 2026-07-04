@@ -344,14 +344,17 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | §3-D / Phase 4：agent reference loading | 🟡 | `session-init.sh` 注入 must-read（B1）✅；`coding-style` / `code-review` skill 強制載入 ⬜ | `19f5d45` |
 | §3-E / Phase 5：lessons 三類模板 | ✅ | `tasks/lessons.md`（模板早已在用，新增 3 條皆含落地欄位） | `a0d1208` `83dbf15` `19f5d45` |
 | §3-B / Phase 3：API contract（對齊 spec） | ✅ | error 改 RFC 9457 ProblemDetails（單一 helper `KeyLifecycle/Http/ApiProblem.cs`：type/title/status/errorCode/traceId）+ `CreateApiKeyResponse.truncatedKey`；functional step 改鎖 RFC 9457 wire contract（一改鎖住所有失敗場景含 @ignore）+ truncatedKey 斷言。綠＋故意紅驗證（改回 `{error}` → 場景紅） | （本次 Phase 3 commit） |
-| §9.4 Phase A：協調憲章 | ✅ | `docs/adr/adr-007-process-governance.md`（governance ADR）+ `docs/orchestration.md`（模型分級路由表 / executor contract / 全域停止條件 / checkpoint schema 指針 / token 節約原則）+ `tasks/_templates/checkpoint.md`（交接模板）+ `AGENTS.md`（非 Claude harness 薄入口）+ `tasks/phase-a-spec.md`（可重派指令包）；executor＝Sonnet、orchestrator review 修 1 處簡體字（見 lessons [correction]）；`adr-lint.sh` 綠 + 故意紅驗證通過 | （本次 Phase A commit） |
+| §9.4 Phase A：協調憲章 | ✅ | `docs/adr/adr-007-process-governance.md`（governance ADR）+ `docs/orchestration.md`（模型分級路由表 / executor contract / 全域停止條件 / checkpoint schema 指針 / token 節約原則）+ `tasks/_templates/checkpoint.md`（交接模板）+ `AGENTS.md`（非 Claude harness 薄入口）+ `tasks/phase-a-spec.md`（可重派指令包）；executor＝Sonnet、orchestrator review 修 1 處簡體字（見 lessons [correction]）；`adr-lint.sh` 綠 + 故意紅驗證通過 | `d8a006b` |
+| §9.4 Phase B：學習迴圈機械層重設計（O-5） | ✅ | `docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md`（orchestrator 起草）+ `session-init.sh` 重寫（session_id marker 去重、`### [` 錨點取最後 8 條、計數指針）+ 兩個 post hook 移除 pending flagging（scrubbing 未動）+ `scripts/hook-smoke.sh` 接入 ci-checks **fast+full**（orchestrator 裁決維持 fast ⊂ full）+ `.gitignore` `.claude/*.marker` + `pending-lessons.jsonl` 刪除（158+ 條最終 triage 記於 ADR-008 Context：0 條值得轉 lesson）；executor＝Sonnet；hook-smoke 綠＋故意紅驗證通過 | （本次 Phase B commit） |
+| §9.4 Phase C：驗證矩陣（O-6） | ✅ | `docs/verification-matrix.md`：22 行主表（13 架構測試 / 3 source-lint / adr-lint / format / 4 PreToolUse / hook-smoke / BDD wire / SharedKernel.Tests / AI review 2 級 / 人工 ADR checklist）+ 「無防線區塊」誠實列 10 條規則無機械化（coverage 80%、`.Value` 檢查、cancel 傳播、效能門檻等）；executor＝Sonnet；orchestrator 審校消解 4 項並行時序落差 + 修 1 處簡體字 | （本次 Phase C commit） |
 
 ### 8.3 仍開環（接續 §3 / §4 未關閉項）
 - **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — ✅ 已由 `docs/adr/adr-007-process-governance.md` 關閉（2026-07-04，見 §8.2 Phase A 行）。
 - **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
 - **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
 - **既有 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`）、#35（`ROTATING` 殘留）。
-- **禁簡體無機械化防線**（2026-07-04 新增）：Phase A review 攔下 executor 寫出的「执行」；規則只存在於全域層級，repo 內無明文、無 lint。機械化需先裁決規範落點（新規則 → 走 ADR 通道），見 `tasks/lessons.md` 對應 [correction]。
+- **禁簡體無機械化防線**（2026-07-04 新增；同日兩度驗證必要性）：Phase A review 攔下「执行」、Phase C review 攔下「确定」— 且 orchestrator 手寫掃描字表兩度漏字、grep 多位元組字元類還有 byte-match 誤報陷阱。結論：lint 必須用完整簡繁對照字表（如 OpenCC）+ Python 實作 + 豁免機制（lessons 內刻意引用違規字元的行）。機械化需先裁決規範落點（新規則 → 走 ADR 通道），見 `tasks/lessons.md` 對應 [correction]。
+- **`dotnet format` 權威來源模糊**（2026-07-04 新增，Phase C 發現）：repo 無 `.editorconfig`，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，僅工具預設。是否補 `.editorconfig` 正式化待裁決。
 
 ### 8.4 防線層次現況
 
@@ -366,14 +369,13 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 ### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
 
-**現況（2026-07-04 更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。四層 gate 上線；governance ADR-007 + 協調憲章（`docs/orchestration.md`）+ 交接模板（`tasks/_templates/checkpoint.md`）+ `AGENTS.md` 已落地（commit `d8a006b`，§8.2 Phase A 行）。多模型協調層盤點與裁決見 §9。
+**現況（2026-07-04 二次更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。四層 gate 上線（fast 模式含 hook-smoke）。協調層 Phase A / B / C 全部完成：ADR-007 治理 + 協調憲章 + ADR-008 學習迴圈重設計 + 驗證矩陣（§8.2 對應三行）。O-1～O-6 已關閉；O-7 依 D-2 擱置；O-8 低優先未動。
 
-**下一步可做（依建議優先序，皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
-1. **Phase B — 學習迴圈減壓（§9.4）** — ⚠️ 先由 orchestrator 級做設計裁決再派工：`pending-lessons.jsonl` 積壓 158 條，可能代表 flagging 機制本身太吵而失效，「修 triage」或「重設計管線」是 ADR 級決策（依 ADR-007，改 session-init 注入行為屬協調機制變更 → 需新 ADR）。不要直接派 executor 動 `session-init.sh`。
-2. **Phase C — 驗證矩陣（§9.4 / O-6）** — 規則 → 機制 → 時機 → 執行者（腳本／模型級）一張表；可獨立於 Phase B 先做。
-3. **Phase D — 殘項**：skill must-read（§8.3）、todo #19（`Directory.Packages.props`）、#35（`ROTATING`）、禁簡體 lint（§8.3 新項）、D-3 arch-flow 產物裁決。
+**下一步可做（皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
+1. **Phase D — 殘項**（每項獨立）：skill must-read（§8.3 / §3-D 殘項）、todo #19（FluentAssertions，建議 `Directory.Packages.props` 一次解，見 todo #36）、#35（`ROTATING` 殘留）、禁簡體 lint（§8.3，需先開 ADR 裁決規範落點與豁免機制）、`.editorconfig` 裁決（§8.3）、D-3 arch-flow 產物裁決。
+2. **協調憲章實戰驗收（§9.4 Definition of Success (a)）**：開全新 session、executor 級模型、只給「讀 §9.4 + `docs/orchestration.md` + 對應 spec」的 prompt，驗證能正確接手 Phase D 任一項並產出合規 checkpoint。
 
-> Phase 3（API contract）2026-06-24 完成；Phase A（協調憲章）2026-07-04 完成 — 均見 §8.2。
+> Phase 3（API contract）2026-06-24 完成；Phase A / B / C（協調層）2026-07-04 完成 — 均見 §8.2。
 
 **卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
 
@@ -425,8 +427,8 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 - **Phase A — 協調憲章（最高優先：這是 Fable 退場後唯一能留下的東西）**：正式 ADR（含 §8.3 懸置的 governance ADR，或拆二）+ `docs/orchestration.md`：模型分級路由表（簡單批量→sonnet/opus；AI review 分級明文**排除 Fable 級**）、executor contract（O-2）、全域停止條件（O-3）、checkpoint schema 模板（O-4，落 `tasks/_templates/`）、token 節約原則（有界注入、指針不複寫、checkpoint 優先於重讀）。
   **狀態（2026-07-04）：✅ 已落地** — 五項交付物 + `tasks/phase-a-spec.md`（可重派指令包）；executor＝Sonnet，orchestrator review 後修正 1 處簡體字並同 commit 落地。詳見 §8.2 Phase A 行。下一步：Phase B（見下），可由新 session 直接依本節接手。
-- **Phase B — 學習迴圈減壓（O-5）**：pending-lessons triage 流程（一次 triage 完既有 158 條）+ `session-init.sh` 注入改有界（最近 N 條或 curated 區塊）。
-- **Phase C — 驗證矩陣（O-6）**：規則 → 機制 → 時機 → 執行者（腳本／模型級）一張表落檔；含 D-2 結果。
+- **Phase B — 學習迴圈減壓（O-5）**：✅ **2026-07-04 完成**，設計定案於 ADR-008（flagging 管線退役而非修補、marker 去重、注入上限 8 條、hook-smoke 防再次靜默死亡），落地見 §8.2 Phase B 行。O-5 關閉。
+- **Phase C — 驗證矩陣（O-6）**：✅ **2026-07-04 完成**，`docs/verification-matrix.md`（Tessl 依 D-2 不列入），落地見 §8.2 Phase C 行。O-6 關閉；矩陣揭露的 10 條「無防線」規則為既知現況登記，非新開環。
 - **Phase D — 殘項**：skill must-read（§8.3）、todo #19（建議 `Directory.Packages.props` 一次解，見 todo #36）、#35。
 
 **驗收（Definition of Success）**：(a) 換一個全新 session、指定 Sonnet 5、只給「讀 §9.4 + 協調憲章」的 prompt，能正確接手一個 Phase 並產出合規 checkpoint；(b) session-init 注入量有上限且可 grep 驗證；(c) 每條新機制過「綠＋故意紅」。

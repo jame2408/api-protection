@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Hook: PostToolUseFailure
-# Purpose: Capture tool-call failures to failures.jsonl and flag them as
-# pending lessons unless the failure was a user interrupt.
+# Purpose: Capture tool-call failures to failures.jsonl.
 #
 # The PostToolUseFailure payload differs from PostToolUse: there is no
 # tool_response field; instead an `error` string and an optional
@@ -18,7 +17,6 @@ INPUT=$(cat)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 FAIL_FILE="$PROJECT_ROOT/.claude/failures.jsonl"
-PENDING_FILE="$PROJECT_ROOT/.claude/pending-lessons.jsonl"
 
 PY=$(cat <<'PYEOF'
 import json, os, re, sys
@@ -73,7 +71,6 @@ clean_error = scrub_string(error) if isinstance(error, str) else scrub(error)
 ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 fail_file = os.environ["FAIL_FILE"]
-pending_file = os.environ["PENDING_FILE"]
 
 record = {
     "ts": ts,
@@ -89,25 +86,9 @@ if duration_ms is not None:
 
 with open(fail_file, "a", encoding="utf-8") as f:
     f.write(json.dumps(record, ensure_ascii=False) + "\n")
-
-# User interrupts are not lessons — skip flagging.
-if is_interrupt:
-    sys.exit(0)
-
-pending = {
-    "ts": ts,
-    "session": session_id,
-    "tool": tool_name,
-    "reason": f"Tool failure: {tool_name}",
-    "input": clean_input,
-    "error": clean_error,
-    "reviewed": False,
-}
-with open(pending_file, "a", encoding="utf-8") as f:
-    f.write(json.dumps(pending, ensure_ascii=False) + "\n")
 PYEOF
 )
 
-FAIL_FILE="$FAIL_FILE" PENDING_FILE="$PENDING_FILE" python3 -c "$PY" <<<"$INPUT"
+FAIL_FILE="$FAIL_FILE" python3 -c "$PY" <<<"$INPUT"
 
 exit 0
