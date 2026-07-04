@@ -443,3 +443,36 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 - **Phase D — 殘項**：skill must-read（§8.3）、todo #19（建議 `Directory.Packages.props` 一次解，見 todo #36）、#35。
 
 **驗收（Definition of Success）**：(a) 換一個全新 session、指定 Sonnet 5、只給「讀 §9.4 + 協調憲章」的 prompt，能正確接手一個 Phase 並產出合規 checkpoint；(b) session-init 注入量有上限且可 grep 驗證；(c) 每條新機制過「綠＋故意紅」。
+
+---
+
+## 10. 外部借鏡：`zeuikli/claude-code-workspace` 採用分析（2026-07-05）
+
+> 使用者指定研究此 repo（152 stars，Claude Code workspace 設定倉庫）並擷取對我們 loop 有幫助的機制。盤點由 Sonnet subagent 完成（60 檔全樹 + 逐機制 verbatim），採用判斷為 orchestrator 分析。原始檔案暫存於 scratchpad `ccw_inventory/` 供複查。
+
+### 10.1 逐項評估
+
+| 它的機制 | 評估 | 理由 |
+|---|---|---|
+| `post-edit.sh`：依副檔名寫後語法驗證（`bash -n` / `json.load` / `py_compile`） | ✅ **採用（P1，擴充版）** | 直接對應我們的 NU1015 事故（XML 註解 `--` 使 props 被靜默跳過，見 lessons [info]）— 加上 XML 家族（`.props`/`.csproj`/`.targets`）的 well-formed 驗證，寫的當下就攔 |
+| `healthcheck.sh`：機制自體健檢（settings JSON、hooks 可執行位元+語法、指針完整性） | ✅ **採用（P2，裁縫版）** | 我們有過 hook 靜默死亡（awk 事故），但 hook-smoke 只護 session-init；其餘 hooks / settings / 文件指針無「防線的防線」 |
+| `core.md` 的 `unverified_success` 閘門：「subagent 自報成功＝中間態，確定性檢查不經 subagent 中介」 | ✅ **採用（P3-a，憲章修訂）** | 正是 O-8 的成文化 — 我們已實踐（GEMINI.md 誤報靠覆核抓到）但未成文；採用後 O-8 關閉 |
+| Fan-out 上限、child 不互通、不 self-retry；`isolation: worktree` | ✅ **採用（P3-b，憲章修訂）** | 我們實際踩過並行衝突（B/C 搶 matrix、F/G build 互擾靠人工串行）；成文為並行派工規則：檔案集不相交、動 build 者串行或用 worktree 隔離、fan-out 上限 |
+| `HANDOFF.md` 的「嘗試過的方法」表格 | ✅ **採用（P3-c）** | checkpoint 模板缺此欄 — 下個 executor 會重試死路；欄位結構修改依 ADR-007 走 ADR |
+| `prompts.md` / `prime`：標準冷啟動 prompt | ✅ **採用（P3-d，一小段）** | 給使用者的固定開場（「讀 §8.5 依 checkpoint 接手」）寫進 orchestration.md，降低每次開 session 的成本 |
+| Auto Memory 取代自建 lessons（`Memory.md` 佔位） | ❌ 不採用 | 綁定 Claude Code 官方功能，與 D-1 跨 harness 目標相反；我們的 lessons.md + 有界注入（ADR-008）是 repo 可攜的 |
+| Token 數字預算（per-task 4000 / per-session 30000） | ❌ 不採用 | 無量測依據的數字是偽精確；我們的 token 原則（orchestration.md §5）夠用，等有實測再議 |
+| `RESOLVER.md` skill 路由、`output-discipline`、agent `.md` 定義檔 | ❌ 不採用 | 非我們痛點；agent 定義檔是 Claude Code 專屬，我們的 phase-spec 指令包模式已覆蓋且 harness 中立 |
+| 反面教材（一併記錄） | ⚠️ 引以為戒 | 該 repo 自身有典型 drift：CI 引用不存在的 `memory-pull.sh` 用 `if [ -f ]` **靜默跳過**、RESOLVER 提及多個不存在的 skill、README 聲稱 MIT 但無 LICENSE 檔 — P2 健檢的指針完整性檢查必須 **fail-loud**，不重蹈此轍 |
+
+### 10.2 提議工作包（待使用者裁決）
+
+- **P1**：`.claude/hooks/post-edit-validate.sh`（PostToolUse Edit|Write）：`.sh`→`bash -n`、`.json`→JSON parse、`.py`→`py_compile`、`.props/.csproj/.targets/.xml`→minidom well-formed。需改 `.claude/settings.json` 註冊（經使用者同意）。只做零誤報層級的檢查。
+- **P2**：`scripts/machinery-check.sh` 接入 fast gate + CI：settings.json 合法、hooks 可執行+`bash -n`、`pre-tool-edit.py` py_compile、規範文件指針完整性（CLAUDE.md / orchestration / 矩陣引用的檔案必須存在，缺失即紅）。
+- **P3**：ADR-012 憲章修訂（單一 ADR 涵蓋 a–d）：(a) unverified_success 條款（關 O-8）；(b) 並行派工規則；(c) checkpoint 模板加「已嘗試且失敗的方法」欄；(d) 冷啟動標準 prompt 段。
+- 全部依慣例：綠＋故意紅、矩陣同 commit 同步、executor 實作 + orchestrator review。
+
+### 10.3 裁決紀錄（2026-07-05 使用者裁決）
+
+- **採用項目**：✅ P1 + P2 + P3 全數採用。
+- **分支策略**：✅ **Trunk-Based Development，直接寫入 main**（兩人小團隊，PR 流程過重）。連動處置：解除 main 的 required status check（它會擋直接 push）；防線轉為「本機 pre-push full gate（與 CI 同腳本）為主 + CI 於 push-to-main 後跑驗證訊號」；hardening 長命分支併回 main 後退役。分支紀律明文入 ADR-012。
