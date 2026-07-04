@@ -45,7 +45,7 @@ _How Claude and the user collaborate — committed to the repo so it persists ac
 
 #### Validation
 - **Structural lint (mechanical)**: `scripts/adr-lint.sh` checks Status format, required sections, governance clause, file:line bans, filename numbering, Alternatives "Rejected." markers, and trade-off "Mitigation:" follow-ups. Pre-commit hook auto-runs it whenever `docs/adr/` is staged. Install once per clone via `scripts/install-git-hooks.sh`.
-- **Acceptance commands**: ADRs that promise repo-wide cleanups (grep归零、refactor across docs) MUST embed runnable verification commands in their Implementation Rules (see ADR-006 §6 for the canonical pattern). Run them before marking the ADR Accepted.
+- **Acceptance commands**: ADRs that promise repo-wide cleanups (grep歸零、refactor across docs) MUST embed runnable verification commands in their Implementation Rules (see ADR-006 §6 for the canonical pattern). Run them before marking the ADR Accepted.
 - **Review checklist (judgment, not mechanical)** — apply to every ADR PR:
   1. Context 是否並排引用實際衝突（程式碼 / 設計文件 / CLAUDE.md），而非泛泛敘述？
   2. Decision 是否明確劃定「不在本 ADR 範圍」的邊界，避免被過度解讀？
