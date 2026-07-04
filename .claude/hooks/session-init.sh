@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # Hook: UserPromptSubmit
-# Purpose: On the first prompt of each session, inject (1) a must-read rules
-# reminder and (2) tasks/lessons.md, so Claude has the project's rules and prior
-# lessons in context without needing to be reminded.
+# Purpose: Once per session, inject (1) a must-read rules reminder and
+# (2) the most recent entries from tasks/lessons.md, so Claude has the
+# project's rules and prior lessons in context without needing to be
+# reminded.
+#
+# Dedup design: keyed on the hook payload's session_id + a marker file
+# (rewritten instead of the old transcript-turn-counting approach, which
+# silently failed — see ADR-008 in docs/adr/).
 
 # Read hook input from stdin
 INPUT=$(cat)
@@ -13,32 +18,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LESSONS_FILE="$PROJECT_ROOT/tasks/lessons.md"
 
-# Only inject on first prompt of a session (transcript has 1 message = new session)
-# The transcript path is taken from the hook payload and passed to Python via
-# an environment variable — never interpolated into Python source — so a path
-# containing quotes, backslashes, or Python syntax cannot inject code.
-TRANSCRIPT_PATH=$(python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('transcript_path',''))" <<<"$INPUT" 2>/dev/null)
+# Marker file records the session_id we last injected for. SESSION_INIT_MARKER
+# lets tests point this at a scratch file; normal execution always uses the
+# default path under .claude/.
+MARKER_FILE="${SESSION_INIT_MARKER:-$PROJECT_ROOT/.claude/session-init.marker}"
 
-if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
-  # Count human turns in transcript to detect first prompt
-  HUMAN_TURNS=$(TRANSCRIPT_PATH="$TRANSCRIPT_PATH" python3 -c '
-import json, os, sys
+# The raw hook payload is handed to Python via an environment variable —
+# never interpolated into Python source — so a payload containing quotes,
+# backslashes, or Python syntax cannot inject code (same anti-injection
+# pattern this file has always used for path-like values).
+SESSION_ID=$(HOOK_INPUT="$INPUT" python3 -c '
+import json, os
 try:
-    with open(os.environ["TRANSCRIPT_PATH"]) as f:
-        data = json.load(f)
-    turns = [m for m in data.get("messages", []) if m.get("role") == "user"]
-    print(len(turns))
+    d = json.loads(os.environ["HOOK_INPUT"])
+    print(d.get("session_id", ""))
 except Exception:
-    print(0)
+    pass
 ' 2>/dev/null)
 
-  # Only inject on first human turn (new session)
-  if [ "${HUMAN_TURNS:-0}" -gt "1" ]; then
-    exit 0
-  fi
+# Conservative dedup: only skip when we have a session_id AND it matches the
+# marker (i.e. we already injected for this exact session). A missing or
+# unparseable session_id means we cannot tell whether this is a new session,
+# so we inject anyway — mislead by over-injecting once, never by silently
+# skipping — and we do not touch the marker in that case.
+if [ -n "$SESSION_ID" ] && [ -f "$MARKER_FILE" ] && [ "$(cat "$MARKER_FILE" 2>/dev/null)" = "$SESSION_ID" ]; then
+  exit 0
 fi
 
-# Must-read rules reminder — always on the first turn, before any lessons.
+# Must-read rules reminder — always on injection, before any lessons.
 # Uses globs + a pointer to CLAUDE.md §0 (the canonical rule) rather than a
 # hardcoded file list, so it does not go stale when rule files are added.
 echo "## 必讀規範（寫 backend code 前）"
@@ -51,34 +58,38 @@ echo ""
 echo "這些規則是機械化強制的，不是建議：違規會在「寫的當下」被 PreToolUse hook 擋（\`.claude/hooks/pre-tool-edit.py\`），並由 Architecture.Tests 與 \`scripts/source-lint.sh\` 在 commit / push / CI 攔下（\`scripts/ci-checks.sh\`）。未讀就動手 = 高機率被擋、來回重做。"
 echo ""
 
-# Check if lessons.md exists and has actual entries (below the --- separator)
-if [ ! -f "$LESSONS_FILE" ]; then
-  exit 0
-fi
+# Extract the most recent lessons from tasks/lessons.md. Entries are anchored
+# by a literal "### [" at the start of a line — stable across template
+# revisions, unlike counting "---" separators (which silently broke before;
+# see ADR-008). At most the last 8 entries are injected, in their existing
+# file order (never reordered).
+if [ -f "$LESSONS_FILE" ]; then
+  LESSONS_OUTPUT=$(awk '
+    /^### \[/ { n++; anchor[n] = NR }
+    { line[NR] = $0 }
+    END {
+      total = NR
+      if (n == 0) { exit }
+      start = (n > 8) ? anchor[n - 8 + 1] : anchor[1]
+      for (i = start; i <= total; i++) print line[i]
+      print ""
+      printf("（完整 %d 條見 tasks/lessons.md）\n", n)
+    }
+  ' "$LESSONS_FILE")
 
-# Extract content after the --- separator (actual lessons)
-LESSONS_CONTENT=$(awk '/^---$/{found++; next} found>=2{print}' "$LESSONS_FILE")
-
-# If no lessons yet, skip
-if [ -z "$(echo "$LESSONS_CONTENT" | tr -d '[:space:]')" ]; then
-  exit 0
-fi
-
-# Output lessons as context injection
-echo "## Session Context: Lessons Learned"
-echo ""
-echo "The following lessons have been captured from previous sessions in this project."
-echo "Apply them proactively without waiting to be reminded."
-echo ""
-echo "$LESSONS_CONTENT"
-
-# Also surface any unreviewed pending lessons from PostToolUse observations
-PENDING_FILE="$PROJECT_ROOT/.claude/pending-lessons.jsonl"
-if [ -f "$PENDING_FILE" ]; then
-  PENDING_COUNT=$(grep -c '"reviewed": false' "$PENDING_FILE" 2>/dev/null || echo 0)
-  if [ "${PENDING_COUNT}" -gt "0" ]; then
+  if [ -n "$(echo "$LESSONS_OUTPUT" | tr -d '[:space:]')" ]; then
+    echo "## Session Context: Lessons Learned"
     echo ""
-    echo "## Pending: $PENDING_COUNT unreviewed observation(s) flagged last session"
-    echo "Consider running /lesson to review and capture them."
+    echo "The following lessons have been captured from previous sessions in this project."
+    echo "Apply them proactively without waiting to be reminded."
+    echo ""
+    echo "$LESSONS_OUTPUT"
   fi
+fi
+
+# Only record a marker when we have a real session_id; writing a marker for a
+# missing session_id would spuriously suppress injection on every future call
+# that also lacks one (see ADR-008 §1).
+if [ -n "$SESSION_ID" ]; then
+  printf '%s' "$SESSION_ID" > "$MARKER_FILE"
 fi

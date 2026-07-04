@@ -30,6 +30,11 @@ adr_lint() {
     bash "$REPO_ROOT/scripts/adr-lint.sh"
 }
 
+hook_smoke() {
+    echo "[ci-checks] hook smoke test (session-init.sh injection)"
+    bash "$REPO_ROOT/scripts/hook-smoke.sh"
+}
+
 source_lint() {
     echo "[ci-checks] source lint (new Failure / cancel naming)"
     bash "$REPO_ROOT/scripts/source-lint.sh"
@@ -49,6 +54,7 @@ case "$MODE" in
         # Cheap, Docker-free early warning for every commit.
         format_check
         adr_lint
+        hook_smoke
         source_lint
         ;;
     full)
@@ -56,6 +62,7 @@ case "$MODE" in
         # error fails in seconds instead of after a full build+test.
         format_check
         adr_lint
+        hook_smoke
         source_lint
         build_and_test
         ;;
