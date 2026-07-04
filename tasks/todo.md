@@ -88,7 +88,7 @@ Each item below is tagged 🐞 (real drift to fix), 🏗️ (scaffolding — spe
 6. ~~**`BCrypt.Net-Next` version mismatch** between `KeyLifecycle/.csproj:5` (`4.0.3`) and `Infrastructure/.csproj:13` (`4.1.0`).~~ ✅ Resolved (2026-07-04) via #36 — `backend/Directory.Packages.props` now centrally pins `BCrypt.Net-Next` to `4.1.0` for both projects.
 7. **Active-key-count guard is TOCTOU under concurrency** (`CreateApiKeyHandler.cs:23-32`). BDD `01_CreateApiKey.feature:38` covers the happy-path "limit reached" case but not the race. Add unique partial index or `IsolationLevel.Serializable` + treat `DbUpdateException` (unique violation) as the limit/duplicate failure.
 8. **Constant-time comparison reminder for the future validation hot-path** (`prd.md` R-VAL-01). Not yet implemented; flag in the validation slice when it lands. Use `CryptographicOperations.FixedTimeEquals` over byte arrays — never `string ==`.
-9. **Dev `appsettings.Development.json:9` commits a plaintext DB password.** Move to User Secrets / env var even for dev to avoid normalising the pattern.
+9. ~~**Dev `appsettings.Development.json:9` commits a plaintext DB password.** Move to User Secrets / env var even for dev to avoid normalising the pattern.~~ ✅ Resolved (2026-07-04) — `Password=` 段自 `appsettings.Development.json` 移除，Host 專案加 `<UserSecretsId>`，本機設定指令寫入 root `README.md`。使用者裁決：不重寫 git 歷史（localhost postgres/postgres 為通用預設值，無保密價值）。
 
 ### C. Architecture / code drift 🐞
 
