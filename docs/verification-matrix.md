@@ -32,6 +32,10 @@
 | 13 | 同第 8 項（bare-string `CreateFailure("..."` 攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`CreateFailure\("` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
 | 14 | 同第 9 項（`CancellationToken` 命名攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`cancellationToken\|ct` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
 | 15 | 同第 4 項（`Domain`/`Application`/`*Handler` 注入 `ILogger` 攔截，寫的當下；刻意不攔 `throw`——合法 guard throw 會誤報，見 `tasks/lessons.md` 2026-06-13 [decision]） | `.claude/hooks/pre-tool-edit.py`（`ILogger\s*<` regex 段，限 `in_logger_zone`） | 寫的當下（**限 Claude Code harness**） | 腳本 |
+| **`.claude/hooks/post-edit-validate.sh`（`docs/adr/adr-012-charter-amendments-external-adoption.md`，P1，僅 Claude Code harness 有效）** ||||
+| 15a | 寫後語法驗證：`.sh`→`bash -n`、`.json`→JSON parse、`.py`→`py_compile`、`.props`/`.csproj`/`.targets`/`.xml`→拒絕 `<!DOCTYPE`/`<!ENTITY` 後以 `xml.etree.ElementTree.parse` 驗 well-formed；直接對應本專案 NU1015 事故（XML 註解 `--` 靜默破壞 `.props`） | `.claude/hooks/post-edit-validate.sh`（PostToolUse，matcher `Edit\|Write`） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
+| **`scripts/machinery-check.sh`（`docs/adr/adr-012-charter-amendments-external-adoption.md`，P2，治理機械本身的自體健檢）** ||||
+| 15b | settings.json / `.mcp.json` JSON 合法性、settings.json hooks 段引用腳本存在＋可執行＋語法通過、`.claude/hooks/*.sh` 與 `scripts/*.sh` 全數 `bash -n`、`CLAUDE.md`/`docs/orchestration.md`/`docs/verification-matrix.md` 反引號路徑指針完整性（fail-loud，無 `if [ -f ]` 靜默跳過） | `scripts/machinery-check.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫） | commit 前 / push 前 / CI | 腳本 |
 | **`scripts/hook-smoke.sh`（`docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md`，與本表同批落地）** ||||
 | 16 | `session-init.sh` 注入邏輯必須可測：(a) 新 `session_id` → 注入 must-read + `tasks/lessons.md` 最近 8 條；(b) 同 `session_id` 二次呼叫 → 不重複注入；(c) 缺 `session_id` → 保守仍注入，不誤判為已注入 — `docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md` Implementation Rules 1 / 2 / 4 | `scripts/hook-smoke.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫，維持「fast ⊂ full」不變式） | commit 前 / push 前 / CI | 腳本 |
 | **`scripts/zh-lint.sh`（`docs/adr/adr-009-traditional-chinese-and-zh-lint.md`）** ||||
@@ -43,7 +47,7 @@
 | 19 | `FailureProvider.CreateFailure()` 是建構 `Failure` 的唯一合法入口：合法 code 忠實回填 `Failure.Code`；`null`／空白／空字串 code 必須丟 `ArgumentException` — `CLAUDE.md` §4「NEVER use `new Failure()`」的配套單元測試 | `backend/tests/SharedKernel.Tests/Domain/FailureProviderTests.cs`（1 個 `[Fact]` + 1 個 `[Theory]`×5 = 6 個測試案例） | push 前 / CI | 腳本 |
 | **AI review 類** ||||
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
-| 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
+| 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
 | **人工類** ||||
 | 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `CLAUDE.md`「Architecture Decision Records (ADR)」→「Validation」→「Review checklist (judgment, not mechanical)」子段 | 無腳本；檢查清單本體見 `CLAUDE.md` 該段文字，本表僅放指針 | review 時 | 人 |
 
