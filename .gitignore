@@ -34,6 +34,11 @@ coverage/
 *.coverage
 *.coveragexml
 
+# Python bytecode cache (created by `py_compile` syntax checks in
+# post-edit-validate.sh / machinery-check.sh — PYTHONDONTWRITEBYTECODE has no
+# effect on explicit py_compile invocation, only on import-time caching)
+__pycache__/
+
 # Runtime secrets / local overrides
 appsettings.*.local.json
 *.pfx

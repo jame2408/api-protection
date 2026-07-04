@@ -45,6 +45,11 @@ source_lint() {
     bash "$REPO_ROOT/scripts/source-lint.sh"
 }
 
+machinery_check() {
+    echo "[ci-checks] machinery check (settings/hooks wiring + doc pointer integrity)"
+    bash "$REPO_ROOT/scripts/machinery-check.sh"
+}
+
 build_and_test() {
     echo "[ci-checks] restore"
     dotnet restore "$SOLUTION"
@@ -62,6 +67,7 @@ case "$MODE" in
         hook_smoke
         zh_lint
         source_lint
+        machinery_check
         ;;
     full)
         # Complete gate — identical to CI. Cheap checks first so a format/adr/source
@@ -71,6 +77,7 @@ case "$MODE" in
         hook_smoke
         zh_lint
         source_lint
+        machinery_check
         build_and_test
         ;;
     *)

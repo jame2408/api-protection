@@ -41,9 +41,6 @@ if [ ! -f "$FILE_PATH" ]; then
   exit 0
 fi
 
-# Avoid __pycache__ side effects from py_compile checks below.
-export PYTHONDONTWRITEBYTECODE=1
-
 case "$FILE_PATH" in
   *.sh)
     if ! ERR=$(bash -n "$FILE_PATH" 2>&1); then
