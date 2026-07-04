@@ -4,7 +4,9 @@
 # Exercises the marker-based dedup behaviour required by ADR-008 §1-2
 # (docs/adr/), so a future silent regression of the injection logic fails a
 # commit instead of going unnoticed for weeks (as happened before ADR-008):
-#   (a) a new session_id injects must-read + the most recent lessons entry
+#   (a) a new session_id injects must-read (incl. the docs/orchestration.md /
+#       docs/verification-matrix.md pointer added by ADR-010) + the most
+#       recent lessons entry
 #   (b) the same session_id run again produces no output, exit 0
 #   (c) a payload missing session_id still injects (conservative fallback)
 #
@@ -46,6 +48,11 @@ LAST_LESSON_TITLE=$(grep '^### \[' "$LESSONS_FILE" | tail -1)
 MARKER_A="$(mktemp)"
 OUTPUT_A=$(echo '{"session_id":"hook-smoke-session-1"}' | SESSION_INIT_MARKER="$MARKER_A" bash "$HOOK")
 echo "$OUTPUT_A" | grep -qF "必讀規範" || fail "(a) missing 必讀規範 in first-run output"
+# Match the unique phrase from the must-read pointer line itself (ADR-010), not
+# just "docs/orchestration.md" — that substring can also appear incidentally
+# inside injected lessons text, which would make this assertion pass even if
+# the must-read line were deleted.
+echo "$OUTPUT_A" | grep -qF "多模型協調與驗證機制" || fail "(a) missing 多模型協調與驗證機制 pointer (docs/orchestration.md / docs/verification-matrix.md) in first-run output (ADR-010)"
 echo "$OUTPUT_A" | grep -qF "$LAST_LESSON_TITLE" || fail "(a) missing latest lesson title in first-run output"
 
 # --- (b) same session_id again -> marker dedup, no output, exit 0 ---------

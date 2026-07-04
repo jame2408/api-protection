@@ -26,7 +26,7 @@
 | **`scripts/adr-lint.sh` — 結構性（1 項，涵蓋 7 個子檢查：Status 格式 / 7 個必要章節 / governance clause / 禁 file:line / 檔名編號連續 / Alternative 需 `Rejected.` / Trade-off 需 `Mitigation:`）** ||||
 | 10 | `docs/adr/adr-*.md` 結構性合規 — `CLAUDE.md`「Architecture Decision Records (ADR)」段 + 其「Validation」→「Structural lint (mechanical)」子段 | `scripts/adr-lint.sh` | commit 前（僅當 `docs/adr/` 有 staged 變更才觸發，見 `scripts/git-hooks/pre-commit`）/ push 前 / CI | 腳本 |
 | **`dotnet format`** ||||
-| 11 | C# 原始碼格式一致性（縮排、`using` 排序等 .NET 預設格式規則；repo 未建 `.editorconfig` 客製化，套用 `dotnet format` 內建規則集——**權威來源模糊**，非對應特定 `CLAUDE.md` 條文） | `scripts/ci-checks.sh` `format_check()` → `dotnet format backend/ApiKeyManagement.slnx --verify-no-changes` | commit 前 / push 前 / CI | 腳本 |
+| 11 | C# 原始碼格式一致性（縮排、`using` 排序等 .NET 預設格式規則；`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免；style/naming 規則未定義，權威來源仍為工具預設——**權威來源模糊**，非對應特定 `CLAUDE.md` 條文） | `scripts/ci-checks.sh` `format_check()` → `dotnet format backend/ApiKeyManagement.slnx --verify-no-changes` | commit 前 / push 前 / CI | 腳本 |
 | **`.claude/hooks/pre-tool-edit.py` — 寫時攔截，4 個 pattern（僅 Claude Code harness 有效；其他 harness 對策見 `AGENTS.md`「此 harness 拿不到的防線」段）** ||||
 | 12 | 同第 7 項（`new Failure(` 攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`new\s+Failure\s*\(` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
 | 13 | 同第 8 項（bare-string `CreateFailure("..."` 攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`CreateFailure\("` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
@@ -62,7 +62,7 @@
 | `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試 |
 | `NEVER` 使用空 catch block；`NEVER` 用 `throw ex;`（須 `throw;`） | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——`scripts/source-lint.sh` 未涵蓋，可用 grep 機械化但尚未寫 |
 | `CancellationToken cancel` 須傳播到每個 I/O 呼叫（EF Core / HTTP client / message bus） | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——命名本身已由第 9 / 14 項機械化，但「有沒有把 `cancel` 真的傳進每個 I/O 呼叫」屬語意/資料流檢查，現有 grep 與 reflection 皆看不到 |
-| 命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴 | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——`NamingConventionTests.cs` 只鎖 `*Handler`/`*Repository`/`*FailureCodes` 後綴這三類，未涵蓋一般方法/欄位命名；repo 無 `.editorconfig`、無 analyzer 設定 |
+| 命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴 | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——`NamingConventionTests.cs` 只鎖 `*Handler`/`*Repository`/`*FailureCodes` 後綴這三類，未涵蓋一般方法/欄位命名；`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免，style/naming 規則未定義，權威來源仍為工具預設，無 analyzer 設定 |
 | FluentAssertions 用於測試斷言，禁止直接比較（如 `Assert.Equal`） | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——無 lint 禁止 `Assert.*`；現況所有測試皆用 FluentAssertions 純屬慣例延續，非機械保證 |
 | API Key validation latency P99 < 50ms | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——repo 內無負載測試腳本或效能基準測試 |
 | Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——同上，無對應腳本 |
@@ -73,7 +73,7 @@
 ## 審校紀錄（2026-07-04 orchestrator review）
 
 - Executor 自查時回報的 4 項並行時序落差（hook-smoke 未接線、`pending-lessons.jsonl` 未刪、`.gitignore` 缺 `.claude/*.marker`、第 16 項為預寫狀態），於本表 commit 時**已全部消解**：Phase B 落地 + orchestrator 裁決 `hook_smoke` 同時接入 fast 與 full（維持「fast ⊂ full」不變式）。
-- **仍開放**：`dotnet format` 的權威來源模糊（主表第 11 項）——repo 無 `.editorconfig`，格式規則對應不到任何 `CLAUDE.md`/ADR 條文，僅為工具預設。是否補 `.editorconfig` 正式化，追蹤於 `tasks/process-improvement-plan.md` §8.3。
+- **仍開放**：`dotnet format` 的權威來源模糊（主表第 11 項）——`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免，style/naming 規則未定義，格式規則對應不到任何 `CLAUDE.md`/ADR 條文，權威來源仍為工具預設。裁決狀態維持待規格擁有者決定，追蹤於 `tasks/process-improvement-plan.md` §8.3。
 - 主表其餘各行「機制」檔案路徑已由 executor 逐一 `ls`/`grep` 確認存在（見下方核對清單），orchestrator 抽驗無誤。
 
 ---
