@@ -344,12 +344,14 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | §3-D / Phase 4：agent reference loading | 🟡 | `session-init.sh` 注入 must-read（B1）✅；`coding-style` / `code-review` skill 強制載入 ⬜ | `19f5d45` |
 | §3-E / Phase 5：lessons 三類模板 | ✅ | `tasks/lessons.md`（模板早已在用，新增 3 條皆含落地欄位） | `a0d1208` `83dbf15` `19f5d45` |
 | §3-B / Phase 3：API contract（對齊 spec） | ✅ | error 改 RFC 9457 ProblemDetails（單一 helper `KeyLifecycle/Http/ApiProblem.cs`：type/title/status/errorCode/traceId）+ `CreateApiKeyResponse.truncatedKey`；functional step 改鎖 RFC 9457 wire contract（一改鎖住所有失敗場景含 @ignore）+ truncatedKey 斷言。綠＋故意紅驗證（改回 `{error}` → 場景紅） | （本次 Phase 3 commit） |
+| §9.4 Phase A：協調憲章 | ✅ | `docs/adr/adr-007-process-governance.md`（governance ADR）+ `docs/orchestration.md`（模型分級路由表 / executor contract / 全域停止條件 / checkpoint schema 指針 / token 節約原則）+ `tasks/_templates/checkpoint.md`（交接模板）+ `AGENTS.md`（非 Claude harness 薄入口）+ `tasks/phase-a-spec.md`（可重派指令包）；executor＝Sonnet、orchestrator review 修 1 處簡體字（見 lessons [correction]）；`adr-lint.sh` 綠 + 故意紅驗證通過 | （本次 Phase A commit） |
 
 ### 8.3 仍開環（接續 §3 / §4 未關閉項）
-- **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — 未做。目前散在本 plan，本身就是「plan 變隱性規範」的風險。
+- **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — ✅ 已由 `docs/adr/adr-007-process-governance.md` 關閉（2026-07-04，見 §8.2 Phase A 行）。
 - **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
 - **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
 - **既有 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`）、#35（`ROTATING` 殘留）。
+- **禁簡體無機械化防線**（2026-07-04 新增）：Phase A review 攔下 executor 寫出的「执行」；規則只存在於全域層級，repo 內無明文、無 lint。機械化需先裁決規範落點（新規則 → 走 ADR 通道），見 `tasks/lessons.md` 對應 [correction]。
 
 ### 8.4 防線層次現況
 
@@ -379,3 +381,52 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 - `CLAUDE.md`（M）、`tasks/todo.md`（M）：**session 前就存在的既有改動** + 我的 todo #20 落地狀態編輯，一直刻意排除在本分支 commit 外。要不要提交由擁有者決定；非本任務污染。
 
 **如何接上**：新 session 在分支 `hardening/architecture-tests-mvp` 上，讀本節（§8.5）+ §8.3 即知全貌；session-init hook 會自動注入 must-read 規則。挑上面 1–4 任一項續作即可。每條新檢驗記得「綠＋故意紅」驗證、進度同步回 §8.2/§8.3。
+
+---
+
+## 9. 多模型協調層盤點（2026-07-04）
+
+> 視角轉換：§1–§8 解決「規範 vs 程式碼」的 drift；本節解決「協調者退場後，loop 能否由任意模型（Sonnet / Opus / 非 Claude harness）接手且產出品質一致」。盤點方法：loop-engineering skill Phase 1–2；大範圍掃描由 Sonnet subagent 執行，關鍵事實已逐一覆核。
+
+### 9.1 防線可攜性分層（盤點結論）
+
+| 層 | 機制 | 換模型仍有效？ | 換 harness（如 Codex）仍有效？ |
+|---|---|---|---|
+| 寫的當下 | `pre-tool-edit.py`（PreToolUse）、`session-init.sh` must-read 注入 | ✅ | ❌ Claude Code 專屬 |
+| commit 前 | `scripts/git-hooks/pre-commit` → `ci-checks.sh fast` | ✅ | ✅ |
+| push 前 | pre-push → `ci-checks.sh full`（build + 13 架構測試 + BDD） | ✅ | ✅ |
+| CI | `ci.yml` → 同一支 `ci-checks.sh full` | ✅ | ✅（**休眠**：無 remote） |
+
+**核心判斷**：產出一致性主要靠第 2–4 層機械 gate + 任務切小 + BDD 規格明確，這三者皆 harness-agnostic；第 1 層只是「提早失敗」的加速器，失去它不破壞一致性，只增加來回成本。因此跨模型一致性的地基已存在，缺的是協調層本身（見 9.2）。
+
+### 9.2 缺口清單（O 系列）
+
+| # | 缺口 | 斷在哪一段 |
+|---|---|---|
+| O-1 | **協調層無 artifact**：任務怎麼切、派給哪一級模型、監督協定、Fable 退場後誰按什麼規則調度 — 只存在於對話與人的記憶 | 無落地 |
+| O-2 | **Executor contract 不存在**：executor session 的義務（進度與實作同 commit、誠實申報 blocker／不確定處、何時必須停）未成文，換一個模型就換一套行為 | 無落地 |
+| O-3 | **全域停止條件缺失**：BDD cycle 有局部停止規則（一次一個 @ignore、Green before commit），但無全域規則（同一測試連紅 N 次→停、規格模糊→停+問、超出任務邊界→停） | 無訊號＋無落地 |
+| O-4 | **Checkpoint/handoff 是散文慣例非 schema**：§8.5 是好範例，但無模板可複製；交接品質取決於寫的人自覺，弱模型寫不出同等品質 | 無機械化 |
+| O-5 | **學習迴圈積壓 + token 無界成長**：`pending-lessons.jsonl` 158 條未 triage；`session-init.sh` 每 session 全量注入 `lessons.md`，隨條目增加 token 成本線性上升 | 學習回寫斷 |
+| O-6 | **驗證矩陣缺「執行者」欄**：哪些驗證用腳本、哪些需 AI review、AI review 用哪級模型（明文排除 Fable 級）— 未定義；multi-agent review 至今是 ad-hoc | 無決策通道 |
+| O-7 | **Tessl eval harness 未決**：`tessl.json` / `.mcp.json` / `.tessl/` untracked、skill 內模型名已過時（`claude-sonnet-4-6` 等）；其 compare-skill-model-performance 能力與「跨模型一致性」目標高度相關，但未納入制度也未移除 | 無決策 |
+| O-8 | **Subagent 事實覆核未機械化**（低優先，先記錄）：本次盤點 subagent 宣稱 repo 無 `GEMINI.md`，實際存在於 `.claude/references/general/`。CLAUDE.md §2 已有「不接受概括」規則，但覆核動作靠 orchestrator 自覺 | 無機械化 |
+
+承接 §8.3 未關閉項（不重列）：governance ADR、skill must-read、CI 首跑、todo #19（FluentAssertions）、#35（ROTATING）。
+
+### 9.3 裁決紀錄（2026-07-04 使用者裁決）
+
+- **D-1 跨 harness 範圍**：✅ **近期會用，現在就建** — Phase A 包含 `AGENTS.md` 入口（薄指針，不複寫規則）。
+- **D-2 Tessl 處置**：✅ **擱置，維持 untracked** — 不進 git、不寫進驗證矩陣；協調憲章落地後真需要跨模型 skill eval 再議。
+- **D-3 未追蹤產物**（`docs/arch-flow.html` + `docs/flows.json`）：未裁決，留待 Phase D。
+- **D-4 既有改動歸屬**（`CLAUDE.md`（M）、`tasks/todo.md`（M））：未裁決，維持排除在 commit 外。
+
+### 9.4 提議 Phase（Sonnet 5 執行、Fable 監督起步；每 Phase 獨立可中斷）
+
+- **Phase A — 協調憲章（最高優先：這是 Fable 退場後唯一能留下的東西）**：正式 ADR（含 §8.3 懸置的 governance ADR，或拆二）+ `docs/orchestration.md`：模型分級路由表（簡單批量→sonnet/opus；AI review 分級明文**排除 Fable 級**）、executor contract（O-2）、全域停止條件（O-3）、checkpoint schema 模板（O-4，落 `tasks/_templates/`）、token 節約原則（有界注入、指針不複寫、checkpoint 優先於重讀）。
+  **狀態（2026-07-04）：✅ 已落地** — 五項交付物 + `tasks/phase-a-spec.md`（可重派指令包）；executor＝Sonnet，orchestrator review 後修正 1 處簡體字並同 commit 落地。詳見 §8.2 Phase A 行。下一步：Phase B（見下），可由新 session 直接依本節接手。
+- **Phase B — 學習迴圈減壓（O-5）**：pending-lessons triage 流程（一次 triage 完既有 158 條）+ `session-init.sh` 注入改有界（最近 N 條或 curated 區塊）。
+- **Phase C — 驗證矩陣（O-6）**：規則 → 機制 → 時機 → 執行者（腳本／模型級）一張表落檔；含 D-2 結果。
+- **Phase D — 殘項**：skill must-read（§8.3）、todo #19（建議 `Directory.Packages.props` 一次解，見 todo #36）、#35。
+
+**驗收（Definition of Success）**：(a) 換一個全新 session、指定 Sonnet 5、只給「讀 §9.4 + 協調憲章」的 prompt，能正確接手一個 Phase 並產出合規 checkpoint；(b) session-init 注入量有上限且可 grep 驗證；(c) 每條新機制過「綠＋故意紅」。
