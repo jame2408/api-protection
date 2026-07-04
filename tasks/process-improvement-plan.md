@@ -355,7 +355,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 ### 8.3 仍開環（接續 §3 / §4 未關閉項）
 - **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — ✅ 已由 `docs/adr/adr-007-process-governance.md` 關閉（2026-07-04，見 §8.2 Phase A 行）。
 - **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
-- **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
+- ~~**CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。~~ ✅ 2026-07-04 關閉（Phase G）：repo 上線 `https://github.com/jame2408/api-protection`（public，使用者裁決維持 public、todo #9 前瞻修正、不重寫歷史）；`main` + 本分支已 push；PR #1 觸發 `ci.yml` 首跑**綠**（`build-test` pass, 59s，run 28706977987）；`build-test` 已設為 main required status check（strict=false，最小保護）。
 - ~~**既有 drift**：todo #19（FluentAssertions）、#35（`ROTATING` 殘留）~~ ✅ 2026-07-04 全數關閉（#19 由 `Directory.Packages.props` 根治、#35 已修正、#6/#36/#37 順帶關閉）。
 - ~~**禁簡體無機械化防線**~~（2026-07-04 新增；同日兩度驗證必要性）：Phase A review 攔下「执行」、Phase C review 攔下「确定」— 且 orchestrator 手寫掃描字表兩度漏字、grep 多位元組字元類還有 byte-match 誤報陷阱。<!-- zh-lint:allow：本行刻意引用違規字元 --> ✅ **同日關閉**：`docs/adr/adr-009-*.md` + `scripts/zh-lint.sh`（OpenCC 字表 vendored + variant 白名單 + `zh-lint:allow` 行內豁免），接入 ci-checks fast+full；首跑即抓到 8 處人工掃描全數漏掉的真實簡體字（含 CLAUDE.md、api-spec、design-doc）。
 - **`dotnet format` 權威來源模糊**（2026-07-04 新增，Phase C 發現；2026-07-04 勘誤）：`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免；style/naming 規則未定義，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，權威來源仍為工具預設。是否補 `.editorconfig` 正式化待裁決（維持待規格擁有者決定，狀態不變）。
@@ -373,7 +373,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 ### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
 
-**現況（2026-07-04 三次更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。五類 gate 上線（fast：format / adr-lint / hook-smoke / zh-lint / source-lint；full 加 build+test）。協調層 Phase A / B / C 完成；Phase D 大半完成（ADR-009 禁簡體 lint、#6/#19/#35/#36/#37、D-3/D-4 裁決落地 — §8.2 對應各行）。**協調憲章 DoS (a) 實戰驗收已通過**（冷啟動 Sonnet executor 僅憑 artifacts 正確自轉，見 §8.2）。O-1～O-6 關閉；O-7 擱置（D-2）；O-8 低優先未動。
+**現況（2026-07-04 四次更新）**：分支 `hardening/architecture-tests-mvp`，**已 push**至 `origin`（`https://github.com/jame2408/api-protection`，public）；PR #1 開啟、CI 首跑綠、main required status check 已設（Phase G，見 §8.3）。五類 gate 上線（fast：format / adr-lint / hook-smoke / zh-lint / source-lint；full 加 build+test）。協調層 Phase A / B / C 完成；Phase D 大半完成（ADR-009 禁簡體 lint、#6/#19/#35/#36/#37、D-3/D-4 裁決落地 — §8.2 對應各行）。**協調憲章 DoS (a) 實戰驗收已通過**（冷啟動 Sonnet executor 僅憑 artifacts 正確自轉，見 §8.2）。O-1～O-6 關閉；O-7 擱置（D-2）；O-8 低優先未動。
 
 **下一步可做（皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
 
@@ -381,11 +381,9 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 1. **skill must-read**（§8.3 / §3-D 最後殘項）：`coding-style` / `code-review` SKILL.md 強制載入本專案 references + Accepted ADR；缺 stack 目錄 skip-if-missing。可直接派 executor（參考 `tasks/phase-*-spec.md` 指令包模式）。
 2. **`.editorconfig` 裁決**（§8.3）：format gate 的權威來源目前只是工具預設，是否正式化待規格擁有者決定。
-3. **卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
+3. ~~**卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。~~ ✅ 2026-07-04 關閉（Phase G）：首跑綠（PR #1，`build-test` pass），required status check 已設妥 — 詳見 §8.3 同項。
 
 > Phase 3（API contract）2026-06-24；Phase A / B / C + Phase D 大半 2026-07-04 — 均見 §8.2。
-
-**卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
 
 **工作區未提交狀態（不要誤刪／誤併）**：
 - `CLAUDE.md`（M）、`tasks/todo.md`（M）：**session 前就存在的既有改動** + 我的 todo #20 落地狀態編輯，一直刻意排除在本分支 commit 外。要不要提交由擁有者決定；非本任務污染。
