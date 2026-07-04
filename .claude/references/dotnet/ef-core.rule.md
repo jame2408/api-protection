@@ -6,7 +6,7 @@ Entity Framework Core 模式、反模式與效能優化。
 
 ## A. 本專案 EF Core 規範
 
-### DbContext 注册模式
+### DbContext 註冊模式
 
 本專案為高流量 Web API，使用 **DbContext Pooling**：
 

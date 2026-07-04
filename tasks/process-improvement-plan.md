@@ -353,7 +353,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 - **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
 - **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
 - **既有 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`）、#35（`ROTATING` 殘留）。
-- **禁簡體無機械化防線**（2026-07-04 新增；同日兩度驗證必要性）：Phase A review 攔下「执行」、Phase C review 攔下「确定」— 且 orchestrator 手寫掃描字表兩度漏字、grep 多位元組字元類還有 byte-match 誤報陷阱。結論：lint 必須用完整簡繁對照字表（如 OpenCC）+ Python 實作 + 豁免機制（lessons 內刻意引用違規字元的行）。機械化需先裁決規範落點（新規則 → 走 ADR 通道），見 `tasks/lessons.md` 對應 [correction]。
+- ~~**禁簡體無機械化防線**~~（2026-07-04 新增；同日兩度驗證必要性）：Phase A review 攔下「执行」、Phase C review 攔下「确定」— 且 orchestrator 手寫掃描字表兩度漏字、grep 多位元組字元類還有 byte-match 誤報陷阱。<!-- zh-lint:allow：本行刻意引用違規字元 --> ✅ **同日關閉**：`docs/adr/adr-009-*.md` + `scripts/zh-lint.sh`（OpenCC 字表 vendored + variant 白名單 + `zh-lint:allow` 行內豁免），接入 ci-checks fast+full；首跑即抓到 8 處人工掃描全數漏掉的真實簡體字（含 CLAUDE.md、api-spec、design-doc）。
 - **`dotnet format` 權威來源模糊**（2026-07-04 新增，Phase C 發現）：repo 無 `.editorconfig`，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，僅工具預設。是否補 `.editorconfig` 正式化待裁決。
 
 ### 8.4 防線層次現況
