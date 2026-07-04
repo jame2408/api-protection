@@ -50,6 +50,12 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Rule:** 變更 API wire contract（error 形狀、回應欄位）時，斷言該契約的測試必須同一個 commit 一起改 — 這是「契約變更」不是「test refactor」，不違反「production/test 不混改」（那條針對純 refactor）。順手把斷言升級成鎖完整 RFC 9457 shape，一改鎖住所有用該 step 的場景（含 @ignore 未上線的）。
 **落地:** `CreateApiKeySteps.cs` `ThenCreateFailsWithReason` 改斷言 RFC 9457（type/title/status/errorCode/traceId + content-type）；故意紅驗證通過。
 
+### [correction] Executor 產出含簡體字 — 「禁簡體」規則存在但無機械化防線
+**Date:** 2026-07-04
+**Context:** Phase A executor（Sonnet 級）在 adr-007 Rationale 寫出「执行」。禁用簡體是全域層級規則，但 repo 內無明文、無 lint，任何 executor（尤其非 Claude harness）都可能重犯；本次靠 orchestrator review 的簡體字元掃描才攔下。
+**Rule:** Review executor 產出的中文文件時，必須跑一次簡體字元掃描；接受 executor 報告「驗證全綠」不等於內容合規 — 報告只覆蓋它被要求跑的檢查。
+**落地:** adr-007 修正（本次 Phase A commit）；「禁簡體機械化 lint」列入 `tasks/process-improvement-plan.md` §8.3 開環清單（需先裁決 repo 內規範落點，屬新規則 → 走 ADR 通道）。
+
 ### [correction] 寫 production code 前必須主動載入 .claude/references 規則檔
 **Date:** 2026-04-03
 **Context:** Wave 1 初始實作時，CreateApiKeyHandler 用 throw 做業務邏輯、CancellationToken 命名 ct、ConsumerValidatorService 在 Scoped 服務內建多餘子 scope，三個問題都是因為沒有載入 .claude/references/dotnet/*.rule.md 就直接寫程式造成的。事後 code review 才全部補救。
