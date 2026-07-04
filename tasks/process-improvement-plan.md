@@ -366,14 +366,14 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 ### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
 
-**現況（2026-06-24 更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。Architecture.Tests 13 條全綠，本機四層 gate 上線，API error 契約已對齊 RFC 9457（§8.2）。
+**現況（2026-07-04 更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。四層 gate 上線；governance ADR-007 + 協調憲章（`docs/orchestration.md`）+ 交接模板（`tasks/_templates/checkpoint.md`）+ `AGENTS.md` 已落地（commit `d8a006b`，§8.2 Phase A 行）。多模型協調層盤點與裁決見 §9。
 
-**下一步可做（依建議優先序，皆獨立可中斷）**：
-1. **governance ADR（§8.3 / Phase 1）** — 把散在本 plan 的治理規則（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR，避免 plan 變隱性規範。用 `docs/adr/_template.md`，過 `scripts/adr-lint.sh`。
-2. **skill must-read 強制（§8.3 / §3-D 殘項）** — `coding-style` / `code-review` SKILL.md 強制載入本專案 references + ADR；缺 `nodejs/`、`python/` 目錄時 skip-if-missing。
-3. **順手 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`，建議引入 `Directory.Packages.props` 一次解，見 todo #36）、#35（`tasks/bdd-progress.md` 殘留 `ROTATING`）。
+**下一步可做（依建議優先序，皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
+1. **Phase B — 學習迴圈減壓（§9.4）** — ⚠️ 先由 orchestrator 級做設計裁決再派工：`pending-lessons.jsonl` 積壓 158 條，可能代表 flagging 機制本身太吵而失效，「修 triage」或「重設計管線」是 ADR 級決策（依 ADR-007，改 session-init 注入行為屬協調機制變更 → 需新 ADR）。不要直接派 executor 動 `session-init.sh`。
+2. **Phase C — 驗證矩陣（§9.4 / O-6）** — 規則 → 機制 → 時機 → 執行者（腳本／模型級）一張表；可獨立於 Phase B 先做。
+3. **Phase D — 殘項**：skill must-read（§8.3）、todo #19（`Directory.Packages.props`）、#35（`ROTATING`）、禁簡體 lint（§8.3 新項）、D-3 arch-flow 產物裁決。
 
-> Phase 3（API contract 對齊 RFC 9457 + truncatedKey）已於 2026-06-24 完成，見 §8.2。
+> Phase 3（API contract）2026-06-24 完成；Phase A（協調憲章）2026-07-04 完成 — 均見 §8.2。
 
 **卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
 
