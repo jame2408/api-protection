@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- ADR-011: promotes `backend/.editorconfig` dotnet_naming_* rules (severity=error)
+         from IDE-only suggestions to build-time diagnostics, so a naming violation fails
+         `dotnet build`, not just the format-verification step. Unrelated to
+         `Directory.Packages.props` (central package version management). -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>

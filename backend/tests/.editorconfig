@@ -1,0 +1,7 @@
+# ADR-011 carve-out: BDD step definitions and test methods are named after
+# scenario semantics (e.g. `ThenCreateFailsWithReason`), not the `Async` suffix
+# convention used in backend/src. This file only overrides that one rule; every
+# other dotnet_naming_* rule defined in backend/.editorconfig (which this file
+# inherits — no `root = true` here) still applies to backend/tests/.
+[*.cs]
+dotnet_naming_rule.async_methods_should_have_async_suffix.severity = none
