@@ -346,13 +346,16 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | §3-B / Phase 3：API contract（對齊 spec） | ✅ | error 改 RFC 9457 ProblemDetails（單一 helper `KeyLifecycle/Http/ApiProblem.cs`：type/title/status/errorCode/traceId）+ `CreateApiKeyResponse.truncatedKey`；functional step 改鎖 RFC 9457 wire contract（一改鎖住所有失敗場景含 @ignore）+ truncatedKey 斷言。綠＋故意紅驗證（改回 `{error}` → 場景紅） | （本次 Phase 3 commit） |
 | §9.4 Phase A：協調憲章 | ✅ | `docs/adr/adr-007-process-governance.md`（governance ADR）+ `docs/orchestration.md`（模型分級路由表 / executor contract / 全域停止條件 / checkpoint schema 指針 / token 節約原則）+ `tasks/_templates/checkpoint.md`（交接模板）+ `AGENTS.md`（非 Claude harness 薄入口）+ `tasks/phase-a-spec.md`（可重派指令包）；executor＝Sonnet、orchestrator review 修 1 處簡體字（見 lessons [correction]）；`adr-lint.sh` 綠 + 故意紅驗證通過 | `d8a006b` |
 | §9.4 Phase B：學習迴圈機械層重設計（O-5） | ✅ | `docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md`（orchestrator 起草）+ `session-init.sh` 重寫（session_id marker 去重、`### [` 錨點取最後 8 條、計數指針）+ 兩個 post hook 移除 pending flagging（scrubbing 未動）+ `scripts/hook-smoke.sh` 接入 ci-checks **fast+full**（orchestrator 裁決維持 fast ⊂ full）+ `.gitignore` `.claude/*.marker` + `pending-lessons.jsonl` 刪除（158+ 條最終 triage 記於 ADR-008 Context：0 條值得轉 lesson）；executor＝Sonnet；hook-smoke 綠＋故意紅驗證通過 | （本次 Phase B commit） |
-| §9.4 Phase C：驗證矩陣（O-6） | ✅ | `docs/verification-matrix.md`：22 行主表（13 架構測試 / 3 source-lint / adr-lint / format / 4 PreToolUse / hook-smoke / BDD wire / SharedKernel.Tests / AI review 2 級 / 人工 ADR checklist）+ 「無防線區塊」誠實列 10 條規則無機械化（coverage 80%、`.Value` 檢查、cancel 傳播、效能門檻等）；executor＝Sonnet；orchestrator 審校消解 4 項並行時序落差 + 修 1 處簡體字 | （本次 Phase C commit） |
+| §9.4 Phase C：驗證矩陣（O-6） | ✅ | `docs/verification-matrix.md`：22 行主表（13 架構測試 / 3 source-lint / adr-lint / format / 4 PreToolUse / hook-smoke / BDD wire / SharedKernel.Tests / AI review 2 級 / 人工 ADR checklist）+ 「無防線區塊」誠實列 10 條規則無機械化（coverage 80%、`.Value` 檢查、cancel 傳播、效能門檻等）；executor＝Sonnet；orchestrator 審校消解 4 項並行時序落差 + 修 1 處簡體字 | `48be025` |
+| Phase D：禁簡體 lint（ADR-009） | ✅ | 規則落點進 repo + `scripts/zh-lint.sh`（OpenCC 字表 vendored 4013 條、variant 白名單、行內豁免），接入 fast+full；首跑清償 8 處歷史欠債（含 CLAUDE.md 外科手術 commit `adb4fd8`）；同日三次事故（2 executor + orchestrator 本人）實證人工檢出不可靠 | `12a3967` |
+| Phase D：#36 中央套件管理（關閉 #6/#19）＋**協調憲章 DoS (a) 實戰驗收** | ✅ | 冷啟動 Sonnet executor 僅憑「讀 §8.5 + `docs/orchestration.md`」接手：正確選題（#36 一石三鳥）、`ci-checks.sh full` 全綠、checkpoint 合規、誠實回報範圍外異常（GEMINI.md 刪除）— **憲章自轉驗收通過**。`Directory.Packages.props` 統一 18 套件版本 | `1dc717b` |
+| Phase D：housekeeping（#35 / #37 / D-3 / D-4） | ✅ | #35 `Rotating` 修正；#37 裁決＝刪除 GEMINI.md 空殼（現實對齊 ADR-001 inventory）；D-3 裁決＝arch-flow 產物與 skill 全部 gitignore；D-4 裁決＝既有 M 改動一併落地（`1dc717b` `a99ca6b`）；lessons 新增 XML `--` 註解陷阱 [info] | （本 housekeeping commit） |
 
 ### 8.3 仍開環（接續 §3 / §4 未關閉項）
 - **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — ✅ 已由 `docs/adr/adr-007-process-governance.md` 關閉（2026-07-04，見 §8.2 Phase A 行）。
 - **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
 - **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
-- **既有 drift**：todo #19（FluentAssertions 8.9.0 違反 `<8.0.0`）、#35（`ROTATING` 殘留）。
+- ~~**既有 drift**：todo #19（FluentAssertions）、#35（`ROTATING` 殘留）~~ ✅ 2026-07-04 全數關閉（#19 由 `Directory.Packages.props` 根治、#35 已修正、#6/#36/#37 順帶關閉）。
 - ~~**禁簡體無機械化防線**~~（2026-07-04 新增；同日兩度驗證必要性）：Phase A review 攔下「执行」、Phase C review 攔下「确定」— 且 orchestrator 手寫掃描字表兩度漏字、grep 多位元組字元類還有 byte-match 誤報陷阱。<!-- zh-lint:allow：本行刻意引用違規字元 --> ✅ **同日關閉**：`docs/adr/adr-009-*.md` + `scripts/zh-lint.sh`（OpenCC 字表 vendored + variant 白名單 + `zh-lint:allow` 行內豁免），接入 ci-checks fast+full；首跑即抓到 8 處人工掃描全數漏掉的真實簡體字（含 CLAUDE.md、api-spec、design-doc）。
 - **`dotnet format` 權威來源模糊**（2026-07-04 新增，Phase C 發現）：repo 無 `.editorconfig`，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，僅工具預設。是否補 `.editorconfig` 正式化待裁決。
 
@@ -369,13 +372,14 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 ### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
 
-**現況（2026-07-04 二次更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。四層 gate 上線（fast 模式含 hook-smoke）。協調層 Phase A / B / C 全部完成：ADR-007 治理 + 協調憲章 + ADR-008 學習迴圈重設計 + 驗證矩陣（§8.2 對應三行）。O-1～O-6 已關閉；O-7 依 D-2 擱置；O-8 低優先未動。
+**現況（2026-07-04 三次更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。五類 gate 上線（fast：format / adr-lint / hook-smoke / zh-lint / source-lint；full 加 build+test）。協調層 Phase A / B / C 完成；Phase D 大半完成（ADR-009 禁簡體 lint、#6/#19/#35/#36/#37、D-3/D-4 裁決落地 — §8.2 對應各行）。**協調憲章 DoS (a) 實戰驗收已通過**（冷啟動 Sonnet executor 僅憑 artifacts 正確自轉，見 §8.2）。O-1～O-6 關閉；O-7 擱置（D-2）；O-8 低優先未動。
 
 **下一步可做（皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
-1. **Phase D — 殘項**（每項獨立）：skill must-read（§8.3 / §3-D 殘項）、todo #19（FluentAssertions，建議 `Directory.Packages.props` 一次解，見 todo #36）、#35（`ROTATING` 殘留）、禁簡體 lint（§8.3，需先開 ADR 裁決規範落點與豁免機制）、`.editorconfig` 裁決（§8.3）、D-3 arch-flow 產物裁決。
-2. **協調憲章實戰驗收（§9.4 Definition of Success (a)）**：開全新 session、executor 級模型、只給「讀 §9.4 + `docs/orchestration.md` + 對應 spec」的 prompt，驗證能正確接手 Phase D 任一項並產出合規 checkpoint。
+1. **skill must-read**（§8.3 / §3-D 最後殘項）：`coding-style` / `code-review` SKILL.md 強制載入本專案 references + Accepted ADR；缺 stack 目錄 skip-if-missing。可直接派 executor（參考 `tasks/phase-*-spec.md` 指令包模式）。
+2. **`.editorconfig` 裁決**（§8.3）：format gate 的權威來源目前只是工具預設，是否正式化待規格擁有者決定。
+3. **卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
 
-> Phase 3（API contract）2026-06-24 完成；Phase A / B / C（協調層）2026-07-04 完成 — 均見 §8.2。
+> Phase 3（API contract）2026-06-24；Phase A / B / C + Phase D 大半 2026-07-04 — 均見 §8.2。
 
 **卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。
 
@@ -420,8 +424,8 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 - **D-1 跨 harness 範圍**：✅ **近期會用，現在就建** — Phase A 包含 `AGENTS.md` 入口（薄指針，不複寫規則）。
 - **D-2 Tessl 處置**：✅ **擱置，維持 untracked** — 不進 git、不寫進驗證矩陣；協調憲章落地後真需要跨模型 skill eval 再議。
-- **D-3 未追蹤產物**（`docs/arch-flow.html` + `docs/flows.json`）：未裁決，留待 Phase D。
-- **D-4 既有改動歸屬**（`CLAUDE.md`（M）、`tasks/todo.md`（M））：未裁決，維持排除在 commit 外。
+- **D-3 未追蹤產物**：✅ 2026-07-04 裁決 — arch-flow 產物與 skill 目錄全部 gitignore（可重產、不入制度）。
+- **D-4 既有改動歸屬**：✅ 2026-07-04 裁決 — 一併提交（`1dc717b` todo.md、`a99ca6b` CLAUDE.md）。
 
 ### 9.4 提議 Phase（Sonnet 5 執行、Fable 監督起步；每 Phase 獨立可中斷）
 

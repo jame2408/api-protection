@@ -33,7 +33,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 | 文件 | Wave | Feature | 場景數 | 涉及 BC | 特殊需求 |
 |------|------|---------|--------|---------|---------|
 | `01_CreateApiKey.feature` | 1 | 建立 API 金鑰 | 10 | TenantManagement、KeyLifecycle、AccessPolicy | 整體 stack 首次通 |
-| `02_RevokeKey.feature` | 2 | 撤銷金鑰 | 7 | KeyLifecycle.RevokeKey | ROTATING 狀態需 seed |
+| `02_RevokeKey.feature` | 2 | 撤銷金鑰 | 7 | KeyLifecycle.RevokeKey | Rotating 狀態需 seed |
 | `03_SuspendResumeKey.feature` | 3 | 暫停與恢復金鑰 | 8 | KeyLifecycle.SuspendKey、ResumeKey | AuthToken 機制（Wave 3 前須建立） |
 | `04_LockUnlockKey.feature` | 4 | 鎖定與解鎖金鑰 | 6 | KeyLifecycle.LockKey、UnlockKey | System 角色 |
 | `05_RotateKey.feature` | 5+6 | 輪替金鑰 + 完成寬限期 | 7 | KeyLifecycle.RotateKey、CompleteGracePeriodJob | FakeClock（Wave 5 後段） |

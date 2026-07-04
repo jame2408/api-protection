@@ -53,3 +53,7 @@ Thumbs.db
 # Hook-generated runtime artifacts (observations + failures)
 .claude/*.jsonl
 .claude/*.marker
+# arch-flow-doc skill 產物與 skill 本體（D-3 裁決：可重產、不入制度）
+docs/arch-flow.html
+docs/flows.json
+.claude/skills/arch-flow-doc/
