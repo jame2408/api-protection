@@ -350,6 +350,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | Phase D：禁簡體 lint（ADR-009） | ✅ | 規則落點進 repo + `scripts/zh-lint.sh`（OpenCC 字表 vendored 4013 條、variant 白名單、行內豁免），接入 fast+full；首跑清償 8 處歷史欠債（含 CLAUDE.md 外科手術 commit `adb4fd8`）；同日三次事故（2 executor + orchestrator 本人）實證人工檢出不可靠 | `12a3967` |
 | Phase D：#36 中央套件管理（關閉 #6/#19）＋**協調憲章 DoS (a) 實戰驗收** | ✅ | 冷啟動 Sonnet executor 僅憑「讀 §8.5 + `docs/orchestration.md`」接手：正確選題（#36 一石三鳥）、`ci-checks.sh full` 全綠、checkpoint 合規、誠實回報範圍外異常（GEMINI.md 刪除）— **憲章自轉驗收通過**。`Directory.Packages.props` 統一 18 套件版本 | `1dc717b` |
 | Phase D：housekeeping（#35 / #37 / D-3 / D-4） | ✅ | #35 `Rotating` 修正；#37 裁決＝刪除 GEMINI.md 空殼（現實對齊 ADR-001 inventory）；D-3 裁決＝arch-flow 產物與 skill 全部 gitignore；D-4 裁決＝既有 M 改動一併落地（`1dc717b` `a99ca6b`）；lessons 新增 XML `--` 註解陷阱 [info] | （本 housekeeping commit） |
+| Phase E：規範文件可發現性接線（ADR-010）+ `.editorconfig` 誤報勘誤 | ✅ | `docs/adr/adr-010-norm-doc-discovery-wiring.md`（`docs/orchestration.md` / `verification-matrix.md` / `checkpoint.md` / `AGENTS.md` 未被自動載入面提及的缺口正式化為治理規則）+ `CLAUDE.md`「Orchestration & Verification」指針小節（新增）+ `session-init.sh` must-read 追加一行 + `scripts/hook-smoke.sh` 斷言同步；`docs/verification-matrix.md`（主表第 11 項／無防線區塊「命名慣例」／審校紀錄）與本檔 §8.3 更正「repo 無 `.editorconfig`」誤報為「`backend/.editorconfig` 存在，僅含 2 檔 whitespace 豁免」，裁決狀態不變；executor＝Sonnet；`adr-lint.sh` / `hook-smoke.sh` / `zh-lint.sh` 綠＋故意紅驗證通過 | （本次 Phase E commit） |
 
 ### 8.3 仍開環（接續 §3 / §4 未關閉項）
 - **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — ✅ 已由 `docs/adr/adr-007-process-governance.md` 關閉（2026-07-04，見 §8.2 Phase A 行）。
@@ -357,7 +358,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 - **CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。
 - ~~**既有 drift**：todo #19（FluentAssertions）、#35（`ROTATING` 殘留）~~ ✅ 2026-07-04 全數關閉（#19 由 `Directory.Packages.props` 根治、#35 已修正、#6/#36/#37 順帶關閉）。
 - ~~**禁簡體無機械化防線**~~（2026-07-04 新增；同日兩度驗證必要性）：Phase A review 攔下「执行」、Phase C review 攔下「确定」— 且 orchestrator 手寫掃描字表兩度漏字、grep 多位元組字元類還有 byte-match 誤報陷阱。<!-- zh-lint:allow：本行刻意引用違規字元 --> ✅ **同日關閉**：`docs/adr/adr-009-*.md` + `scripts/zh-lint.sh`（OpenCC 字表 vendored + variant 白名單 + `zh-lint:allow` 行內豁免），接入 ci-checks fast+full；首跑即抓到 8 處人工掃描全數漏掉的真實簡體字（含 CLAUDE.md、api-spec、design-doc）。
-- **`dotnet format` 權威來源模糊**（2026-07-04 新增，Phase C 發現）：repo 無 `.editorconfig`，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，僅工具預設。是否補 `.editorconfig` 正式化待裁決。
+- **`dotnet format` 權威來源模糊**（2026-07-04 新增，Phase C 發現；2026-07-04 勘誤）：`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免；style/naming 規則未定義，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，權威來源仍為工具預設。是否補 `.editorconfig` 正式化待裁決（維持待規格擁有者決定，狀態不變）。
 
 ### 8.4 防線層次現況
 
@@ -375,6 +376,9 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 **現況（2026-07-04 三次更新）**：分支 `hardening/architecture-tests-mvp`，**尚未 push**（無 remote）。五類 gate 上線（fast：format / adr-lint / hook-smoke / zh-lint / source-lint；full 加 build+test）。協調層 Phase A / B / C 完成；Phase D 大半完成（ADR-009 禁簡體 lint、#6/#19/#35/#36/#37、D-3/D-4 裁決落地 — §8.2 對應各行）。**協調憲章 DoS (a) 實戰驗收已通過**（冷啟動 Sonnet executor 僅憑 artifacts 正確自轉，見 §8.2）。O-1～O-6 關閉；O-7 擱置（D-2）；O-8 低優先未動。
 
 **下一步可做（皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
+
+**已完成（Phase E，見 §8.2）**：規範文件可發現性接線（ADR-010：`CLAUDE.md`「Orchestration & Verification」指針 + `session-init.sh` must-read 追加，讓 `docs/orchestration.md` / `docs/verification-matrix.md` / `tasks/_templates/checkpoint.md` / `AGENTS.md` 不再是「存在但沒人知道」）+ `.editorconfig` 誤報勘誤（矩陣與本檔 §8.3，裁決狀態未變）。下列 1–3 項為 Phase E 之前即已列出、尚未關閉的殘項，未受 Phase E 影響。
+
 1. **skill must-read**（§8.3 / §3-D 最後殘項）：`coding-style` / `code-review` SKILL.md 強制載入本專案 references + Accepted ADR；缺 stack 目錄 skip-if-missing。可直接派 executor（參考 `tasks/phase-*-spec.md` 指令包模式）。
 2. **`.editorconfig` 裁決**（§8.3）：format gate 的權威來源目前只是工具預設，是否正式化待規格擁有者決定。
 3. **卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。

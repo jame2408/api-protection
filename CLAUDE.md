@@ -135,6 +135,14 @@ _Evidence:_
 - If a fix feels like a "hack," find the root cause and implement the proper solution instead.
 - Avoid over-engineering: elegance means the simplest correct solution, not the cleverest one.
 
+### Orchestration & Verification
+
+多模型協調與驗證機制的權威來源不在本檔，只放指針（見 `docs/adr/adr-010-norm-doc-discovery-wiring.md`）：
+- `docs/orchestration.md` — 多模型協調憲章（模型分級、executor contract、全域停止條件）
+- `docs/verification-matrix.md` — 驗證登記表（哪條規則由什麼機制、在什麼時機、由誰驗證）
+- `tasks/_templates/checkpoint.md` — session 交接模板
+- `AGENTS.md` — 非 Claude Code harness 的薄入口
+
 ## BDD Scenario Development Cycle
 
 > **Scope**: This cycle covers the **development** phase only — it assumes `.feature` scenarios and API specs are already produced (via the `requirements-analysis-design` skill or equivalent discovery process). Do not write new `.feature` files within this cycle; only implement pre-existing scenarios tracked in `tasks/bdd-progress.md`.
