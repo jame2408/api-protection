@@ -61,6 +61,10 @@ _How Claude and the user collaborate — committed to the repo so it persists ac
 
 ## Workflow Orchestration
 
+### 0. Reference Loading
+
+Before writing any backend code (production or test) in this session, read `.claude/references/dotnet/*.rule.md` and `.claude/references/general/*.rule.md` if not yet loaded in this session. Load once per session — skip if already read.
+
 ### 1. Plan-First Approach
 
 **Enter Plan Mode when ANY of the following apply:**
