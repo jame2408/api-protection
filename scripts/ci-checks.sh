@@ -35,6 +35,11 @@ hook_smoke() {
     bash "$REPO_ROOT/scripts/hook-smoke.sh"
 }
 
+zh_lint() {
+    echo "[ci-checks] zh lint (no Simplified Chinese in tracked files)"
+    bash "$REPO_ROOT/scripts/zh-lint.sh"
+}
+
 source_lint() {
     echo "[ci-checks] source lint (new Failure / cancel naming)"
     bash "$REPO_ROOT/scripts/source-lint.sh"
@@ -55,6 +60,7 @@ case "$MODE" in
         format_check
         adr_lint
         hook_smoke
+        zh_lint
         source_lint
         ;;
     full)
@@ -63,6 +69,7 @@ case "$MODE" in
         format_check
         adr_lint
         hook_smoke
+        zh_lint
         source_lint
         build_and_test
         ;;

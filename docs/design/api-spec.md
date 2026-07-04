@@ -961,7 +961,7 @@ JWT Claims：
 | `condition.operator` | String | 是 | `GT` / `GTE` |
 | `condition.threshold` | Object | 是 | 靜態 `{ "type": "static", "value": N }` 或基線 `{ "type": "baseline", "multiplier": N, "baseline": "P95" }` |
 | `action` | String | 是 | `Lock` / `Notify` |
-| `cooldown` | Duration | 是 | 冷却時間，防止重複觸發，必須 > 0 |
+| `cooldown` | Duration | 是 | 冷卻時間，防止重複觸發，必須 > 0 |
 
 **Response `201 Created`：**
 
