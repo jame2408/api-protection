@@ -5,10 +5,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="*" />
-    <PackageReference Include="Respawn" Version="*" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="*" />
-    <PackageReference Include="Testcontainers.RabbitMq" Version="*" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Respawn" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
   </ItemGroup>
 
   <PropertyGroup>
