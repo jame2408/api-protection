@@ -78,6 +78,10 @@ Confirm GitHub remote via `git remote get-url origin` before PR Mode. If remote 
 
 **Self Mode**: Run `git diff HEAD` → Identify changed files → Check recent commit context.
 
+**Both modes — project must-read (mandatory)**: When the diff touches .NET / C# backend code (production or test) in this repo, load before Phase 3 analysis — regardless of mode or diff size:
+- `CLAUDE.md` §0 Reference Loading — the authoritative must-read source; this skill only points to it and does not restate rule content.
+- `docs/adr/` — every ADR whose `## Status` section reads `Accepted`. Check each `docs/adr/adr-*.md` file's own Status section; do not hardcode an ADR number list here, so this step never goes stale as ADRs are added.
+
 ---
 
 ## Phase 2.5: Impact & Dependency Analysis (MANDATORY)
@@ -105,6 +109,7 @@ See [impact-analysis.ref.md](impact-analysis.ref.md) for detailed procedures and
 - Load `general/*.rule.md` first, then stack-specific `{stack}/*.rule.md` (specific overrides general)
 - Only auto-load `*.rule.md` files. Skip `*.guide.md`; skip `*.ref.md` unless this SKILL.md explicitly names it.
 - Self-correction: If you see a new `*.rule.md`, read it. If you see `*.guide.md` or an unmentioned `*.ref.md`, do not auto-load it.
+- Skip-if-missing: if a detected stack has no matching directory in this repo (e.g. only `dotnet/` and `general/` exist; there is no `nodejs/` or `python/`), treat it as "no reference docs for that stack yet" and skip it — not an error, does not block the review.
 
 **Step 2: Execute analysis** using loaded rules as checklist:
 1. Scan `git diff` content

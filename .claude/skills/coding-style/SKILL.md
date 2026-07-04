@@ -25,6 +25,8 @@ Phase 1: Tech Stack Detection → 判斷專案技術棧
     ↓
 Phase 2: Load References → 載入對應的參考文件
     ↓
+Phase 2.5: Project Must-Read（僅 .NET / C#，本專案強制）
+    ↓
 Phase 3: Apply Standards → 套用規範生成/重構程式碼
 ```
 
@@ -171,6 +173,8 @@ Phase 3: Apply Standards → 套用規範生成/重構程式碼
 詢問使用者：
 > 「請提供 `{CONFIG_ROOT}/references/{stack}/` 目錄中的檔案列表，或直接貼上相關的規範內容」
 
+**Skip-if-missing**：若 Phase 1 判定的 stack 在本專案沒有對應的 Specific 目錄（例如判定為 Node.js，但 `{CONFIG_ROOT}/references/nodejs/` 不存在），視為「該 stack 尚未建立參考文件」直接 skip，不視為錯誤、不中斷流程 — 僅套用 General 目錄的規則繼續往下走。
+
 ### 載入範例
 
 **範例：Generate + .NET（{CONFIG_ROOT} = `.claude`）**
@@ -195,6 +199,20 @@ Action = Refactor
 2. 掃描 .claude/references/dotnet/ → 找到所有 *.rule.md ✅ + *.guide.md ✅
 3. 讀取所有符合條件的檔案
 ```
+
+---
+
+## Phase 2.5: Project Must-Read（本專案強制，僅 .NET / C#）
+
+> ⚠️ 僅在 Phase 1 判定為 **.NET / C#** 時觸發。其他 stack（Node.js / Python / Go）沿用 Phase 2 一般規則，本節不適用。
+
+Phase 2 載入的 `*.rule.md` / `*.guide.md` 不足以涵蓋本專案（api-protection-v2）的規範全貌。偵測到 .NET / C# 的 backend 任務（production 或 test code，不分 Action 是 Generate / Explain / Refactor）時，**額外強制讀取**：
+
+1. `CLAUDE.md` §0 Reference Loading 起 — 本專案 must-read 清單的權威來源。本 skill 只在此指向，不重複列出規則內容。
+2. `.claude/references/dotnet/*.rule.md` 與 `.claude/references/general/*.rule.md` — 即使 Action 是 Generate，本專案的 `*.rule.md` 也一併載入，因為它們承載 CLAUDE.md 未展開的細節規則，不只是 Refactor 專用檢查表。
+3. `docs/adr/` 內**所有 Status 為 `Accepted` 的 ADR**：逐一開啟 `docs/adr/adr-*.md`，讀其 `## Status` 段落，只載入標示 `Accepted` 的檔案。**不要在此維護 ADR 編號清單** — 新增 ADR 時本節不必修改，避免每加一個 ADR 就要回來改本檔而 stale。
+
+若本專案尚未建立 `.claude/references/{nodejs|python|go}/` 等其他 stack 目錄，依 Phase 2 的 skip-if-missing 規則處理，不影響本節。
 
 ---
 
