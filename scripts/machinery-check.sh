@@ -19,7 +19,9 @@
 #      ^(docs|scripts|tasks|backend|\.claude|\.github)/.+\.(md|sh|py|yml|cs|csproj|json|txt)$
 #      must exist on disk. Glob-style entries (containing `*`) are skipped;
 #      a line containing the literal marker "machinery-check:ignore" is
-#      exempt (same convention as zh-lint:allow).
+#      exempt (same convention as zh-lint:allow); gitignored paths are
+#      exempt (machine-local by design — they legitimately don't exist in
+#      a fresh CI checkout, e.g. .claude/settings.local.json).
 #
 # Exit code: 0 — all checks pass; 1 — at least one failure (printed to stderr).
 set -uo pipefail
@@ -100,13 +102,25 @@ done < <(find .claude/hooks scripts -maxdepth 1 -name '*.sh' -print0)
 
 # --- 4. pointer integrity across CLAUDE.md / orchestration / matrix --------
 POINTER_CHECK=$(python3 - <<'PY'
-import re, os, sys
+import re, os, subprocess, sys
 
 FILES = ["CLAUDE.md", "docs/orchestration.md", "docs/verification-matrix.md"]
 BACKTICK_RE = re.compile(r'`([^`]+)`')
 CANDIDATE_RE = re.compile(
     r'^(docs|scripts|tasks|backend|\.claude|\.github)/.+\.(md|sh|py|yml|cs|csproj|json|txt)$'
 )
+
+
+def is_gitignored(path):
+    # Paths matched by .gitignore are machine-local by design (e.g.
+    # .claude/settings.local.json) — absent in a fresh CI checkout without
+    # being a drift signal, so the existence requirement does not apply.
+    # git check-ignore exits 0 when the path is ignored.
+    return subprocess.run(
+        ["git", "check-ignore", "-q", path],
+        capture_output=True,
+    ).returncode == 0
+
 
 status = 0
 for fn in FILES:
@@ -123,7 +137,7 @@ for fn in FILES:
             p = m.group(1)
             if "*" in p:
                 continue
-            if CANDIDATE_RE.match(p) and not os.path.exists(p):
+            if CANDIDATE_RE.match(p) and not os.path.exists(p) and not is_gitignored(p):
                 print(f"{fn}:{i}: dangling pointer to missing file: {p}")
                 status = 1
 
