@@ -31,6 +31,8 @@
 - 架構防線 enrollment gap 修復：`BoundedContextIsolationTests` BC 名單改動態發現（掃 `backend/src/`，漏 ProjectReference 時 fail-loud 指路修法）+ guard Fact 鎖已知最小集合；故意紅 A（FakeBc 自動入列轉紅）與 B（KeyLifecycle→TenantManagement 違規偵測）雙取證；矩陣 13→14 同 commit — `a4094b3`
 - ADR-017 hash 演算法裁決＋實作同 commit：HMAC-SHA256 + pepper（使用者裁決，實測基準 Argon2id 44ms/HMAC 0.0003ms + prefix 不唯一致 salted KDF 不可索引查找）、熵 96→128-bit、BCrypt 依賴全移除、`IApiKeyHasher`（Domain）/`HmacApiKeyHasher`（Infrastructure，pepper 缺值 fail-fast）、hasher 測試 5 項；PRD R-STR-01/02 高熵豁免、design-doc Q1 回填、矩陣 19d、todo #5 結案同批 — `abc71aa`
 - scenario「指定的 Scope 不存在 — 拒絕建立」Red→Green（seed 落點裁決：「不存在」語意的 Given 維持 no-op，tenant/consumer seed 落 When step，抽 `SeedDefaultTenantAndConsumerIfMissingAsync` helper 供後續無 Given 場景複用；production 未動），自然紅＋故意紅雙取證，7/44 — `03a49f2`
+- 新流程全關卡驗證輪：`ci-checks.sh full` 實跑綠（含 coverage gate）、pre-commit 兩條 staged guard 合成故意紅、`pre-tool-edit.py` 合成 payload 故意紅＋綠、failure-triage 無新 REPEAT、pre-push/CI 接線與遠端一致 — 全數「綠＋故意紅」雙證，無 repo 改動
+- scenario「未指定任何 Scope — 拒絕建立」Red→Green（`WhenConsumerCreatesKeyWithEmptyScopes` 接 `SeedDefaultTenantAndConsumerIfMissingAsync`，production 未動；guard 4 前半早已存在），自然紅（404 vs 400）＋故意紅（guard 條件 `if(false)` 級聯落 guard 5 致 422）雙取證，orchestrator 親自以 pre-push full gate 放行（13 passed/36 skipped、coverage 96.4%），8/44 — `fcd8063`
 - Loop engineering 閉環包（使用者裁決 Q1–Q5 全數落地）：ADR-018 failures triage 回饋化＋`observations.jsonl` 除役（`scripts/failure-triage.sh`，矩陣 19e）— `75a9433` `1017a2b`；ADR-019 token 經濟四條升 `docs/orchestration.md` §5 可打勾規則、兩條懸空 lesson 落地欄收口 — `3d6b884`；BDD 紀律機械化（`scripts/bdd-lint.sh` 帳面一致性入 fast/full/CI + pre-commit staged guard 單移 `@ignore`／進度檔同 commit，三面故意紅取證，矩陣 9d/9e，CLAUDE.md CRITICAL 條註記防線）— `c6dce1d`；矩陣無防線區正名（Guard 正負場景裁決不機械化、refactor 紀律／backlog 晉升權／矩陣同步義務誠實登記）— `f1bbfdc`；審計報告歸檔 `tasks/archive/loop-audit-2026-07-05.md`＋首次 phase 收尾 triage 處置＋zsh 等號展開 lesson — 本 commit
 
 ## 待驗證
@@ -47,7 +49,7 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **產品主線**：37 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「未指定任何 Scope — 拒絕建立」（handler guard 4 前半 `!command.Scopes.Any()` 與 `WhenConsumerCreatesKeyWithEmptyScopes` step 皆已存在；該場景無任何 Given，When 尚未接 `SeedDefaultTenantAndConsumerIfMissingAsync`，比照 7/44 的 pattern 接線即可）。派工一律用 `tasks/_templates/executor-spec.md`。
+1. **產品主線**：36 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「到期時間已過 — 拒絕建立」（handler guard 5 前半 `command.ExpiresAt <= now` 與 `WhenConsumerCreatesKeyExpiredYesterday` step 皆已存在；該場景無任何 Given，When 尚未接 `SeedDefaultTenantAndConsumerIfMissingAsync`，比照 8/44 的 pattern 接線即可）。派工一律用 `tasks/_templates/executor-spec.md`。
 2. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
 3. **小項**：todo #14–#18、#21–#24 housekeeping。
 4. **QA #2 變異測試（Stryker.NET）**：Wave 1（`01_CreateApiKey` 全 10 場景）全綠後啟動；範圍鎖 KeyLifecycle + TenantManagement，跑法為 on-demand script 或 CI 週期性 job，**非 gate**（使用者 2026-07-05 核准排程）。
