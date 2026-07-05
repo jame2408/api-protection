@@ -48,14 +48,15 @@
 
 ## 待裁決
 
+- **Stryker 基線 survived mutants 處置**（清單與歸類見 `tasks/archive/stryker-baseline-2026-07-05.md`）：A 類 4 條高價值缺口（ApiKey 落庫無斷言、KeyCreated 事件無斷言、跨租戶隔離未真測、365 天精確邊界）是否補測試／改 seed；C/D 類建議明文不處置。
 - 跨全檔僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞，不需要立即裁決。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **QA #2 變異測試（Stryker.NET）啟動點已到**：Wave 1 全綠達成、重構 pass 已落；範圍鎖 KeyLifecycle + TenantManagement，on-demand script 或 CI 週期 job，**非 gate**（使用者 2026-07-05 核准）。跑法細節待裁決。
-2. **產品主線 Wave 2**：34 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Active 狀態撤銷」（首個非 CreateApiKey 場景，涉及既有金鑰 seed 與撤銷 endpoint，spec 需先盤 RevokeKey slice 現況，依 lesson 沿 guard 鏈核對）。派工一律用 `tasks/_templates/executor-spec.md`。
-3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
-4. **小項**：todo #14–#18、#21–#24 housekeeping。
+1. **產品主線 Wave 2**：34 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Active 狀態撤銷」（首個非 CreateApiKey 場景，涉及既有金鑰 seed 與撤銷 endpoint，spec 需先盤 RevokeKey slice 現況，依 lesson 沿 guard 鏈核對）。派工一律用 `tasks/_templates/executor-spec.md`。
+2. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
+3. **小項**：todo #14–#18、#21–#24 housekeeping。
+4. **Stryker A 類缺口補測**（若使用者裁決處置）：對應場景/斷言補強後重跑 `bash scripts/mutation-test.sh <BC>` 驗證 mutant 轉 killed。
 
 ## 工作區狀態警告
 
