@@ -78,15 +78,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     [Given(@"""(.*)"" 在 Production 環境的 Active 金鑰數為 (\d+)，上限為 (\d+)")]
     public async Task GivenActiveKeyCount(string consumerId, int current, int limit)
     {
-        // Scenarios reaching this step directly (without a prior tenant/consumer Given)
-        // need tenant + consumer seeded so the I1 validator passes before the key-count guard runs.
-        if (string.IsNullOrEmpty(_ctx.CurrentTenantId))
-        {
-            _ctx.CurrentTenantId = "tenant-A";
-            Db.Tenants.Add(new Tenant("tenant-A", TenantStatus.Active));
-            Db.Consumers.Add(new Consumer(consumerId, "tenant-A"));
-            await Db.SaveChangesAsync();
-        }
+        await SeedDefaultPreconditionsIfMissingAsync(consumerId);
 
         // Seed `current` Active keys for this consumer in Production
         for (var i = 0; i < current; i++)
@@ -116,15 +108,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     [Given(@"""(.*)"" 在 Production 環境已有名為 ""(.*)"" 的金鑰")]
     public async Task GivenKeyNameAlreadyExists(string consumerId, string keyName)
     {
-        // Scenarios reaching this step directly (without a prior tenant/consumer Given)
-        // need tenant + consumer seeded so the I1 validator passes before the key-name-duplicate guard runs.
-        if (string.IsNullOrEmpty(_ctx.CurrentTenantId))
-        {
-            _ctx.CurrentTenantId = "tenant-A";
-            Db.Tenants.Add(new Tenant("tenant-A", TenantStatus.Active));
-            Db.Consumers.Add(new Consumer(consumerId, "tenant-A"));
-            await Db.SaveChangesAsync();
-        }
+        await SeedDefaultPreconditionsIfMissingAsync(consumerId);
 
         var (key, _) = ApiKey.Create(
             consumerId: consumerId,
@@ -169,81 +153,32 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     public async Task WhenCreateApiKey(string consumerId, string keyName, string scope1, string scope2,
         int expiresInDays)
     {
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: keyName,
-            Environment: "Production",
-            Scopes: [scope1, scope2],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(expiresInDays));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/consumers/{consumerId}/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(consumerId, name: keyName, scopes: [scope1, scope2],
+            expiresAt: DateTimeOffset.UtcNow.AddDays(expiresInDays));
     }
 
     [When(@"Consumer 嘗試在 ""(.*)"" 下建立金鑰")]
     public async Task WhenConsumerTriesToCreateKeyUnderTenant(string tenantId)
     {
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: "any-key",
-            Environment: "Production",
-            Scopes: ["any:read"],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(30));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{tenantId}/consumers/any-consumer/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(tenantId: tenantId);
     }
 
     [When(@"""(.*)"" 嘗試在 ""(.*)"" 下建立金鑰")]
     public async Task WhenSpecificConsumerTriesToCreateKey(string consumerId, string tenantId)
     {
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: "any-key",
-            Environment: "Production",
-            Scopes: ["any:read"],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(30));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{tenantId}/consumers/{consumerId}/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(consumerId, tenantId: tenantId);
     }
 
     [When(@"""(.*)"" 在 Production 環境建立新金鑰")]
     public async Task WhenConsumerCreatesNewKey(string consumerId)
     {
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: "new-key",
-            Environment: "Production",
-            Scopes: ["any:read"],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(30));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/consumers/{consumerId}/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(consumerId, name: "new-key");
     }
 
     [When(@"""(.*)"" 在 Production 環境建立名為 ""(.*)"" 的金鑰")]
     public async Task WhenConsumerCreatesKeyWithName(string consumerId, string keyName)
     {
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: keyName,
-            Environment: "Production",
-            Scopes: ["any:read"],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(30));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/consumers/{consumerId}/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(consumerId, name: keyName);
     }
 
     // Seed default preconditions (tenant, consumer, default scope "any:read") for scenarios
@@ -262,76 +197,52 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         await Db.SaveChangesAsync();
     }
 
+    private async Task PostCreateKeyAsync(
+        string consumerId = "any-consumer",
+        string? tenantId = null,
+        string name = "any-key",
+        string[]? scopes = null,
+        DateTimeOffset? expiresAt = null)
+    {
+        var request = new CreateApiKeyEndpoint.Request(
+            Name: name,
+            Environment: "Production",
+            Scopes: scopes ?? ["any:read"],
+            ExpiresAt: expiresAt ?? DateTimeOffset.UtcNow.AddDays(30));
+
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/api/v1/tenants/{tenantId ?? _ctx.CurrentTenantId}/consumers/{consumerId}/keys",
+            request);
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     [When(@"Consumer 建立金鑰，scopes 包含 ""(.*)""")]
     public async Task WhenConsumerCreatesKeyWithScope(string scope)
     {
         await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
-
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: "any-key",
-            Environment: "Production",
-            Scopes: [scope],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(30));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/consumers/any-consumer/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(scopes: [scope]);
     }
 
     [When(@"Consumer 建立金鑰，scopes 為空")]
     public async Task WhenConsumerCreatesKeyWithEmptyScopes()
     {
         await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
-
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: "any-key",
-            Environment: "Production",
-            Scopes: [],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(30));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/consumers/any-consumer/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(scopes: []);
     }
 
     [When(@"Consumer 建立金鑰，到期時間為昨天")]
     public async Task WhenConsumerCreatesKeyExpiredYesterday()
     {
         await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
-
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: "any-key",
-            Environment: "Production",
-            Scopes: ["any:read"],
-            ExpiresAt: DateTimeOffset.UtcNow.AddDays(-1));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/consumers/any-consumer/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(expiresAt: DateTimeOffset.UtcNow.AddDays(-1));
     }
 
     [When(@"Consumer 建立金鑰，到期時間為 5 年後")]
     public async Task WhenConsumerCreatesKeyExpiresIn5Years()
     {
         await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
-
-        var request = new CreateApiKeyEndpoint.Request(
-            Name: "any-key",
-            Environment: "Production",
-            Scopes: ["any:read"],
-            ExpiresAt: DateTimeOffset.UtcNow.AddYears(5));
-
-        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/consumers/any-consumer/keys",
-            request);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await PostCreateKeyAsync(expiresAt: DateTimeOffset.UtcNow.AddYears(5));
     }
 
     // -------------------------------------------------------------------------
