@@ -23,6 +23,20 @@
 
 ---
 
+## 1.5 並行派工規則
+
+> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (b) 管轄，修改任一條須先開新 ADR。
+
+多個執行者同時工作時，適用以下規則；違反任一條視為協調失敗，須立即停止並重新分派，不得事後補救：
+
+1. **檔案集不相交**：同時派工的多個執行者，預期改動的檔案集合必須兩兩不相交；協調者派工前必須明確列出每個執行者的檔案範圍。
+2. **build 產物鏈任務不得與跑 build gate 的任務並行**：任何會觸碰 `*.csproj` / `*.props` / `*.targets` / `.editorconfig` / `backend/src/**` 的任務，與任何會執行 build gate（`scripts/ci-checks.sh full`、CI）的任務，只能串行執行，或使用 git worktree 隔離工作目錄後再合併。
+3. **同時並行數上限 4**：任一時刻協調者派出且仍在執行中的 executor 數量不得超過 4。
+4. **executor 之間不得直接通訊**：執行者只能與協調者溝通，不得互相傳遞指令或狀態。
+5. **不得自行重試已失敗的他人任務**：一個執行者發現另一個執行者的任務失敗，必須回報協調者，不得未經協調者同意逕自重試或接手。
+
+---
+
 ## 2. Executor Contract
 
 任何模型以「執行者」角色進行任務時，無論其分級為何，皆受下列義務約束：
@@ -31,6 +45,7 @@
 2. **Green before commit**：提交前，受影響範圍的測試套件（至少 `scripts/ci-checks.sh fast`；涉及 production 程式碼變更則需 `full`）必須通過。不得帶著已知失敗的測試提交。
 3. **誠實申報 blocker**：遇到規格模糊、能力不足、或發現任務超出原定範圍時，必須明確記錄為 blocker 並停止相關子任務，禁止用臆測填補、禁止悄悄擴大或縮小任務範圍後假裝完成。
 4. **結束必產出 checkpoint**：任務結束（無論完成、中斷、或因 blocker 停下）時，必須產出交接紀錄，欄位比照 `tasks/_templates/checkpoint.md`（見 §4）。不產出 checkpoint 的任務視為未完整結束。
+5. **unverified_success 為預設狀態**（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）：任何執行者（含 subagent）對自身工作提出的「已完成」「已驗證」「測試通過」等宣稱，協調者一律視為未經驗證的中間態；協調者必須親自執行對應的確定性檢查（測試指令、lint、grep、檔案存在性、實際輸出比對）並取得可重現結果後，才能將該項目的狀態升級為「已驗證」。確定性 gate 不得透過 subagent 的轉述或摘要滿足——協調者必須直接執行指令或直接讀取原始輸出，不接受二手概括。
 
 ---
 
@@ -63,3 +78,28 @@
 2. **細節單一來源，其餘放指針**：同一條規則的完整內容只存在於一個檔案（通常是 Accepted ADR 或 `CLAUDE.md`）；其他文件（`docs/orchestration.md`、`AGENTS.md`、rule.md）只放「檔案 + 段落標題」形式的指針，不複製規則全文。
 3. **續接靠 checkpoint，不靠重讀全史**：任務交接時，下一個執行者應優先讀取 checkpoint（§4），僅在 checkpoint 指向特定歷史內容時才回頭讀取對應的原始紀錄；不應預設要重讀整個對話歷史或整份 plan 檔案才能接手。
 4. **大範圍掃描派小型模型**：需要讀取或摘要大量檔案、但不需要深度架構判斷的任務（見 §1 路由表），派給小型模型或子代理平行執行，協調者本身不消耗 token 做這類工作。
+
+---
+
+## 6. 冷啟動標準 prompt
+
+> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (d) 管轄，修改文字須先開新 ADR。
+
+給使用者 / 協調者在開新 session 接手時使用的固定開場文字，取代每次臨場手寫指示。內容只放指針，不重複規範本體（比照 §5 原則 2）：
+
+    讀 `tasks/process-improvement-plan.md` §8.5（Resume Checkpoint）掌握現況，
+    再讀本文件（協調憲章）掌握模型分級、executor 義務、全域停止條件與
+    checkpoint 格式；依 §8.5 記載的「下一步」清單接手，若清單已空則向規格
+    擁有者確認下一個任務來源。
+
+---
+
+## 7. 分支與部署紀律
+
+> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (e) 管轄，修改文字須先開新 ADR。
+
+本 repo 採 Trunk-Based Development：所有階段完成後直接於 main 上 commit + push，不再開長命功能分支（既有 hardening 分支併入 main 後即退役）。防線分工：
+
+- 本機 pre-push full gate（`scripts/ci-checks.sh full`）是主防線，與 CI 執行同一支腳本。
+- CI（push-to-main 後觸發）是驗證訊號，非首要防線；CI 紅視同 build 壞掉，最高優先修復。
+- main 的 required status check 已解除（阻擋直接 push 的機制與 trunk-based 策略衝突，故移除）；防線改由本機 gate + CI 訊號雙軌承擔。

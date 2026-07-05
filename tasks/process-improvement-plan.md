@@ -341,7 +341,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | 語法層級 lint | ✅ | `scripts/source-lint.sh`：禁 `new Failure(`（豁免 FailureProvider）、bare-string code、`cancel` 命名 | `a0d1208` `83dbf15` |
 | 本機 + CI 統一 gate | ✅ | `scripts/ci-checks.sh`（fast/full 雙模式）+ pre-commit（fast）/ pre-push（full）+ `.github/workflows/ci.yml`；本機與 CI 跑同一支腳本，不漂移 | `f621f61` `8088a9d` `b86e0f5` |
 | §4 Phase 6：PreToolUse hook | ✅ | `.claude/hooks/pre-tool-edit.py` + `settings.json`，寫的當下攔 4 個 pattern；刻意不攔 `throw`（合法 guard throw 會誤報） | `83dbf15` |
-| §3-D / Phase 4：agent reference loading | 🟡 | `session-init.sh` 注入 must-read（B1）✅；`coding-style` / `code-review` skill 強制載入 ⬜ | `19f5d45` |
+| §3-D / Phase 4：agent reference loading | 🟡 | `session-init.sh` 注入 must-read（B1）✅；`coding-style` / `code-review` skill 強制載入 ⬜ → ✅ 由 Phase H 關閉（見下） | `19f5d45` |
 | §3-E / Phase 5：lessons 三類模板 | ✅ | `tasks/lessons.md`（模板早已在用，新增 3 條皆含落地欄位） | `a0d1208` `83dbf15` `19f5d45` |
 | §3-B / Phase 3：API contract（對齊 spec） | ✅ | error 改 RFC 9457 ProblemDetails（單一 helper `KeyLifecycle/Http/ApiProblem.cs`：type/title/status/errorCode/traceId）+ `CreateApiKeyResponse.truncatedKey`；functional step 改鎖 RFC 9457 wire contract（一改鎖住所有失敗場景含 @ignore）+ truncatedKey 斷言。綠＋故意紅驗證（改回 `{error}` → 場景紅） | （本次 Phase 3 commit） |
 | §9.4 Phase A：協調憲章 | ✅ | `docs/adr/adr-007-process-governance.md`（governance ADR）+ `docs/orchestration.md`（模型分級路由表 / executor contract / 全域停止條件 / checkpoint schema 指針 / token 節約原則）+ `tasks/_templates/checkpoint.md`（交接模板）+ `AGENTS.md`（非 Claude harness 薄入口）+ `tasks/phase-a-spec.md`（可重派指令包）；executor＝Sonnet、orchestrator review 修 1 處簡體字（見 lessons [correction]）；`adr-lint.sh` 綠 + 故意紅驗證通過 | `d8a006b` |
@@ -351,14 +351,18 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | Phase D：#36 中央套件管理（關閉 #6/#19）＋**協調憲章 DoS (a) 實戰驗收** | ✅ | 冷啟動 Sonnet executor 僅憑「讀 §8.5 + `docs/orchestration.md`」接手：正確選題（#36 一石三鳥）、`ci-checks.sh full` 全綠、checkpoint 合規、誠實回報範圍外異常（GEMINI.md 刪除）— **憲章自轉驗收通過**。`Directory.Packages.props` 統一 18 套件版本 | `1dc717b` |
 | Phase D：housekeeping（#35 / #37 / D-3 / D-4） | ✅ | #35 `Rotating` 修正；#37 裁決＝刪除 GEMINI.md 空殼（現實對齊 ADR-001 inventory）；D-3 裁決＝arch-flow 產物與 skill 全部 gitignore；D-4 裁決＝既有 M 改動一併落地（`1dc717b` `a99ca6b`）；lessons 新增 XML `--` 註解陷阱 [info] | （本 housekeeping commit） |
 | Phase E：規範文件可發現性接線（ADR-010）+ `.editorconfig` 誤報勘誤 | ✅ | `docs/adr/adr-010-norm-doc-discovery-wiring.md`（`docs/orchestration.md` / `verification-matrix.md` / `checkpoint.md` / `AGENTS.md` 未被自動載入面提及的缺口正式化為治理規則）+ `CLAUDE.md`「Orchestration & Verification」指針小節（新增）+ `session-init.sh` must-read 追加一行 + `scripts/hook-smoke.sh` 斷言同步；`docs/verification-matrix.md`（主表第 11 項／無防線區塊「命名慣例」／審校紀錄）與本檔 §8.3 更正「repo 無 `.editorconfig`」誤報為「`backend/.editorconfig` 存在，僅含 2 檔 whitespace 豁免」，裁決狀態不變；executor＝Sonnet；`adr-lint.sh` / `hook-smoke.sh` / `zh-lint.sh` 綠＋故意紅驗證通過 | （本次 Phase E commit） |
+| Phase F：命名規則機械化（ADR-011） | ✅ | `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md`（`backend/.editorconfig` `dotnet_naming_*` severity=error + `dotnet_diagnostic.IDE1006.severity=error` 隱藏開關 + `backend/Directory.Build.props` 新建 `EnforceCodeStyleInBuild=true`）+ `backend/tests/.editorconfig`（新建，Async 後綴 carve-out）；首次全掃（`dotnet build` + `dotnet format --verify-no-changes`）0 違規，既有程式碼無需 rename；`docs/verification-matrix.md`（主表第 11 項改指 ADR-011／無防線區塊「命名慣例」行標✅移出）與本檔 §8.3「`dotnet format` 權威來源模糊」條目關閉；executor＝Sonnet；`adr-lint.sh` 綠＋故意紅驗證通過（`dotnet build` 紅、`dotnet format --verify-no-changes` 亦紅，兩個 gate 皆紅） | （本次 Phase F commit） |
+| Phase H：skill must-read 強制（§3-D 最後殘項） | ✅ | `coding-style/SKILL.md` 新增 Phase 2.5「Project Must-Read」：偵測到 .NET / C# 任務時強制讀 `CLAUDE.md` §0 起、`.claude/references/{dotnet,general}/*.rule.md`、`docs/adr/` 內逐檔判定 `## Status` 為 `Accepted` 的 ADR（動態描述，不硬編編號清單）；Phase 2 補 stack 目錄 skip-if-missing 明文化。`code-review/SKILL.md` Phase 2 新增「Both modes — project must-read」段（Self / PR 兩模式皆強制）；Phase 3 Step 1 補 skip-if-missing 明文化。兩份 SKILL.md 皆只放指針（CLAUDE.md §0 / ADR Status 判定流程），未複寫規則內容；executor＝Sonnet | （本次 Phase H commit） |
+| Phase I：外部借鏡採用 P1+P2+P3（§10）＋ TBD 分支轉換 | 🟡 | 階段 0（main 直進轉換）**卡在 merge 衝突**（`docs/verification-matrix.md`、本檔皆 add/add 衝突——main 經 PR #1 已獨立合入與 hardening 分支同源但不同 commit 的內容，非乾淨 fast-forward），已 `git merge --abort` 保留乾淨狀態，未自行解衝突，待規格擁有者裁決；main 分支保護已解除（`gh api -X DELETE`，與衝突無關，已完成）。階段 1（P1）：`.claude/hooks/post-edit-validate.sh`（PostToolUse Edit\|Write，4 類副檔名寫後語法驗證）。階段 2（P2）：`scripts/machinery-check.sh`（settings/hooks/pointer 自體健檢，fail-loud），接入 `ci-checks.sh` fast+full；順手修正 `pre-tool-edit.py` 缺可執行位元、`__pycache__/` 補進 `.gitignore`。階段 3（P3）：`docs/adr/adr-012-charter-amendments-external-adoption.md`（unverified_success 條款關閉 O-8、並行派工規則、checkpoint 加「已嘗試且失敗的方法」欄、冷啟動標準 prompt、TBD 分支紀律）+ `docs/orchestration.md`（新 §1.5 / §2 第 5 條 / §6 / §7）+ `tasks/_templates/checkpoint.md`。三階段皆在 `hardening/architecture-tests-mvp` 分支完成（**尚未 merge 進 main**，因階段 0 卡住）；`adr-lint.sh` / `zh-lint.sh` / `ci-checks.sh fast`（含 machinery-check）皆綠＋故意紅驗證通過；executor＝Sonnet | `8a03dc9` `d1ee08d` `d756e50` +本次 Phase 3 commit（皆在 hardening 分支，未併入 main） |
 
 ### 8.3 仍開環（接續 §3 / §4 未關閉項）
 - **§3-C / Phase 1**：把 governance（ADR 為唯一通道、同 commit 同步、lessons 必落地）拆成正式 ADR — ✅ 已由 `docs/adr/adr-007-process-governance.md` 關閉（2026-07-04，見 §8.2 Phase A 行）。
-- **§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。
+- ~~**§3-D 殘項**：`coding-style` / `code-review` skill 的 must-read 強制（B1 注入已做，skill 端尚未）。~~ ✅ 2026-07-05 關閉（Phase H）：兩份 SKILL.md 皆已新增本專案強制載入段（.NET/C# 觸發 CLAUDE.md §0 + Accepted ADR 動態判定）+ stack 目錄 skip-if-missing 明文化 — 詳見 §8.2 Phase H 行。
 - ~~**CI 休眠**：repo 尚未上 GitHub；push 後需確認 `ci.yml` 首跑綠並設為 main required status check。~~ ✅ 2026-07-04 關閉（Phase G）：repo 上線 `https://github.com/jame2408/api-protection`（public，使用者裁決維持 public、todo #9 前瞻修正、不重寫歷史）；`main` + 本分支已 push；PR #1 觸發 `ci.yml` 首跑**綠**（`build-test` pass, 59s，run 28706977987）；`build-test` 已設為 main required status check（strict=false，最小保護）。
 - ~~**既有 drift**：todo #19（FluentAssertions）、#35（`ROTATING` 殘留）~~ ✅ 2026-07-04 全數關閉（#19 由 `Directory.Packages.props` 根治、#35 已修正、#6/#36/#37 順帶關閉）。
 - ~~**禁簡體無機械化防線**~~（2026-07-04 新增；同日兩度驗證必要性）：Phase A review 攔下「执行」、Phase C review 攔下「确定」— 且 orchestrator 手寫掃描字表兩度漏字、grep 多位元組字元類還有 byte-match 誤報陷阱。<!-- zh-lint:allow：本行刻意引用違規字元 --> ✅ **同日關閉**：`docs/adr/adr-009-*.md` + `scripts/zh-lint.sh`（OpenCC 字表 vendored + variant 白名單 + `zh-lint:allow` 行內豁免），接入 ci-checks fast+full；首跑即抓到 8 處人工掃描全數漏掉的真實簡體字（含 CLAUDE.md、api-spec、design-doc）。
-- **`dotnet format` 權威來源模糊**（2026-07-04 新增，Phase C 發現；2026-07-04 勘誤）：`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免；style/naming 規則未定義，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，權威來源仍為工具預設。是否補 `.editorconfig` 正式化待裁決（維持待規格擁有者決定，狀態不變）。
+- ~~**`dotnet format` 權威來源模糊**~~（2026-07-04 新增，Phase C 發現；2026-07-04 勘誤）：`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免；style/naming 規則未定義，格式 gate 對應不到任何 CLAUDE.md/ADR 條文，權威來源仍為工具預設。✅ **2026-07-04 關閉（Phase F）**：`docs/adr/adr-011-naming-rules-editorconfig-enforcement.md` 把命名規則落點定為 `backend/.editorconfig` `dotnet_naming_*` + `EnforceCodeStyleInBuild`，權威來源明確指向 ADR-011 + `naming.guide.md`；whitespace 規則維持工具預設（不在模糊指控範圍內，本就未被要求對應特定條文）。
+- **低優先開環（觀察，非阻塞）**：zh-lint 只掃 `git ls-files`（index），新檔在 `git add` 前的工作期不可見 — commit gate 不受影響（staged 即可見），若要擴大掃描範圍到 untracked 檔屬 ADR-009 範圍變更，須開新 ADR。（2026-07-04，Phase F 執行中實際發生一次）
 
 ### 8.4 防線層次現況
 
@@ -373,22 +377,30 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 ### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
 
-**現況（2026-07-04 四次更新）**：分支 `hardening/architecture-tests-mvp`，**已 push**至 `origin`（`https://github.com/jame2408/api-protection`，public）；PR #1 開啟、CI 首跑綠、main required status check 已設（Phase G，見 §8.3）。五類 gate 上線（fast：format / adr-lint / hook-smoke / zh-lint / source-lint；full 加 build+test）。協調層 Phase A / B / C 完成；Phase D 大半完成（ADR-009 禁簡體 lint、#6/#19/#35/#36/#37、D-3/D-4 裁決落地 — §8.2 對應各行）。**協調憲章 DoS (a) 實戰驗收已通過**（冷啟動 Sonnet executor 僅憑 artifacts 正確自轉，見 §8.2）。O-1～O-6 關閉；O-7 擱置（D-2）；O-8 低優先未動。
+**現況（2026-07-05 更新，Phase I 執行後）**：`main` 與 `hardening/architecture-tests-mvp` **已分叉，尚未合併**——這是本節最重要的待裁決事項，見下方「⚠️ 卡住的階段 0」。
 
-**下一步可做（皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
+**⚠️ 卡住的階段 0（TBD 分支轉換，`tasks/phase-i-spec.md` 階段 0）**：`gh api -X DELETE .../branches/main/protection` 已成功執行（main 保護已解除，與後續合併衝突無關，此步驟已完成）。但 `git checkout main && git pull && git merge hardening/architecture-tests-mvp` 出現真實合併衝突（非預期的乾淨 fast-forward）：`git pull` 後發現 `origin/main` 已透過先前的 PR #1 流程獨立合入了與 `hardening/architecture-tests-mvp` **同源但不同 commit** 的內容（例如「docs(plan): mark Phase G done」在兩個分支上是不同 commit hash 但語意相同）；`main` 與 `hardening` 的共同祖先是舊 commit `28edc95`，兩支各自往前走了 23 / 26 個 commit，不再是簡單的「hardening 是 main 的超集」關係。實際衝突檔案：`docs/verification-matrix.md`（Phase F 命名規則行 vs. 舊版描述）、`tasks/process-improvement-plan.md`（§10 分析 vs. 舊版 §8.5 措辭）— 皆為 add/add 衝突，需要人工判斷保留哪個版本或合併兩者語意。**已執行 `git merge --abort` 復原乾淨狀態，未自行解衝突**。依規格「不要自行解衝突」停在此步；已確認 main..hardening 的實際檔案差異（`git diff main hardening/architecture-tests-mvp --stat`）只有 9 個檔案、441 行，範圍不大，人工解衝突成本應該有限。
 
-**已完成（Phase E，見 §8.2）**：規範文件可發現性接線（ADR-010：`CLAUDE.md`「Orchestration & Verification」指針 + `session-init.sh` must-read 追加，讓 `docs/orchestration.md` / `docs/verification-matrix.md` / `tasks/_templates/checkpoint.md` / `AGENTS.md` 不再是「存在但沒人知道」）+ `.editorconfig` 誤報勘誤（矩陣與本檔 §8.3，裁決狀態未變）。下列 1–3 項為 Phase E 之前即已列出、尚未關閉的殘項，未受 Phase E 影響。
+**已完成（Phase I 階段 1–3，皆在 `hardening/architecture-tests-mvp` 分支，尚未 push、尚未合併進 main）**：
+- 階段 1（P1）：`.claude/hooks/post-edit-validate.sh`（PostToolUse Edit\|Write）— commit `8a03dc9`（前置：commit 既有未落地的 §10 分析）、`d1ee08d`（hook 本體）。
+- 階段 2（P2）：`scripts/machinery-check.sh` + 接入 `ci-checks.sh` fast/full — commit `d756e50`。
+- 階段 3（P3）：`docs/adr/adr-012-charter-amendments-external-adoption.md` + `docs/orchestration.md` §1.5/§2第5條/§6/§7 + `tasks/_templates/checkpoint.md` — 本次 commit（見 git log，Phase 3 提交訊息前綴 `governance(adr-012):`）。
 
-1. **skill must-read**（§8.3 / §3-D 最後殘項）：`coding-style` / `code-review` SKILL.md 強制載入本專案 references + Accepted ADR；缺 stack 目錄 skip-if-missing。可直接派 executor（參考 `tasks/phase-*-spec.md` 指令包模式）。
-2. **`.editorconfig` 裁決**（§8.3）：format gate 的權威來源目前只是工具預設，是否正式化待規格擁有者決定。
-3. ~~**卡 GitHub（無法本機完成）**：repo 上 GitHub 後 → 確認 `ci.yml` 首跑綠 → 設為 main required status check。~~ ✅ 2026-07-04 關閉（Phase G）：首跑綠（PR #1，`build-test` pass），required status check 已設妥 — 詳見 §8.3 同項。
+**下一步（皆獨立可中斷；交接格式一律用 `tasks/_templates/checkpoint.md`）**：
 
-> Phase 3（API contract）2026-06-24；Phase A / B / C + Phase D 大半 2026-07-04 — 均見 §8.2。
+1. **裁決階段 0 的合併**（**待裁決，最高優先**）：規格擁有者決定 `docs/verification-matrix.md` 與 `tasks/process-improvement-plan.md` 這兩個 add/add 衝突該保留哪個版本（多數情況應是保留 `hardening` 分支版本，因為它是後續 Phase 的基礎；但需人工確認 main 端獨立演化的內容沒有遺漏）。解完衝突後完成 `git merge` → push main → 確認 CI 綠 → 刪除 `hardening/architecture-tests-mvp` 分支（階段 0 步驟 3–4）。
+2. **push `hardening/architecture-tests-mvp` 到 origin**：本次 session 的 Phase I 三個 commit 目前只在本地；若裁決者暫時無法立即處理階段 0 合併，至少應先 `git push origin hardening/architecture-tests-mvp` 保存進度（非破壞性的 fast-forward push，不影響 main）。
+
+**全域殘項現況（2026-07-05，Phase I 之後）**：O-8 已由 ADR-012 決策 (a) 關閉（見 §9.2）。跨全檔僅剩 **Tessl 擱置項**（D-2，見 §9.3）與 §8.3 的低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`）。新增的待辦是階段 0 合併裁決（見上）。
+
+> Phase 3（API contract）2026-06-24；Phase A / B / C + Phase D 大半 2026-07-04；Phase H 2026-07-05；Phase I（階段 1–3 完成、階段 0 卡住）2026-07-05 — 均見 §8.2。
 
 **工作區未提交狀態（不要誤刪／誤併）**：
-- `CLAUDE.md`（M）、`tasks/todo.md`（M）：**session 前就存在的既有改動** + 我的 todo #20 落地狀態編輯，一直刻意排除在本分支 commit 外。要不要提交由擁有者決定；非本任務污染。
+- `.agents/`、`.claude/skills/tessl__*`、`.mcp.json`、`.tessl/`、`tessl.json`：Tessl 相關，依 §9.3 D-2 裁決維持 untracked，不要 `git add`。
+- `tasks/phase-g-spec.md`、`tasks/phase-h-spec.md`：Phase G / H 的指令包，與已 tracked 的 `phase-a/b/c/e/f-spec.md` 同類但尚未入 git；未動它們（不在本次 Phase I 任務範圍內），是否補齊 tracked 狀態由擁有者決定。
+- `tasks/phase-i-spec.md`：本次任務的指令包，同上，未動。
 
-**如何接上**：新 session 在分支 `hardening/architecture-tests-mvp` 上，讀本節（§8.5）+ §8.3 即知全貌；session-init hook 會自動注入 must-read 規則。挑上面 1–4 任一項續作即可。每條新檢驗記得「綠＋故意紅」驗證、進度同步回 §8.2/§8.3。
+**如何接上**：新 session 讀本節（§8.5）即知全貌——**先處理階段 0 合併裁決**，這是唯一阻擋 Phase I 完全收尾的事項；階段 1–3 的產出已經是完整、獨立可用的 commit，不受階段 0 是否完成影響。session-init hook 會自動注入 must-read 規則。
 
 ---
 
@@ -418,7 +430,7 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 | O-5 | **學習迴圈積壓 + token 無界成長**：`pending-lessons.jsonl` 158 條未 triage；`session-init.sh` 每 session 全量注入 `lessons.md`，隨條目增加 token 成本線性上升 | 學習回寫斷 |
 | O-6 | **驗證矩陣缺「執行者」欄**：哪些驗證用腳本、哪些需 AI review、AI review 用哪級模型（明文排除 Fable 級）— 未定義；multi-agent review 至今是 ad-hoc | 無決策通道 |
 | O-7 | **Tessl eval harness 未決**：`tessl.json` / `.mcp.json` / `.tessl/` untracked、skill 內模型名已過時（`claude-sonnet-4-6` 等）；其 compare-skill-model-performance 能力與「跨模型一致性」目標高度相關，但未納入制度也未移除 | 無決策 |
-| O-8 | **Subagent 事實覆核未機械化**（低優先，先記錄）：本次盤點 subagent 宣稱 repo 無 `GEMINI.md`，實際存在於 `.claude/references/general/`。CLAUDE.md §2 已有「不接受概括」規則，但覆核動作靠 orchestrator 自覺 | 無機械化 |
+| O-8 | ~~**Subagent 事實覆核未機械化**：本次盤點 subagent 宣稱 repo 無 `GEMINI.md`，實際存在於 `.claude/references/general/`。CLAUDE.md §2 已有「不接受概括」規則，但覆核動作靠 orchestrator 自覺~~ ✅ **2026-07-05 關閉（Phase I / ADR-012 決策 (a)）**：`docs/orchestration.md` §2 Executor Contract 新增第 5 條 unverified_success 條款，成文規定協調者必須親自執行確定性檢查才能將 executor／subagent 的宣稱升級為已驗證 | ~~無機械化~~ → `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a) + `docs/orchestration.md` §2 第 5 條 |
 
 承接 §8.3 未關閉項（不重列）：governance ADR、skill must-read、CI 首跑、todo #19（FluentAssertions）、#35（ROTATING）。
 
@@ -438,3 +450,36 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 - **Phase D — 殘項**：skill must-read（§8.3）、todo #19（建議 `Directory.Packages.props` 一次解，見 todo #36）、#35。
 
 **驗收（Definition of Success）**：(a) 換一個全新 session、指定 Sonnet 5、只給「讀 §9.4 + 協調憲章」的 prompt，能正確接手一個 Phase 並產出合規 checkpoint；(b) session-init 注入量有上限且可 grep 驗證；(c) 每條新機制過「綠＋故意紅」。
+
+---
+
+## 10. 外部借鏡：`zeuikli/claude-code-workspace` 採用分析（2026-07-05）
+
+> 使用者指定研究此 repo（152 stars，Claude Code workspace 設定倉庫）並擷取對我們 loop 有幫助的機制。盤點由 Sonnet subagent 完成（60 檔全樹 + 逐機制 verbatim），採用判斷為 orchestrator 分析。原始檔案暫存於 scratchpad `ccw_inventory/` 供複查。
+
+### 10.1 逐項評估
+
+| 它的機制 | 評估 | 理由 |
+|---|---|---|
+| `post-edit.sh`：依副檔名寫後語法驗證（`bash -n` / `json.load` / `py_compile`） | ✅ **採用（P1，擴充版）** | 直接對應我們的 NU1015 事故（XML 註解 `--` 使 props 被靜默跳過，見 lessons [info]）— 加上 XML 家族（`.props`/`.csproj`/`.targets`）的 well-formed 驗證，寫的當下就攔 |
+| `healthcheck.sh`：機制自體健檢（settings JSON、hooks 可執行位元+語法、指針完整性） | ✅ **採用（P2，裁縫版）** | 我們有過 hook 靜默死亡（awk 事故），但 hook-smoke 只護 session-init；其餘 hooks / settings / 文件指針無「防線的防線」 |
+| `core.md` 的 `unverified_success` 閘門：「subagent 自報成功＝中間態，確定性檢查不經 subagent 中介」 | ✅ **採用（P3-a，憲章修訂）** | 正是 O-8 的成文化 — 我們已實踐（GEMINI.md 誤報靠覆核抓到）但未成文；採用後 O-8 關閉 |
+| Fan-out 上限、child 不互通、不 self-retry；`isolation: worktree` | ✅ **採用（P3-b，憲章修訂）** | 我們實際踩過並行衝突（B/C 搶 matrix、F/G build 互擾靠人工串行）；成文為並行派工規則：檔案集不相交、動 build 者串行或用 worktree 隔離、fan-out 上限 |
+| `HANDOFF.md` 的「嘗試過的方法」表格 | ✅ **採用（P3-c）** | checkpoint 模板缺此欄 — 下個 executor 會重試死路；欄位結構修改依 ADR-007 走 ADR |
+| `prompts.md` / `prime`：標準冷啟動 prompt | ✅ **採用（P3-d，一小段）** | 給使用者的固定開場（「讀 §8.5 依 checkpoint 接手」）寫進 orchestration.md，降低每次開 session 的成本 |
+| Auto Memory 取代自建 lessons（`Memory.md` 佔位） | ❌ 不採用 | 綁定 Claude Code 官方功能，與 D-1 跨 harness 目標相反；我們的 lessons.md + 有界注入（ADR-008）是 repo 可攜的 |
+| Token 數字預算（per-task 4000 / per-session 30000） | ❌ 不採用 | 無量測依據的數字是偽精確；我們的 token 原則（orchestration.md §5）夠用，等有實測再議 |
+| `RESOLVER.md` skill 路由、`output-discipline`、agent `.md` 定義檔 | ❌ 不採用 | 非我們痛點；agent 定義檔是 Claude Code 專屬，我們的 phase-spec 指令包模式已覆蓋且 harness 中立 |
+| 反面教材（一併記錄） | ⚠️ 引以為戒 | 該 repo 自身有典型 drift：CI 引用不存在的 `memory-pull.sh` 用 `if [ -f ]` **靜默跳過**、RESOLVER 提及多個不存在的 skill、README 聲稱 MIT 但無 LICENSE 檔 — P2 健檢的指針完整性檢查必須 **fail-loud**，不重蹈此轍 |
+
+### 10.2 提議工作包（待使用者裁決）
+
+- **P1**：`.claude/hooks/post-edit-validate.sh`（PostToolUse Edit|Write）：`.sh`→`bash -n`、`.json`→JSON parse、`.py`→`py_compile`、`.props/.csproj/.targets/.xml`→minidom well-formed。需改 `.claude/settings.json` 註冊（經使用者同意）。只做零誤報層級的檢查。
+- **P2**：`scripts/machinery-check.sh` 接入 fast gate + CI：settings.json 合法、hooks 可執行+`bash -n`、`pre-tool-edit.py` py_compile、規範文件指針完整性（CLAUDE.md / orchestration / 矩陣引用的檔案必須存在，缺失即紅）。
+- **P3**：ADR-012 憲章修訂（單一 ADR 涵蓋 a–d）：(a) unverified_success 條款（關 O-8）；(b) 並行派工規則；(c) checkpoint 模板加「已嘗試且失敗的方法」欄；(d) 冷啟動標準 prompt 段。
+- 全部依慣例：綠＋故意紅、矩陣同 commit 同步、executor 實作 + orchestrator review。
+
+### 10.3 裁決紀錄（2026-07-05 使用者裁決）
+
+- **採用項目**：✅ P1 + P2 + P3 全數採用。
+- **分支策略**：✅ **Trunk-Based Development，直接寫入 main**（兩人小團隊，PR 流程過重）。連動處置：解除 main 的 required status check（它會擋直接 push）；防線轉為「本機 pre-push full gate（與 CI 同腳本）為主 + CI 於 push-to-main 後跑驗證訊號」；hardening 長命分支併回 main 後退役。分支紀律明文入 ADR-012。

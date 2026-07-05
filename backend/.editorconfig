@@ -10,3 +10,98 @@ generated_code = true
 
 [**/CreateApiKeySteps.cs]
 generated_code = true
+
+# ADR-011: mechanize CLAUDE.md naming conventions (PascalCase methods/types,
+# _camelCase private fields, `I`-prefixed interfaces, `Async`-suffixed async
+# methods) as `dotnet_naming_*` rules with severity=error. Rule detail /
+# rationale lives in `.claude/references/dotnet/naming.guide.md` (authoritative
+# source) — this file only wires the mechanized enforcement. Enforced at build
+# time via `EnforceCodeStyleInBuild=true` in `backend/Directory.Build.props`.
+#
+# Rule order matters: dotnet_naming rules are evaluated top-to-bottom and the
+# first matching rule wins, so more specific rules (async methods, interfaces,
+# const / static readonly fields) are listed before the general fallback rules.
+[*.cs]
+
+# --- Symbols ---
+
+dotnet_naming_symbols.async_methods.applicable_kinds           = method
+dotnet_naming_symbols.async_methods.applicable_accessibilities = *
+dotnet_naming_symbols.async_methods.required_modifiers         = async
+
+dotnet_naming_symbols.interfaces.applicable_kinds           = interface
+dotnet_naming_symbols.interfaces.applicable_accessibilities = *
+
+# Const fields are treated as PascalCase, matching naming.guide.md §B
+# ("Field (const) → PascalCase, e.g. MaxRetryCount") — not the private-field rule.
+dotnet_naming_symbols.constant_fields.applicable_kinds           = field
+dotnet_naming_symbols.constant_fields.applicable_accessibilities = *
+dotnet_naming_symbols.constant_fields.required_modifiers         = const
+
+# Static readonly fields follow the same "effectively constant" convention
+# already established in this codebase (e.g. ApiProblem.Map,
+# ArchitectureRules.ProductionAssemblies) — PascalCase, not _camelCase.
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds           = field
+dotnet_naming_symbols.static_readonly_fields.applicable_accessibilities = *
+dotnet_naming_symbols.static_readonly_fields.required_modifiers         = static, readonly
+
+# Private mutable fields (instance or static) — everything the two rules above
+# did not already claim.
+dotnet_naming_symbols.private_fields.applicable_kinds           = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+# Methods / properties / types / events not already covered above.
+dotnet_naming_symbols.types_and_members.applicable_kinds           = class, struct, enum, delegate, method, property, event
+dotnet_naming_symbols.types_and_members.applicable_accessibilities = *
+
+# --- Styles ---
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.i_prefix_pascal_case.required_prefix = I
+dotnet_naming_style.i_prefix_pascal_case.capitalization  = pascal_case
+
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization  = camel_case
+
+dotnet_naming_style.async_suffix_pascal_case.required_suffix = Async
+dotnet_naming_style.async_suffix_pascal_case.capitalization  = pascal_case
+
+# --- Rules (most specific first — first match wins) ---
+
+# async methods → Async suffix, PascalCase. Carve-out: backend/tests/.editorconfig
+# sets this rule's severity to `none` — BDD step / test method names follow
+# scenario semantics and do not take an Async suffix (ADR-011 §1).
+dotnet_naming_rule.async_methods_should_have_async_suffix.symbols  = async_methods
+dotnet_naming_rule.async_methods_should_have_async_suffix.style    = async_suffix_pascal_case
+dotnet_naming_rule.async_methods_should_have_async_suffix.severity = error
+
+dotnet_naming_rule.interfaces_should_be_i_prefixed.symbols  = interfaces
+dotnet_naming_rule.interfaces_should_be_i_prefixed.style    = i_prefix_pascal_case
+dotnet_naming_rule.interfaces_should_be_i_prefixed.severity = error
+
+dotnet_naming_rule.constant_fields_should_be_pascal_case.symbols  = constant_fields
+dotnet_naming_rule.constant_fields_should_be_pascal_case.style    = pascal_case
+dotnet_naming_rule.constant_fields_should_be_pascal_case.severity = error
+
+dotnet_naming_rule.static_readonly_fields_should_be_pascal_case.symbols  = static_readonly_fields
+dotnet_naming_rule.static_readonly_fields_should_be_pascal_case.style    = pascal_case
+dotnet_naming_rule.static_readonly_fields_should_be_pascal_case.severity = error
+
+dotnet_naming_rule.private_fields_should_be_camel_case.symbols  = private_fields
+dotnet_naming_rule.private_fields_should_be_camel_case.style    = underscore_camel_case
+dotnet_naming_rule.private_fields_should_be_camel_case.severity = error
+
+dotnet_naming_rule.types_and_members_should_be_pascal_case.symbols  = types_and_members
+dotnet_naming_rule.types_and_members_should_be_pascal_case.style    = pascal_case
+dotnet_naming_rule.types_and_members_should_be_pascal_case.severity = error
+
+# Every `dotnet_naming_rule.*.severity` above only sets the severity *shown*
+# once a violation is reported — it does not, by itself, make `dotnet build`
+# fail (verified empirically: with only the rules above, `dotnet build` stayed
+# green on a deliberately-broken class while `dotnet format --verify-no-changes`
+# correctly went red). All naming violations share diagnostic ID IDE1006, and
+# that ID's own severity must be escalated separately for CoreCompile to treat
+# it as a build error under EnforceCodeStyleInBuild. See
+# https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide1006
+dotnet_diagnostic.IDE1006.severity = error

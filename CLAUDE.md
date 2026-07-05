@@ -38,7 +38,7 @@ _How Claude and the user collaborate — committed to the repo so it persists ac
 
 ### Architecture Decision Records (ADR)
 - New ADRs MUST start from `docs/adr/_template.md`. Do not freeform; the template encodes the project's required structure (Status / Context / Decision / Rationale / Consequences / Alternatives Considered / Implementation Rules + governance clause).
-- File naming: `docs/adr/adr-NNN-kebab-case-title.md` (next available number).
+- File naming: `docs/adr/adr-NNN-kebab-case-title.md` (next available number). <!-- machinery-check:ignore: placeholder pattern, not a real file -->
 - Reference other docs by stable anchors (file + section heading, file + symbol, or quoted content) — never by `file:line`.
 - The final Implementation Rule MUST be the governance clause: "任何提案修改 1–N，必須先開新 ADR".
 - ADRs that touch reference docs / CLAUDE.md / examples MUST explicitly list "同步項目" — either as a one-liner under Status (when the list is short, like ADR-004) or as a Decision sub-section (when it's a substantive checklist, like ADR-005 §6 / ADR-006 §6). All sync edits MUST land in the same commit as the ADR.

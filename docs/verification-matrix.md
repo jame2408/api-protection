@@ -26,12 +26,16 @@
 | **`scripts/adr-lint.sh` — 結構性（1 項，涵蓋 7 個子檢查：Status 格式 / 7 個必要章節 / governance clause / 禁 file:line / 檔名編號連續 / Alternative 需 `Rejected.` / Trade-off 需 `Mitigation:`）** ||||
 | 10 | `docs/adr/adr-*.md` 結構性合規 — `CLAUDE.md`「Architecture Decision Records (ADR)」段 + 其「Validation」→「Structural lint (mechanical)」子段 | `scripts/adr-lint.sh` | commit 前（僅當 `docs/adr/` 有 staged 變更才觸發，見 `scripts/git-hooks/pre-commit`）/ push 前 / CI | 腳本 |
 | **`dotnet format`** ||||
-| 11 | C# 原始碼格式一致性（縮排、`using` 排序等 .NET 預設格式規則；`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免；style/naming 規則未定義，權威來源仍為工具預設——**權威來源模糊**，非對應特定 `CLAUDE.md` 條文） | `scripts/ci-checks.sh` `format_check()` → `dotnet format backend/ApiKeyManagement.slnx --verify-no-changes` | commit 前 / push 前 / CI | 腳本 |
+| 11 | C# 原始碼格式一致性（縮排、`using` 排序等 .NET 預設 whitespace 規則，權威來源仍為工具預設）+ 命名慣例（方法/屬性/型別/事件 PascalCase、私有欄位 `_camelCase`、介面 `I` 前綴、async 方法 `Async` 後綴——`backend/tests` 依 ADR-011 §3 排除 Async 後綴 carve-out）— `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md` + `.claude/references/dotnet/naming.guide.md`（規則細節權威來源） | `backend/.editorconfig`（`dotnet_naming_*` + `dotnet_diagnostic.IDE1006.severity=error`）+ `backend/Directory.Build.props`（`EnforceCodeStyleInBuild=true`）；命名違規在 `dotnet build backend/ApiKeyManagement.slnx` 與 `scripts/ci-checks.sh` `format_check()`（`dotnet format --verify-no-changes`）皆會擋下 | commit 前 / push 前 / CI | 腳本 |
 | **`.claude/hooks/pre-tool-edit.py` — 寫時攔截，4 個 pattern（僅 Claude Code harness 有效；其他 harness 對策見 `AGENTS.md`「此 harness 拿不到的防線」段）** ||||
 | 12 | 同第 7 項（`new Failure(` 攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`new\s+Failure\s*\(` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
 | 13 | 同第 8 項（bare-string `CreateFailure("..."` 攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`CreateFailure\("` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
 | 14 | 同第 9 項（`CancellationToken` 命名攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`cancellationToken\|ct` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
 | 15 | 同第 4 項（`Domain`/`Application`/`*Handler` 注入 `ILogger` 攔截，寫的當下；刻意不攔 `throw`——合法 guard throw 會誤報，見 `tasks/lessons.md` 2026-06-13 [decision]） | `.claude/hooks/pre-tool-edit.py`（`ILogger\s*<` regex 段，限 `in_logger_zone`） | 寫的當下（**限 Claude Code harness**） | 腳本 |
+| **`.claude/hooks/post-edit-validate.sh`（`docs/adr/adr-012-charter-amendments-external-adoption.md`，P1，僅 Claude Code harness 有效）** ||||
+| 15a | 寫後語法驗證：`.sh`→`bash -n`、`.json`→JSON parse、`.py`→`py_compile`、`.props`/`.csproj`/`.targets`/`.xml`→拒絕 `<!DOCTYPE`/`<!ENTITY` 後以 `xml.etree.ElementTree.parse` 驗 well-formed；直接對應本專案 NU1015 事故（XML 註解 `--` 靜默破壞 `.props`） | `.claude/hooks/post-edit-validate.sh`（PostToolUse，matcher `Edit\|Write`） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
+| **`scripts/machinery-check.sh`（`docs/adr/adr-012-charter-amendments-external-adoption.md`，P2，治理機械本身的自體健檢）** ||||
+| 15b | settings.json / `.mcp.json` JSON 合法性、settings.json hooks 段引用腳本存在＋可執行＋語法通過、`.claude/hooks/*.sh` 與 `scripts/*.sh` 全數 `bash -n`、`CLAUDE.md`/`docs/orchestration.md`/`docs/verification-matrix.md` 反引號路徑指針完整性（fail-loud，無 `if [ -f ]` 靜默跳過） | `scripts/machinery-check.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫） | commit 前 / push 前 / CI | 腳本 |
 | **`scripts/hook-smoke.sh`（`docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md`，與本表同批落地）** ||||
 | 16 | `session-init.sh` 注入邏輯必須可測：(a) 新 `session_id` → 注入 must-read + `tasks/lessons.md` 最近 8 條；(b) 同 `session_id` 二次呼叫 → 不重複注入；(c) 缺 `session_id` → 保守仍注入，不誤判為已注入 — `docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md` Implementation Rules 1 / 2 / 4 | `scripts/hook-smoke.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫，維持「fast ⊂ full」不變式） | commit 前 / push 前 / CI | 腳本 |
 | **`scripts/zh-lint.sh`（`docs/adr/adr-009-traditional-chinese-and-zh-lint.md`）** ||||
@@ -43,7 +47,7 @@
 | 19 | `FailureProvider.CreateFailure()` 是建構 `Failure` 的唯一合法入口：合法 code 忠實回填 `Failure.Code`；`null`／空白／空字串 code 必須丟 `ArgumentException` — `CLAUDE.md` §4「NEVER use `new Failure()`」的配套單元測試 | `backend/tests/SharedKernel.Tests/Domain/FailureProviderTests.cs`（1 個 `[Fact]` + 1 個 `[Theory]`×5 = 6 個測試案例） | push 前 / CI | 腳本 |
 | **AI review 類** ||||
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
-| 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
+| 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
 | **人工類** ||||
 | 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `CLAUDE.md`「Architecture Decision Records (ADR)」→「Validation」→「Review checklist (judgment, not mechanical)」子段 | 無腳本；檢查清單本體見 `CLAUDE.md` 該段文字，本表僅放指針 | review 時 | 人 |
 
@@ -62,7 +66,7 @@
 | `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試 |
 | `NEVER` 使用空 catch block；`NEVER` 用 `throw ex;`（須 `throw;`） | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——`scripts/source-lint.sh` 未涵蓋，可用 grep 機械化但尚未寫 |
 | `CancellationToken cancel` 須傳播到每個 I/O 呼叫（EF Core / HTTP client / message bus） | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——命名本身已由第 9 / 14 項機械化，但「有沒有把 `cancel` 真的傳進每個 I/O 呼叫」屬語意/資料流檢查，現有 grep 與 reflection 皆看不到 |
-| 命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴 | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——`NamingConventionTests.cs` 只鎖 `*Handler`/`*Repository`/`*FailureCodes` 後綴這三類，未涵蓋一般方法/欄位命名；`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免，style/naming 規則未定義，權威來源仍為工具預設，無 analyzer 設定 |
+| ~~命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴~~ | ~~`CLAUDE.md` §4「_Code Quality_」~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md`，防線見主表第 11 項（`backend/.editorconfig` `dotnet_naming_*` + `EnforceCodeStyleInBuild`，`dotnet build` 與 `dotnet format --verify-no-changes` 皆會擋下）；`backend/tests` 排除 Async 後綴為 ADR-011 §3 明文 carve-out（BDD step 語意衝突），非機械化缺口；自本區塊移出 |
 | FluentAssertions 用於測試斷言，禁止直接比較（如 `Assert.Equal`） | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——無 lint 禁止 `Assert.*`；現況所有測試皆用 FluentAssertions 純屬慣例延續，非機械保證 |
 | API Key validation latency P99 < 50ms | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——repo 內無負載測試腳本或效能基準測試 |
 | Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——同上，無對應腳本 |
