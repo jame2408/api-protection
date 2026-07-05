@@ -87,7 +87,7 @@ Silently ask "is there a more elegant way?" before presenting a solution — sur
 
 **Execute via** the `/bdd-vertical-slice` skill (procedure, BC identification, patterns).
 
-**Constraints (always enforced, regardless of skill — human/agent discipline, not mechanically gated)**: never remove more than one `@ignore` at a time unless scenarios share identical new step definitions; never mark done without test output showing it passing; `tasks/bdd-progress.md` update MUST land in the same commit as the implementation; never commit red (exceptions: confirming a scenario/its steps are unimplemented, immediately before writing them).
+**Constraints (always enforced, regardless of skill; mechanized items note their gate)**: never remove more than one `@ignore` at a time unless scenarios share identical new step definitions（pre-commit staged 檢查，豁免用 `ALLOW_MULTI_IGNORE=1`）; never mark done without test output showing it passing; `tasks/bdd-progress.md` update MUST land in the same commit as the implementation（pre-commit staged 檢查 + `scripts/bdd-lint.sh` 帳面一致性）; never commit red (exceptions: confirming a scenario/its steps are unimplemented, immediately before writing them).
 
 **Refactor discipline**: production-only (`backend/src/`) or test-only (`backend/tests/`) passes — never mixed — except interface/DTO renames spanning both as the sole change in that commit.
 
@@ -107,5 +107,5 @@ These apply at all times regardless of other instructions:
 
 - CRITICAL: NEVER `throw` for business logic — use `Result<T, Failure>` throughout the service layer. (架構測試強制：`HandlerResultReturnTests.cs`)
 - CRITICAL: NEVER commit or complete a task with a failing test suite — Green before every commit and throughout refactoring; TDD's intentional Red (confirming a scenario/its steps are unimplemented) is the only exception. (`scripts/ci-checks.sh` 強制)
-- CRITICAL: NEVER remove more than one `@ignore` tag at a time. (人工紀律，無機械化防線)
+- CRITICAL: NEVER remove more than one `@ignore` tag at a time. (pre-commit staged 檢查強制：`scripts/git-hooks/pre-commit`；「identical new step definitions」例外以 `ALLOW_MULTI_IGNORE=1` 明文豁免)
 - CRITICAL: NEVER add direct BC-to-BC references — only via SharedKernel interfaces. (架構測試強制：`BoundedContextIsolationTests.cs`)

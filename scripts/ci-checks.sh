@@ -2,9 +2,9 @@
 # ci-checks.sh — the single source of truth for this repo's checks.
 #
 # Two modes, one script (so the fast subset can never drift from the full gate):
-#   full  → 6 cheap checks (format, adr-lint, hook-smoke, zh-lint, source-lint,
-#           machinery-check) + restore/build/test          (pre-push hook AND CI)
-#   fast  → the same 6 cheap checks only, no build/test    (pre-commit hook)
+#   full  → 7 cheap checks (format, adr-lint, hook-smoke, zh-lint, source-lint,
+#           machinery-check, bdd-lint) + restore/build/test (pre-push hook AND CI)
+#   fast  → the same 7 cheap checks only, no build/test    (pre-commit hook)
 #
 # Invariant: pre-push and CI both run `full`, so "passes pre-push" provably means
 # "passes CI". `fast` is a quick pre-commit early-warning — a strict subset of the
@@ -51,6 +51,11 @@ machinery_check() {
     bash "$REPO_ROOT/scripts/machinery-check.sh"
 }
 
+bdd_lint() {
+    echo "[ci-checks] bdd lint (progress ledger consistency)"
+    bash "$REPO_ROOT/scripts/bdd-lint.sh"
+}
+
 build_and_test() {
     echo "[ci-checks] restore"
     dotnet restore "$SOLUTION"
@@ -75,6 +80,7 @@ case "$MODE" in
         zh_lint
         source_lint
         machinery_check
+        bdd_lint
         ;;
     full)
         # Complete gate — identical to CI. Cheap checks first so a format/adr/source
@@ -85,6 +91,7 @@ case "$MODE" in
         zh_lint
         source_lint
         machinery_check
+        bdd_lint
         build_and_test
         ;;
     *)

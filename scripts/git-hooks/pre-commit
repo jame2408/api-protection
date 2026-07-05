@@ -33,6 +33,33 @@ if git diff --cached --name-only -- 'docs/adr/' | grep -q .; then
     fi
 fi
 
+# BDD staged discipline guard (CLAUDE.md §Non-Negotiable Constraints / §BDD Scenario
+# Development Cycle): never remove more than one @ignore per commit (unless the new
+# scenarios share identical step definitions — explicit opt-out via ALLOW_MULTI_IGNORE=1),
+# and any @ignore removal must land in the same commit as the tasks/bdd-progress.md
+# ledger update. Reads the staged diff, not the working tree, so it must run before
+# ci-checks.sh (which only ever looks at the working tree).
+removed=$(git diff --cached -- 'backend/tests/FunctionalTests/Features/*.feature' 'backend/tests/FunctionalTests/Features/**/*.feature' | grep -c '^-[^-].*@ignore' || true)
+added=$(git diff --cached -- 'backend/tests/FunctionalTests/Features/*.feature' 'backend/tests/FunctionalTests/Features/**/*.feature' | grep -c '^+[^+].*@ignore' || true)
+net=$((removed - added))
+
+if [[ "$net" -gt 1 && "${ALLOW_MULTI_IGNORE:-0}" != "1" ]]; then
+    echo "[pre-commit] this commit removes $net '@ignore' tags." >&2
+    echo "             CLAUDE.md §Non-Negotiable Constraints: NEVER remove more than one" >&2
+    echo "             @ignore tag at a time, unless the new scenarios share identical" >&2
+    echo "             step definitions. If that exception applies here, opt in explicitly:" >&2
+    echo "               ALLOW_MULTI_IGNORE=1 git commit ..." >&2
+    exit 1
+fi
+
+if [[ "$net" -ge 1 ]] && ! git diff --cached --name-only | grep -q '^tasks/bdd-progress\.md$'; then
+    echo "[pre-commit] this commit removes an '@ignore' tag but does not stage" >&2
+    echo "             tasks/bdd-progress.md." >&2
+    echo "             CLAUDE.md §BDD Scenario Development Cycle: the progress ledger" >&2
+    echo "             update MUST land in the same commit as the implementation." >&2
+    exit 1
+fi
+
 # Fast checks only (format + adr-lint, no build/test, no Docker) for quick feedback
 # on every commit. The full build+test gate runs at pre-push and in CI — both via
 # `ci-checks.sh full`, the single source of truth.
