@@ -34,6 +34,9 @@ public static class InfrastructureModule
         services.AddOptions<ApiKeyHashingOptions>().Bind(configuration.GetSection(ApiKeyHashingOptions.SectionName));
         services.AddSingleton<IApiKeyHasher, HmacApiKeyHasher>();
 
+        // Clock injection for deterministic expiry-boundary tests.
+        services.AddSingleton(TimeProvider.System);
+
         return services;
     }
 }

@@ -9,7 +9,8 @@ public class CreateApiKeyHandler(
     IApiKeyRepository keyRepository,
     IScopeRegistry scopeRegistry,
     IAccessPolicyService accessPolicyService,
-    IApiKeyHasher keyHasher
+    IApiKeyHasher keyHasher,
+    TimeProvider clock
 ) : ICreateApiKeyHandler
 {
     public async Task<Result<CreateApiKeyResponse, Failure>> HandleAsync(
@@ -41,7 +42,7 @@ public class CreateApiKeyHandler(
             return FailureProvider.CreateFailure(CreateApiKeyFailureCodes.ScopeNotFound);
 
         // 5. Guard: expiry
-        var now = DateTimeOffset.UtcNow;
+        var now = clock.GetUtcNow();
         if (command.ExpiresAt <= now)
             return FailureProvider.CreateFailure(CreateApiKeyFailureCodes.ValidationErrorExpiresAtPast);
         if (command.ExpiresAt > now.AddDays(ApiKey.GetMaxValidityDays()))
