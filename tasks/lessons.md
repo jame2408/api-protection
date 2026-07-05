@@ -73,6 +73,12 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Rule:** orchestrator 只做：設計裁決、ADR 起草或規格撰寫、review、與使用者的決策互動。任何有明確規格可循的實作（腳本、文件編輯、git 操作、勘誤）一律派 executor，即使「自己做比較快」。
 **落地:** 本條 lesson + Phase E 起全部實作改派 executor（本任務即範例）。
 
+### [correction] Token 經濟三個反模式：巨型任務包、resume 大 transcript、馬拉松 session
+**Date:** 2026-07-05
+**Context:** 使用者發現單一句「先繼續」使 5h 用量瞬間 +37%。root cause 三層：(1) Phase I 規格把四階段捆成一包，養出 225K tokens / 111 tool calls 的巨型 executor；(2) orchestrator 用 SendMessage resume 該 agent 續行 — resume 會把整份巨型 transcript 無快取重讀計費，正確做法是開新 executor + 小規格（checkpoint 就是為此存在）；(3) orchestrator 自己的 session 從盤點跑到 Phase I 不曾重啟，每次使用者發話都重讀全史 — 對 executor 執行了「任務切小」卻沒對自己執行。
+**Rule:** (1) executor 任務規格以單一階段為原則，預估超過 ~50 次工具呼叫就拆包；(2) resume 既有 agent 只限小型追問；需要續行長任務時一律新開 executor、以 spec/checkpoint 銜接；(3) orchestrator session 以一個 Phase 為壽命上限，Phase 落地即結束 session，下個 Phase 冷啟動接 checkpoint。
+**落地:** 本條 lesson；納入下一個憲章修訂（ADR-013 候選：token 經濟條款從原則升為可打勾規則）— 在此之前由 §8.5 checkpoint 的「如何接上」段執行 session 重啟紀律。
+
 ### [correction] 「不存在」的斷言也要機械化驗證 — 矩陣誤報 .editorconfig 不存在
 **Date:** 2026-07-04
 **Context:** 驗證矩陣與 plan 宣稱「repo 無 .editorconfig」，實際 backend/.editorconfig 存在（executor 只查 repo root，orchestrator 抽驗也未抓到）。「存在性」核對清單只驗證了「列出的檔案存在」，沒驗證「宣稱不存在的東西真的不存在」。

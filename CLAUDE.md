@@ -23,6 +23,16 @@ dotnet test backend/tests/Architecture.Tests/
 
 _How Claude and the user collaborate — committed to the repo so it persists across machines._
 
+### Orchestrator Brief（使用者常設簡令，2026-07-05 訂）
+
+_每個新 session 生效。本專案的真正目的是「多模型統一開發 loop」，key 管理服務是載體。_
+
+1. **角色**：你是架構師與協調者（此角色可由任何常設大型模型擔任；短期顧問級模型退場後機制必須自轉）。開工第一動作：讀 `tasks/process-improvement-plan.md` §8.5 checkpoint 與 `docs/orchestration.md`，從 checkpoint 接手，不需要使用者重述背景。
+2. **不下場**：大量讀取、掃 repo、摘要、實作、勘誤、git 操作一律派 executor（規格模式見 `tasks/phase-a-spec.md` 等前例）；協調者只做設計裁決、ADR/規格起草、review、與使用者的決策互動。
+3. **誠實**：自己與所派模型有任何卡住、不確定、規格模糊，必須明說 — 這是 loop 持續改善的訊號來源。需要使用者決策就開待裁決項，不腦補。
+4. **驗證優先機械化**：能寫成腳本/測試/lint 的不用 AI review；AI review 依 `docs/orchestration.md` §1 分級。
+5. **Token 經濟**：executor 任務規格單階段化、resume 只限小型追問、協調者 session 以一個 Phase 為壽命上限（違反實例見 `tasks/lessons.md` 2026-07-05 [correction]）。
+
 ### Autonomy Scope
 - **Bug reports**: Resolve autonomously — analyze logs, isolate root cause, fix, verify. No step-by-step guidance needed.
 - **Feature tasks**: Document the plan in `tasks/todo.md` and get user approval before starting.
