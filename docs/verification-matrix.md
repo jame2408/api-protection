@@ -45,6 +45,8 @@
 | 18 | `CreateApiKey` 成功回應必須含 `truncatedKey`（`"..." +` 明碼末 4 碼） — `docs/design/api-spec.md` §2.2 | `backend/tests/FunctionalTests/Steps/CreateApiKeySteps.cs` `ThenRawKeyIsReturned` | push 前 / CI | 腳本 |
 | **SharedKernel.Tests** ||||
 | 19 | `FailureProvider.CreateFailure()` 是建構 `Failure` 的唯一合法入口：合法 code 忠實回填 `Failure.Code`；`null`／空白／空字串 code 必須丟 `ArgumentException` — `CLAUDE.md` §4「NEVER use `new Failure()`」的配套單元測試 | `backend/tests/SharedKernel.Tests/Domain/FailureProviderTests.cs`（1 個 `[Fact]` + 1 個 `[Theory]`×5 = 6 個測試案例） | push 前 / CI | 腳本 |
+| **`scripts/coverage-check.sh`（`docs/adr/adr-014-handler-coverage-gate.md`）** ||||
+| 19a | concrete `*Handler` 類別 unit coverage ≥ 80%（逐類判定，async state machine 併回母類）— `CLAUDE.md` §4「unit coverage ≥ 80% for Handler code」+ `docs/adr/adr-014-handler-coverage-gate.md` | `scripts/coverage-check.sh`（`scripts/ci-checks.sh` full 呼叫，測試段附掛 `--collect:"XPlat Code Coverage"`） | push 前 / CI（僅 full） | 腳本 |
 | **AI review 類** ||||
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
@@ -61,7 +63,7 @@
 
 | 規則 | 權威來源 | 追蹤狀態 |
 |---|---|---|
-| Unit test coverage ≥ 80%（Handler code） | `CLAUDE.md` §4「_Tests:_」 | 未追蹤——`coverlet.collector` 僅作為測試 SDK 依賴出現於 `.csproj`，`scripts/ci-checks.sh` / `.github/workflows/ci.yml` 均無涵蓋率門檻或報表解析步驟 |
+| ~~Unit test coverage ≥ 80%（Handler code）~~ | ~~`CLAUDE.md` §4「_Tests:_」~~ | ✅ **2026-07-05 已機械化** — 規則落點 `docs/adr/adr-014-handler-coverage-gate.md`，防線見主表第 19a 項（`scripts/coverage-check.sh`，`scripts/ci-checks.sh` full 呼叫）；自本區塊移出 |
 | 每個 Guard condition 須同時有正向與負向情境 | `CLAUDE.md` §4「_Tests:_」 | 未追蹤——屬 BDD 撰寫完整性，無腳本比對 `.feature` 場景的正/負向覆蓋 |
 | `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試 |
 | `NEVER` 使用空 catch block；`NEVER` 用 `throw ex;`（須 `throw;`） | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——`scripts/source-lint.sh` 未涵蓋，可用 grep 機械化但尚未寫 |

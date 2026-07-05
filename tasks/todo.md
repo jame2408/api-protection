@@ -165,6 +165,28 @@ Deep cross-check of ADRs ↔ CLAUDE.md ↔ `.claude/references` ↔ production c
 
 ---
 
+## Coverage gate（QA 強化 #1；方向已核准 2026-07-05，計畫待核准）
+
+**目標**：機械化 DoD「unit coverage ≥ 80% for Handler code」（`docs/verification-matrix.md` 無防線區塊第 1 條）。
+
+**基線實測（2026-07-05，4/44 場景時點）**：`CreateApiKeyHandler` 89.1%（含 async state machine 合併：49/55 行）、`ConsumerValidatorService` 100% → 80% 門檻上線即綠，且隨場景解鎖單調上升，無需 ratchet。
+
+**設計裁決（將載入 ADR-014）**：
+1. **度量來源 = 全測試套件**（含 BDD FunctionalTests）：本專案 BDD-first，Handler 覆蓋天生來自場景；「unit-only」解讀會逼出與場景重複的測試，違反工作流。
+2. **鎖定對象 = concrete `*Handler` 類別**（compiler-generated async state machine 併回母類計算），與 `HandlerResultReturnTests` 同一鎖定邏輯；**每類各自 ≥ 80%**，非全體聚合。
+3. **時機層 = full gate（push 前 / CI）**：Handler 覆蓋依賴 FunctionalTests（需 Docker），fast 層放不進。
+4. **機制 = coverlet.collector（既有依賴，零新增套件）+ `scripts/coverage-check.sh`**（python3 解析 cobertura XML，多報表以 per-line max hits 合併）。
+
+**Alternatives（ADR 詳述）**：coverlet.msbuild `/p:Threshold`（assembly 級門檻，無 class 級精度 → Rejected）；ReportGenerator（新增工具依賴，python 解析已足 → Rejected）；unit-test-only 度量（違 BDD-first → Rejected）。
+
+**步驟**：
+- [x] orchestrator 起草 `docs/adr/adr-014-handler-coverage-gate.md`（自 `_template.md`，含同步項目清單）。
+- [x] executor（依 `tasks/_templates/executor-spec.md` 派工）：`scripts/coverage-check.sh` + `scripts/ci-checks.sh` full 接線 + `docs/verification-matrix.md` 同 commit 更新（主表新增一行、無防線區塊移出該條）+ 新檢驗「綠＋故意紅」驗證（門檻暫調 95 證紅後還原）。
+
+**關聯**：QA #2 變異測試（Stryker.NET）排 Wave 1 全綠後觸發（見 `tasks/checkpoint.md` 下一步）。
+
+---
+
 ## Archived（已結案）
 
 3. ~~**`lifecycleStatus` wire-format inconsistency.**~~ ✅ Resolved by ADR-006 (2026-05-02). Decision opposite to the original suggestion: `ApiKeyStatus` enum **was** renamed to PascalCase, paired with `JsonStringEnumConverter(allowIntegerValues: false)`; DTO type changed from `string` to `ApiKeyStatus`; functional tests now lock raw JSON wire literal `"Active"` via `JsonDocument`.

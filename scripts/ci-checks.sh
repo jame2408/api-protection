@@ -56,7 +56,13 @@ build_and_test() {
     echo "[ci-checks] build (Release)"
     dotnet build "$SOLUTION" --no-restore -c Release
     echo "[ci-checks] test (unit + architecture + BDD functional)"
-    dotnet test "$SOLUTION" --no-build -c Release
+    local coverage_dir="${TMPDIR:-/tmp}/ci-checks-coverage"
+    rm -rf "$coverage_dir"
+    mkdir -p "$coverage_dir"
+    dotnet test "$SOLUTION" --no-build -c Release \
+        --collect:"XPlat Code Coverage" --results-directory "$coverage_dir"
+    echo "[ci-checks] Handler coverage gate (docs/adr/adr-014-handler-coverage-gate.md)"
+    bash "$REPO_ROOT/scripts/coverage-check.sh" "$coverage_dir"
 }
 
 case "$MODE" in
