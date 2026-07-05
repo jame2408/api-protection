@@ -36,6 +36,7 @@
 - scenario「到期時間已過 — 拒絕建立」轉綠，9/44 — 首個真 blocker：佔位 scope `any:read` 從未註冊，guard 4b 先於 5a 短路成 422（executor 正確停止回報，未擴權）；裁決把 scope 註冊併入 seed helper 並改名 `SeedDefaultPreconditionsIfMissingAsync`（下一場景 guard 5b 同坑，一次修除）；故意紅（guard 5a 改 `if(false)` 致 201 vs 400）、7/44 與 8/44 同輪綠證無回歸；新 lesson「spec 須沿 guard 鏈核對請求形狀、佔位常值視同執行期值」（Active 12 條）— `c15d836`
 - scenario「到期時間超過最大允許有效期 — 拒絕建立」Red→Green，**Wave 1 收齊**（01_CreateApiKey 全 10 場景綠），10/44 — 自然紅（404 vs 422）＋故意紅（guard 5b 改 `if(false)` 致 201 vs 422），production 未動，executor 零 friction 一次到位 — `a81e4b0`
 - test-only 重構 pass（Wave 1 收齊後既定工作）：`CreateApiKeySteps.cs` seeding 三份收編（`GivenActiveKeyCount`／`GivenKeyNameAlreadyExists` 改呼叫 `SeedDefaultPreconditionsIfMissingAsync`，順帶拆除 `any:read` 未註冊潛在坑）＋九個 When 樣板抽 `PostCreateKeyAsync`，-117/+28，行為零改變（15 passed/34 skipped 前後一致）、regex 與 Then 區零觸碰 — `65a3df9`
+- **Wave 2 首場景「從 Active 狀態撤銷」Red→Green，13/46** — 首個完整垂直切片（production+steps 同 commit）：ADR-020 Transactional Outbox 最小落地（同交易收割、relay 後置、`7c248bb`）→ RevokeKey slice（Domain/Handler 三 guard/endpoint）→ steps＋outbox row 斷言（I7 引用註解）— `02514f3`。過程三個攔截：P2 誠實申報 NOT_FOUND Map 行超字面授權（裁決接受，spec 自相矛盾）；P3 觸發停止條件揪出 TestHooks Respawn 與 xUnit 平行互斥的潛伏缺陷（序列化修復 `AssemblyInfo.cs`，5 連跑穩定）；orchestrator 以 `git checkout` 還原 mutation 誤洗 P2 未 commit 工作（重建＋等價性測試證明＋lesson「快照法還原」）。故意紅：註解 `AddDomainEvent` 致 outbox 斷言紅 — A2 型變異首次被咬住。`Refactor-assessment:` trailer 首次實戰、commit-msg hook 首次真實開火通過。revokedBy 債務（api-spec §3.2.8＋integration spec §6.1，待 auth slice）
 - BDD 重構判斷留痕機械化（使用者糾正驅動）：skill 步驟 9 早已存在但被 spec 管道繞過 — executor-spec 範本增「重構評估」必填欄、enablement commit 強制 `Refactor-assessment:` trailer（`scripts/git-hooks/commit-msg`，三面故意紅取證）、SKILL.md 留痕義務、CLAUDE.md §BDD Constraints 一行、矩陣 9f、lesson「skill 步驟不入 spec 就不會發生」— `129ecc9`
 - Stryker survived 處置包（使用者裁決 A–D 全執行）：Batch 1 斷言強化＋跨租戶 seed 正名 — `5efed80`；Batch 2 TimeProvider 注入（production-only）— `f2c1079`；Batch 3 FrozenTimeProvider＋到期精確邊界場景 ×2（44→46，12/46）— `d4542cb`；重跑對照 KeyLifecycle 54.39%→**73.68%**、TenantManagement 72.73%→**81.82%**，A1/A3/A4/B5/B7 全轉 killed；A2 裁決降級（事件無發佈管道，待 Wave 2 事件基礎設施 ADR）；C/D 明文不處置 — 全紀錄 `tasks/archive/stryker-baseline-2026-07-05.md`
 - Loop engineering 閉環包（使用者裁決 Q1–Q5 全數落地）：ADR-018 failures triage 回饋化＋`observations.jsonl` 除役（`scripts/failure-triage.sh`，矩陣 19e）— `75a9433` `1017a2b`；ADR-019 token 經濟四條升 `docs/orchestration.md` §5 可打勾規則、兩條懸空 lesson 落地欄收口 — `3d6b884`；BDD 紀律機械化（`scripts/bdd-lint.sh` 帳面一致性入 fast/full/CI + pre-commit staged guard 單移 `@ignore`／進度檔同 commit，三面故意紅取證，矩陣 9d/9e，CLAUDE.md CRITICAL 條註記防線）— `c6dce1d`；矩陣無防線區正名（Guard 正負場景裁決不機械化、refactor 紀律／backlog 晉升權／矩陣同步義務誠實登記）— `f1bbfdc`；審計報告歸檔 `tasks/archive/loop-audit-2026-07-05.md`＋首次 phase 收尾 triage 處置＋zsh 等號展開 lesson — 本 commit
@@ -54,9 +55,10 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **產品主線 Wave 2**：34 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Active 狀態撤銷」（首個非 CreateApiKey 場景，涉及既有金鑰 seed 與撤銷 endpoint，spec 需先盤 RevokeKey slice 現況，依 lesson 沿 guard 鏈核對）。注意：RevokeKey 的「觸發主動快取失效」步驟需要事件基礎設施（outbox／dispatcher，**產品架構級 ADR**）— 調查已證實 domain event 目前無發佈管道（詳 `tasks/archive/stryker-baseline-2026-07-05.md` A2 段），Stryker A2 mutant（`ApiKey.cs:62`）屆時一併閉環。派工一律用 `tasks/_templates/executor-spec.md`。
-2. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
-3. **小項**：todo #14–#18、#21–#24 housekeeping。
+1. **產品主線 Wave 2 續**：33 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Rotating 狀態撤銷 — 同時清除輪替關聯」（需 Rotating 狀態 seed 與 successor/predecessor 關聯 — 盤 slice 現況後派工；RevokeKey guard 場景（未提供原因／終態）晉升亦可補 `RevokeKeyHandler` 失敗分支覆蓋）。派工一律用 `tasks/_templates/executor-spec.md`。
+2. **A2 正式閉環（小項，test-only）**：CreateApiKey「系統產生 KeyCreated 事件」Then 依 ADR-020 §4 補 outbox row 斷言（取代 response-body 代理）＋重跑 `bash scripts/mutation-test.sh KeyLifecycle` 驗證 `ApiKey.cs` AddDomainEvent(KeyCreated) mutant 轉 killed、更新 stryker 歸檔。
+3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
+4. **小項**：todo #14–#18、#21–#24 housekeeping。
 
 ## 工作區狀態警告
 
