@@ -22,6 +22,7 @@
 - Executor spec 範本 + lessons（故意紅義務、取證紀律、orchestrator 界線澄清）— `fee94c9`
 - scenario「Consumer 不屬於該租戶 — 拒絕建立」Red→Green（step 補 seed Active tenant，production 未動），4/44，首次套用 executor-spec 範本 — `9101bff`
 - QA #1 coverage gate：ADR-014（度量 = 全套件含 BDD、逐 `*Handler` 類 ≥ 80%）+ `scripts/coverage-check.sh` 接線 full gate，綠＋故意紅驗證過，矩陣無防線區再消一條 — `e94a381`
+- ADR-015 依賴弱點 audit gate：`Microsoft.OpenApi` 弱點（GHSA-v5pm-xwqc-g5wc）以 CPM transitive pin 2.7.5 消除、NU1903/NU1904 升 build error，綠＋故意紅驗證過 — `94c22b7`
 
 ## 待驗證
 
