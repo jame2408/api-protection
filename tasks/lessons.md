@@ -26,10 +26,10 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Rule:** orchestrator 只做：設計裁決、ADR 起草或規格撰寫、review、與使用者的決策互動。任何有明確規格可循的實作（腳本、文件編輯、git 操作、勘誤）一律派 executor，即使「自己做比較快」。界線澄清：checkpoint 產出、以及親自驗證後的放行 commit/push，屬 orchestrator 的交接與 gate 職責，不算越位。
 **落地:** 本條 lesson + Phase E 起全部實作改派 executor（本任務即範例）；界線澄清為 2026-07-05 使用者裁決（維持現狀不收緊）。
 
-### [correction] Token 經濟三個反模式：巨型任務包、resume 大 transcript、馬拉松 session
+### [correction] Token 經濟四個反模式：巨型任務包、resume 大 transcript、馬拉松 session、limit 中斷後原地續舊 session
 **Date:** 2026-07-05
-**Context:** 使用者發現單一句「先繼續」使 5h 用量瞬間 +37%。root cause 三層：(1) Phase I 規格把四階段捆成一包，養出 225K tokens / 111 tool calls 的巨型 executor；(2) orchestrator 用 SendMessage resume 該 agent 續行 — resume 會把整份巨型 transcript 無快取重讀計費，正確做法是開新 executor + 小規格（checkpoint 就是為此存在）；(3) orchestrator 自己的 session 從盤點跑到 Phase I 不曾重啟，每次使用者發話都重讀全史 — 對 executor 執行了「任務切小」卻沒對自己執行。
-**Rule:** (1) executor 任務規格以單一階段為原則，預估超過 ~50 次工具呼叫就拆包；(2) resume 既有 agent 只限小型追問；需要續行長任務時一律新開 executor、以 spec/checkpoint 銜接；(3) orchestrator session 以一個 Phase 為壽命上限，Phase 落地即結束 session，下個 Phase 冷啟動接 checkpoint。
+**Context:** 使用者發現單一句「先繼續」使 5h 用量瞬間 +37%。root cause 三層：(1) Phase I 規格把四階段捆成一包，養出 225K tokens / 111 tool calls 的巨型 executor；(2) orchestrator 用 SendMessage resume 該 agent 續行 — resume 會把整份巨型 transcript 無快取重讀計費，正確做法是開新 executor + 小規格（checkpoint 就是為此存在）；(3) orchestrator 自己的 session 從盤點跑到 Phase I 不曾重啟，每次使用者發話都重讀全史 — 對 executor 執行了「任務切小」卻沒對自己執行。同日 [repeat]：limit 中斷恢復後在原 session 說「繼續」+ resume 死掉的 executor → 瞬間 +13%（prompt cache TTL 5 分鐘，limit 空窗必然全冷，恢復第一輪把整段對話史與 executor transcript 以未快取輸入重讀）。
+**Rule:** (1) executor 任務規格以單一階段為原則，預估超過 ~50 次工具呼叫就拆包；(2) resume 既有 agent 只限小型追問；需要續行長任務時一律新開 executor、以 spec/checkpoint 銜接；(3) orchestrator session 以一個 Phase 為壽命上限，Phase 落地即結束 session，下個 Phase 冷啟動接 checkpoint；(4) limit／服務中斷視同 phase 邊界 — 快到 limit 時最後一動是 checkpoint 落盤，恢復一律開新 session 接 checkpoint（僅當舊對話有未落盤狀態才回去，先落盤再換）；中斷的 executor 一律新開接手（讀 spec + 檢視現有 `git diff` 從斷點續跑），不得 resume。
 **落地:** 本條 lesson；納入下一個憲章修訂（ADR-013 候選：token 經濟條款從原則升為可打勾規則）— 在此之前由 §8.5 checkpoint 的「如何接上」段執行 session 重啟紀律。
 
 ### [correction] 自動載入面有 token 預算 — 不放日期出處、不複寫憲章、先查既有落點
