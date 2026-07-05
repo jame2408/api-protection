@@ -32,7 +32,6 @@ Feature: 建立 API 金鑰
     When  "consumer-2" 嘗試在 "tenant-A" 下建立金鑰
     Then  建立失敗，錯誤原因為「Consumer 不屬於該租戶」
 
-  @ignore
   Scenario: Active 金鑰數達到上限 — 拒絕建立
     Given "consumer-1" 在 Production 環境的 Active 金鑰數為 10，上限為 10
     When  "consumer-1" 在 Production 環境建立新金鑰

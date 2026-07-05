@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 4 / 44  
-**下一個：** `01_CreateApiKey.feature` — Active 金鑰數達到上限 — 拒絕建立
+**已通過：** 5 / 44  
+**下一個：** `01_CreateApiKey.feature` — 金鑰名稱在同 Consumer + Environment 下重複 — 拒絕建立
 
 ---
 
