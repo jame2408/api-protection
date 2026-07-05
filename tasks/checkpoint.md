@@ -35,6 +35,7 @@
 - scenario「未指定任何 Scope — 拒絕建立」Red→Green（`WhenConsumerCreatesKeyWithEmptyScopes` 接 `SeedDefaultTenantAndConsumerIfMissingAsync`，production 未動；guard 4 前半早已存在），自然紅（404 vs 400）＋故意紅（guard 條件 `if(false)` 級聯落 guard 5 致 422）雙取證，orchestrator 親自以 pre-push full gate 放行（13 passed/36 skipped、coverage 96.4%），8/44 — `fcd8063`
 - scenario「到期時間已過 — 拒絕建立」轉綠，9/44 — 首個真 blocker：佔位 scope `any:read` 從未註冊，guard 4b 先於 5a 短路成 422（executor 正確停止回報，未擴權）；裁決把 scope 註冊併入 seed helper 並改名 `SeedDefaultPreconditionsIfMissingAsync`（下一場景 guard 5b 同坑，一次修除）；故意紅（guard 5a 改 `if(false)` 致 201 vs 400）、7/44 與 8/44 同輪綠證無回歸；新 lesson「spec 須沿 guard 鏈核對請求形狀、佔位常值視同執行期值」（Active 12 條）— `c15d836`
 - scenario「到期時間超過最大允許有效期 — 拒絕建立」Red→Green，**Wave 1 收齊**（01_CreateApiKey 全 10 場景綠），10/44 — 自然紅（404 vs 422）＋故意紅（guard 5b 改 `if(false)` 致 201 vs 422），production 未動，executor 零 friction 一次到位 — `a81e4b0`
+- test-only 重構 pass（Wave 1 收齊後既定工作）：`CreateApiKeySteps.cs` seeding 三份收編（`GivenActiveKeyCount`／`GivenKeyNameAlreadyExists` 改呼叫 `SeedDefaultPreconditionsIfMissingAsync`，順帶拆除 `any:read` 未註冊潛在坑）＋九個 When 樣板抽 `PostCreateKeyAsync`，-117/+28，行為零改變（15 passed/34 skipped 前後一致）、regex 與 Then 區零觸碰 — `65a3df9`
 - Loop engineering 閉環包（使用者裁決 Q1–Q5 全數落地）：ADR-018 failures triage 回饋化＋`observations.jsonl` 除役（`scripts/failure-triage.sh`，矩陣 19e）— `75a9433` `1017a2b`；ADR-019 token 經濟四條升 `docs/orchestration.md` §5 可打勾規則、兩條懸空 lesson 落地欄收口 — `3d6b884`；BDD 紀律機械化（`scripts/bdd-lint.sh` 帳面一致性入 fast/full/CI + pre-commit staged guard 單移 `@ignore`／進度檔同 commit，三面故意紅取證，矩陣 9d/9e，CLAUDE.md CRITICAL 條註記防線）— `c6dce1d`；矩陣無防線區正名（Guard 正負場景裁決不機械化、refactor 紀律／backlog 晉升權／矩陣同步義務誠實登記）— `f1bbfdc`；審計報告歸檔 `tasks/archive/loop-audit-2026-07-05.md`＋首次 phase 收尾 triage 處置＋zsh 等號展開 lesson — 本 commit
 
 ## 待驗證
@@ -51,11 +52,10 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **test-only 重構 pass（使用者已核准，Wave 1 收齊後執行 — 現在）**：`CreateApiKeySteps.cs` 三筆已觀察欠帳 — (a) seeding 三份雷同收編為一（`GivenActiveKeyCount`、`GivenKeyNameAlreadyExists` 內聯塊改呼叫 `SeedDefaultPreconditionsIfMissingAsync`，需裁決內聯處註冊 `any:read` 無害性）；(b) 六個 When step 的組 request→POST→讀 body 樣板抽 helper；(c) 潛在坑：兩個內聯 seeding 場景的 request 用未註冊 `any:read`，僅因 guard 順序未爆。紀律：test-only 單獨 commit、不混 `@ignore`、前後全綠（15 passed/34 skipped 不變）。
-2. **QA #2 變異測試（Stryker.NET）啟動點已到**：Wave 1 全綠達成；範圍鎖 KeyLifecycle + TenantManagement，on-demand script 或 CI 週期 job，**非 gate**（使用者 2026-07-05 核准）。跑法細節待裁決。
-3. **產品主線 Wave 2**：34 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Active 狀態撤銷」（首個非 CreateApiKey 場景，涉及既有金鑰 seed 與撤銷 endpoint，spec 需先盤 RevokeKey slice 現況，依 lesson 沿 guard 鏈核對）。派工一律用 `tasks/_templates/executor-spec.md`。
-4. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
-5. **小項**：todo #14–#18、#21–#24 housekeeping。
+1. **QA #2 變異測試（Stryker.NET）啟動點已到**：Wave 1 全綠達成、重構 pass 已落；範圍鎖 KeyLifecycle + TenantManagement，on-demand script 或 CI 週期 job，**非 gate**（使用者 2026-07-05 核准）。跑法細節待裁決。
+2. **產品主線 Wave 2**：34 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Active 狀態撤銷」（首個非 CreateApiKey 場景，涉及既有金鑰 seed 與撤銷 endpoint，spec 需先盤 RevokeKey slice 現況，依 lesson 沿 guard 鏈核對）。派工一律用 `tasks/_templates/executor-spec.md`。
+3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
+4. **小項**：todo #14–#18、#21–#24 housekeeping。
 
 ## 工作區狀態警告
 
