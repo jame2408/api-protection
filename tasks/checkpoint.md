@@ -27,6 +27,7 @@
 - scenario「Active 金鑰數達到上限 — 拒絕建立」Red→Green（`GivenActiveKeyCount` 補條件式 seed tenant+consumer，production 未動；guard 早已存在），故意紅（`>=`→`>` 使測試 422 vs 409 轉紅）orchestrator 親自重演確認，5/44 — `26a1160`
 - lessons triage 機械化包（使用者核准全包）：source-lint 新增 MSBuild XML 合法性／bash 3.2 相容／CreateScope 禁令（Middleware、Program.cs 豁免）三段，各過綠＋故意紅（executor 與 orchestrator 各一輪）；四條 lesson 歸檔（Active 13→9，注入量下降）；矩陣登記 9a/9b/9c；todo 增設 triage 常設觸發（Active ≥ 15 或 phase 收尾） — `b179fb2`
 - 全 repo 文件衝突掃描（三路平行探查 + orchestrator 逐條裁決）：規範層 8 處衝突修繕（di.rule.md §D 範例對齊 CreateScope lint、ILogger 枚舉三處統一三層版、matrix 失效引用全修、已機械化 pattern 標注、CLAUDE.md coverage 措辭對齊 ADR-014）— `be0152e`；自建雙 skill（bdd-vertical-slice／lesson）指針化對齊 2026-07 制度 — `f90bf3d`；執行面文件七項核對全相符、ADR 間無隱性衝突；ADR-004 第 6 類正名與 upstream skill 凍結 gate 記入 todo follow-up
+- scenario「金鑰名稱在同 Consumer + Environment 下重複 — 拒絕建立」Red→Green（`GivenKeyNameAlreadyExists` 補條件式 seed，production 未動；guard 3 早已存在），自然紅（404 vs 409）＋故意紅（guard 反轉致 422）雙取證，executor 一次到位、orchestrator 親自重跑全套件放行，6/44 — `e70eeed`
 
 ## 待驗證
 
@@ -42,7 +43,7 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **產品主線**：39 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「金鑰名稱在同 Consumer + Environment 下重複 — 拒絕建立」（handler guard 3 與 `GivenKeyNameAlreadyExists` step 皆已存在；該 Given 同樣不 seed tenant/consumer，但 `GivenActiveKeyCount` 的條件式 seed 先例可循 — 注意 `GivenKeyNameAlreadyExists` 引用 `_ctx.CurrentTenantId`，需同型補 seed）。派工一律用 `tasks/_templates/executor-spec.md`。
+1. **產品主線**：38 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「指定的 Scope 不存在 — 拒絕建立」（handler guard 4 的 `scopeRegistry.AllExistAsync` 與 `GivenScopeNotRegistered`／`WhenConsumerCreatesKeyWithScope` steps 皆已存在；該 When 用 `_ctx.CurrentTenantId` 且路徑帶 `any-consumer`，場景無前置 tenant/consumer Given，預期需在某個 step 補條件式 seed — 派工前照例先讀宣告核實）。派工一律用 `tasks/_templates/executor-spec.md`。
 2. **hash 演算法 ADR**（todo #5）：驗證熱路徑實作前必須裁決（Argon2id / HMAC / BCrypt 續用），連帶 todo #7 併發 guard、#8 constant-time 比較。
 3. **小項**：todo #14–#18、#21–#24 housekeeping。
 4. **QA #2 變異測試（Stryker.NET）**：Wave 1（`01_CreateApiKey` 全 10 場景）全綠後啟動；範圍鎖 KeyLifecycle + TenantManagement，跑法為 on-demand script 或 CI 週期性 job，**非 gate**（使用者 2026-07-05 核准排程）。
