@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ApiKeyManagement.TestInfrastructure;
 
@@ -34,8 +36,10 @@ public class ApiKeyManagementWebApplicationFactory : WebApplicationFactory<Progr
 
         builder.ConfigureServices(services =>
         {
-            // FakeClock will be registered here once ISystemClock is defined in SharedKernel.
-            // services.Replace(ServiceDescriptor.Singleton<ISystemClock, FakeClock>());
+            // Freeze TimeProvider so expiry-boundary scenarios share one deterministic
+            // "now" between the test's When step and the handler's guard (see FrozenTimeProvider).
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(new FrozenTimeProvider());
         });
     }
 }

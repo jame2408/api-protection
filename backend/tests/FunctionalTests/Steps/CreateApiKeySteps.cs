@@ -247,6 +247,22 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         await PostCreateKeyAsync(expiresAt: DateTimeOffset.UtcNow.AddYears(5));
     }
 
+    [When(@"Consumer 建立金鑰，到期時間恰為現在")]
+    public async Task WhenConsumerCreatesKeyExpiringExactlyNow()
+    {
+        await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
+        var now = _ctx.ServiceScope!.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+        await PostCreateKeyAsync(expiresAt: now);
+    }
+
+    [When(@"Consumer 建立金鑰，到期時間恰為最大允許有效期")]
+    public async Task WhenConsumerCreatesKeyExpiringAtMaxValidity()
+    {
+        await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
+        var now = _ctx.ServiceScope!.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+        await PostCreateKeyAsync(expiresAt: now.AddDays(ApiKey.GetMaxValidityDays()));
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------

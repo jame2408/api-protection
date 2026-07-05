@@ -58,3 +58,12 @@ Feature: 建立 API 金鑰
   Scenario: 到期時間超過最大允許有效期 — 拒絕建立
     When  Consumer 建立金鑰，到期時間為 5 年後
     Then  建立失敗，錯誤原因為「超過最大允許有效期」
+
+  # mutation 基線驅動的邊界場景，使用者 2026-07-05 核准新增
+  Scenario: 到期時間恰為現在 — 拒絕建立
+    When  Consumer 建立金鑰，到期時間恰為現在
+    Then  建立失敗，錯誤原因為「到期時間必須在未來」
+
+  Scenario: 到期時間恰為最大允許有效期 — 成功建立
+    When  Consumer 建立金鑰，到期時間恰為最大允許有效期
+    Then  金鑰狀態為 Active
