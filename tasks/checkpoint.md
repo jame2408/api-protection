@@ -42,7 +42,8 @@
 
 ## 待裁決
 
-- 無排定事項；跨全檔僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞，不需要立即裁決。
+- **Loop engineering 缺口報告 Q1–Q5**（`tasks/loop-audit-2026-07-05.md` §5）：jsonl 回饋化（需修訂 ADR-008）、BDD 紀律 D1/D2 機械化、Guard 正負場景裁決、懸空 lesson 收口、報告去留。Phase 3 動手前須使用者逐條裁決。
+- 跨全檔另僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞，不需要立即裁決。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
@@ -58,4 +59,4 @@
 
 ## 如何接上
 
-新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章（模型分級、executor 義務、全域停止條件），`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（背景資料，非必讀）。`.claude/hooks/session-init.sh` 會自動注入 must-read 規則與 `tasks/lessons.md` Active 區教訓。每條新檢驗記得「綠＋故意紅」驗證；任務完成後回來更新本檔（覆寫「已完成」「下一步」等欄位為當下實況，不需保留歷史版本——歷史紀錄在 git log）。
+新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章（模型分級、executor 義務、全域停止條件），`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（背景資料，非必讀）。`.claude/hooks/session-init.sh` 會自動注入 must-read 規則與 `tasks/lessons.md` Active 區教訓。每條新檢驗記得「綠＋故意紅」驗證；phase 收尾更新本檔前，先跑 `scripts/failure-triage.sh` 並處置 `REPEAT` 簽名（`docs/adr/adr-018-failure-triage-and-observations-retirement.md` 決策 §3）；任務完成後回來更新本檔（覆寫「已完成」「下一步」等欄位為當下實況，不需保留歷史版本——歷史紀錄在 git log）。

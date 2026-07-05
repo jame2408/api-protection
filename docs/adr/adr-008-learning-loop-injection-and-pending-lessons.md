@@ -12,6 +12,8 @@ Accepted (2026-07-04)
 
 Superseded by（部分）：決策 §2 與 Implementation Rule 2（「最近 8 條全文」設計）已由 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b) 修訂為 Active/Archived 分區 + 只注入標題與 Rule 行；本 ADR 其餘決策（marker 去重、pending-lessons 退役、hook 冒煙測試）維持有效。
 
+Superseded by（部分，2026-07-05）：決策 §3 末項（observations／failures 純 forensic 保留條款）與 Implementation Rule 5 已由 `docs/adr/adr-018-failure-triage-and-observations-retirement.md` 修訂 — `observations.jsonl` 除役，`failures.jsonl` 接上 phase 收尾 triage 回饋通道；「不得作為注入／nag 的 context 來源」維持有效。
+
 ---
 
 ## Context

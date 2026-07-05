@@ -56,6 +56,8 @@
 | 19c | 語意層品質規則（`CancellationToken` 傳播經 CA2016 直接命中、`throw ex;` 經 CA2200 直接命中、文化敏感字串操作經 CA1304/CA1310/CA1311 直接命中）+ FluentAssertions 強制（禁 `xunit.Assert.*`）— 協調憲章明文規則 (i) + `docs/adr/adr-016-roslyn-analyzer-gate.md` | `backend/Directory.Build.props`（`AnalysisLevel=latest-recommended` + `CodeAnalysisTreatWarningsAsErrors=true`）+ `Microsoft.CodeAnalysis.BannedApiAnalyzers`（測試三專案 `PackageReference` + 共用 `backend/tests/BannedSymbols.txt`） | 每次 restore/build（fast 的 format 段、full 的 build 段、CI 共用同一 build） | 腳本 |
 | **HMAC 金鑰雜湊（docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md）** ||||
 | 19d | KeyHash = Base64(HMACSHA256(pepper, rawKey)) 確定性／pepper 敏感性／輸出形狀；pepper 缺值或 < 32 bytes 啟動 fail-fast — docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md Implementation Rules 3/5 | backend/tests/FunctionalTests/Infrastructure/HmacApiKeyHasherTests.cs | push 前 / CI | 腳本 |
+| **學習迴圈 triage（`docs/adr/adr-018-failure-triage-and-observations-retirement.md`）** ||||
+| 19e | phase 收尾更新 `tasks/checkpoint.md` 前必跑 failure triage；`REPEAT` 簽名三選一處置（lesson / todo / checkpoint 記不轉理由）— `docs/adr/adr-018-failure-triage-and-observations-retirement.md` 決策 §3 | `scripts/failure-triage.sh`（報表）＋人工判讀 | phase 收尾 | 人／大型模型 |
 | **AI review 類** ||||
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
