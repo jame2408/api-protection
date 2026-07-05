@@ -73,6 +73,12 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Rule:** (1) 治理機制視為 feature-complete——新防線／新模板／新流程只在「觀察到的失敗」後追加，禁止投機性立法；解決制度問題優先用裁決習慣，不新增制度形態（含「輕量化 ADR 模板」這類二階制度）。(2) 制度預算讓位產品側——下一份 ADR 應是 hash 演算法（產品架構級），其後重心為 BDD 進度，直到再有事故證明治理有洞。
 **落地:** 本條 lesson（使用者 2026-07-05 裁決採納兩條啟發式）。
 
+### [info] CodeAnalysisTreatWarningsAsErrors 只升級 CA 前綴 — 其他 analyzer 診斷需顯式 severity=error
+**Date:** 2026-07-05
+**Context:** ADR-016 故意紅驗證時發現：`Xunit.Assert` 的 banned-symbol 違規只出 `warning RS0030`、不擋 build——`CodeAnalysisTreatWarningsAsErrors` 語意上僅提升 `CA*` 前綴診斷，RS／xUnit／第三方 analyzer ID 不在覆蓋範圍。沒做故意紅就會上線一個不會咬人的 gate。
+**Rule:** 引入非 CA 前綴的 analyzer 規則時，阻斷性必須以 `.editorconfig` 的 `dotnet_diagnostic.<ID>.severity = error` 顯式設定，且一律用故意紅證明真的會使 build 失敗；不得假設 TreatWarningsAsErrors 類屬性已涵蓋。
+**落地:** `backend/tests/.editorconfig` RS0030 段（commit `7bb4053`）；本條 lesson。
+
 ### [info] 本機 bash 是 macOS 內建 3.2 — 腳本禁用 mapfile；set -e 下 RETURN trap 不觸發
 **Date:** 2026-07-05
 **Context:** coverage gate 落地時 executor 兩度踩雷：(1) `mapfile -t`（bash 4+ 內建）在 `/bin/bash` 3.2.57 直接 `command not found`；(2) 想用 `trap ... RETURN` 清暫存目錄，實測 `set -euo pipefail` 下函式因錯誤中止時 RETURN trap 不會觸發，清理靜默失效。
