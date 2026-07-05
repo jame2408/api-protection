@@ -4,13 +4,11 @@
 #
 # The PostToolUseFailure payload differs from PostToolUse: there is no
 # tool_response field; instead an `error` string and an optional
-# `is_interrupt` boolean describe the failure. We reuse the same secret
-# scrubbing approach (key-based + value-based regex) as post-tool-observe.sh
-# but apply it to tool_input + error only.
+# `is_interrupt` boolean describe the failure. Secret scrubbing (key-based +
+# value-based regex) is applied to tool_input + error only.
 #
-# Note: the scrubber implementation is duplicated from post-tool-observe.sh.
-# A future refactor can extract scrub.py into a shared library; deferred to
-# keep this commit single-intent.
+# Note: this is the sole scrubber implementation — the observation hook that
+# originally shared it was retired by ADR-018.
 
 INPUT=$(cat)
 
