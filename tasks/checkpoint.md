@@ -19,6 +19,8 @@
 - Phase J：ADR-013 內容分級 — CLAUDE.md 197→111 行、注入改 Active-Rule 行（-56%）、本檔成為唯一續接入口 — `fb14f8b`
 - Phase K：tasks/ 歸檔（phase specs → `tasks/archive/`、todo 結案項收攏、指針全修） — `ac8bdaa`
 - 產品主線首戰：scenario「租戶狀態非 Active — 拒絕建立」以 orchestrator 寫 spec → executor 實作模式落地（slice 早已完整，僅移 `@ignore` + 進度檔同 commit），3/44 — `39b2ecc`
+- Executor spec 範本 + lessons（故意紅義務、取證紀律、orchestrator 界線澄清）— `fee94c9`
+- scenario「Consumer 不屬於該租戶 — 拒絕建立」Red→Green（step 補 seed Active tenant，production 未動），4/44，首次套用 executor-spec 範本 — `9101bff`
 
 ## 待驗證
 
@@ -34,7 +36,7 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **產品主線**：41 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「Consumer 不屬於該租戶 — 拒絕建立」（guard 與 steps 疑似也已存在，派工前先核實 slice 完整度）。orchestrator→executor 模式已在產品場景跑通一輪。
+1. **產品主線**：40 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「Active 金鑰數達到上限 — 拒絕建立」（handler guard 與 `GivenActiveKeyCount` step 皆已存在，可能是啟用型 → 依 executor-spec 範本適用「故意紅」欄）。派工一律用 `tasks/_templates/executor-spec.md`。
 2. **hash 演算法 ADR**（todo #5）：驗證熱路徑實作前必須裁決（Argon2id / HMAC / BCrypt 續用），連帶 todo #7 併發 guard、#8 constant-time 比較。
 3. **小項**：`Microsoft.OpenApi` NU1903 弱點升版；todo #14–#18、#21–#24 housekeeping。
 
