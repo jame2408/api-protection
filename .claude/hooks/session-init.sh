@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Hook: UserPromptSubmit
 # Purpose: Once per session, inject (1) a must-read rules reminder and
-# (2) the most recent entries from tasks/lessons.md, so Claude has the
-# project's rules and prior lessons in context without needing to be
-# reminded.
+# (2) the title + Rule line of every "## Active" entry in tasks/lessons.md
+# (Archived entries are skipped — their risk is already caught by a
+# mechanized gate, see ADR-013 decision (b)), so Claude has the project's
+# rules and prior lessons in context without needing to be reminded.
 #
 # Dedup design: keyed on the hook payload's session_id + a marker file
 # (rewritten instead of the old transcript-turn-counting approach, which
@@ -59,24 +60,25 @@ echo ""
 echo "這些規則是機械化強制的，不是建議：違規會在「寫的當下」被 PreToolUse hook 擋（\`.claude/hooks/pre-tool-edit.py\`），並由 Architecture.Tests 與 \`scripts/source-lint.sh\` 在 commit / push / CI 攔下（\`scripts/ci-checks.sh\`）。未讀就動手 = 高機率被擋、來回重做。"
 echo ""
 
-# Extract the most recent lessons from tasks/lessons.md. Entries are anchored
-# by a literal "### [" at the start of a line — stable across template
-# revisions, unlike counting "---" separators (which silently broke before;
-# see ADR-008). At most the last 8 entries are injected, in their existing
-# file order (never reordered).
+# Extract lessons from tasks/lessons.md, tiered per ADR-013 decision (b):
+# the file is split into a "## Active" section (not yet backed by a
+# mechanized gate) and a "## Archived" section (the described risk is now
+# caught by a test/lint/hook, so the gate itself is the memory — no need to
+# keep paying injection tokens for it). Only Active entries are injected,
+# and only their "### [" title line + "**Rule:**" line (Context / 落地
+# are dropped) — this replaces ADR-008 §2 / Implementation Rule 2's
+# "most recent 8 entries, full text" design, which predates the
+# Active/Archived split.
 if [ -f "$LESSONS_FILE" ]; then
-  LESSONS_OUTPUT=$(awk '
-    /^### \[/ { n++; anchor[n] = NR }
-    { line[NR] = $0 }
-    END {
-      total = NR
-      if (n == 0) { exit }
-      start = (n > 8) ? anchor[n - 8 + 1] : anchor[1]
-      for (i = start; i <= total; i++) print line[i]
-      print ""
-      printf("（完整 %d 條見 tasks/lessons.md）\n", n)
-    }
-  ' "$LESSONS_FILE")
+  ACTIVE_BLOCK=$(awk '/^## Active/ { f = 1; next } /^## Archived/ { f = 0 } f' "$LESSONS_FILE")
+  ARCHIVED_BLOCK=$(awk '/^## Archived/ { f = 1; next } f' "$LESSONS_FILE")
+  ACTIVE_COUNT=$(printf '%s\n' "$ACTIVE_BLOCK" | grep -c '^### \[')
+  ARCHIVED_COUNT=$(printf '%s\n' "$ARCHIVED_BLOCK" | grep -c '^### \[')
+
+  LESSONS_OUTPUT=$(printf '%s\n' "$ACTIVE_BLOCK" | awk '
+    /^### \[/ { print; next }
+    /^\*\*Rule:\*\*/ { print }
+  ')
 
   if [ -n "$(echo "$LESSONS_OUTPUT" | tr -d '[:space:]')" ]; then
     echo "## Session Context: Lessons Learned"
@@ -85,6 +87,8 @@ if [ -f "$LESSONS_FILE" ]; then
     echo "Apply them proactively without waiting to be reminded."
     echo ""
     echo "$LESSONS_OUTPUT"
+    echo ""
+    printf '（Active %d 條，Archived %d 條 — 完整內容見 tasks/lessons.md）\n' "$ACTIVE_COUNT" "$ARCHIVED_COUNT"
   fi
 fi
 

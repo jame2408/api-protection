@@ -83,14 +83,14 @@
 
 ## 6. 冷啟動標準 prompt
 
-> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (d) 管轄，修改文字須先開新 ADR。
+> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (d) 管轄，修改文字須先開新 ADR。交接入口指針已由 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c) 修訂為 `tasks/checkpoint.md`（原指 `tasks/process-improvement-plan.md` §8.5）。
 
 給使用者 / 協調者在開新 session 接手時使用的固定開場文字，取代每次臨場手寫指示。內容只放指針，不重複規範本體（比照 §5 原則 2）：
 
-    讀 `tasks/process-improvement-plan.md` §8.5（Resume Checkpoint）掌握現況，
+    讀 `tasks/checkpoint.md`（Resume Checkpoint）掌握現況，
     再讀本文件（協調憲章）掌握模型分級、executor 義務、全域停止條件與
-    checkpoint 格式；依 §8.5 記載的「下一步」清單接手，若清單已空則向規格
-    擁有者確認下一個任務來源。
+    checkpoint 格式；依 `tasks/checkpoint.md` 記載的「下一步」清單接手，若
+    清單已空則向規格擁有者確認下一個任務來源。
 
 ---
 

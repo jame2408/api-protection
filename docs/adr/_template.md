@@ -147,3 +147,17 @@ N+1. 任何提案修改 1–N，必須先開新 ADR。
 <!--
 治理條款（最後一條）是必須項。它阻擋「悄悄改 rule.md 範例 → 範例 drift → 結論 drift」的惡性循環。
 -->
+
+<!--
+Review Checklist（判斷型，7 項）— 合併任何 ADR PR 前逐條核對，來源：CLAUDE.md
+「Architecture Decision Records (ADR)」→「Validation」段（`docs/adr/adr-013-content-tiering-and-injection-slimming.md`
+決策 (d) 把此清單從 CLAUDE.md 移到這裡，CLAUDE.md 只留一行指針）：
+
+1. Context 是否並排引用實際衝突（程式碼 / 設計文件 / CLAUDE.md），而非泛泛敘述？
+2. Decision 是否明確劃定「不在本 ADR 範圍」的邊界，避免被過度解讀？
+3. Decision 每條是否附最小 code 範例（before/after 對比優先）？
+4. Rationale 是否回答「為何選 X 而不選 Y」「為何不擴張」「為何不機械化」三類問題？
+5. 至少列出 3 個 Alternatives？少於 3 個通常代表沒想夠。
+6. Implementation Rules 每條是否「能被 review 打勾」（祈使句、可驗證）？
+7. 同步項目是否在「同 commit」一起改，而非另開 PR？
+-->

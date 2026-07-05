@@ -1,20 +1,18 @@
 # Claude Code Rules & Workflow
 
+> 內容分級原則（`docs/adr/adr-013-content-tiering-and-injection-slimming.md`）：本檔只保留「全局且每 session 需要」的內容；細則一律指針化到權威文件（rule.md / Accepted ADR / `docs/verification-matrix.md`）。
+
 ## Commands
 
 ```bash
 # Build
 dotnet build backend/ApiKeyManagement.slnx
-
 # Run (development)
 dotnet run --project backend/src/Host/ApiKeyManagement.Api.csproj
-
 # Run all tests
 dotnet test backend/ApiKeyManagement.slnx
-
 # Run BDD functional tests only
 dotnet test backend/tests/FunctionalTests/
-
 # Run architecture tests
 dotnet test backend/tests/Architecture.Tests/
 ```
@@ -25,173 +23,89 @@ _How Claude and the user collaborate — committed to the repo so it persists ac
 
 ### Orchestrator Brief
 
-本專案真正目的是建立「多模型統一開發 loop」，key 管理服務只是載體。接手本 repo 的模型即擔任**協調者** — 角色定義、模型分級、executor 義務、停止條件、token 紀律全在 `docs/orchestration.md`（唯一權威，此處不複寫）。開工第一動作：讀 `tasks/process-improvement-plan.md` §8.5 checkpoint 接手，勿要求使用者重述背景。
+本專案真正目的是建立「多模型統一開發 loop」，key 管理服務只是載體。接手本 repo 的模型即擔任**協調者** — 角色定義、模型分級、executor 義務、停止條件、token 紀律全在 `docs/orchestration.md`（唯一權威，此處不複寫）。開工第一動作：讀 `tasks/checkpoint.md` 接手，勿要求使用者重述背景。
 
 ### Autonomy Scope
-- **Bug reports**: Resolve autonomously — analyze logs, isolate root cause, fix, verify. No step-by-step guidance needed.
+- **Bug reports**: Resolve autonomously — analyze logs, isolate root cause, fix, verify.
 - **Feature tasks**: Document the plan in `tasks/todo.md` and get user approval before starting.
-- **Business logic & domain decisions**: Always stop and ask. Never assume intent on requirements, domain flows, or use-case behavior.
+- **Business logic & domain decisions**: Always stop and ask — never assume intent.
 
 ### Change Discipline
-- Prefer small, reviewable changes. When generating new files, align them with existing repo patterns — not generic templates.
-- Never bulk-rewrite `CLAUDE.md`. All changes must be scoped, intentional, and initiated by the user.
-- Before editing or reviewing a file, verify the exact path matches what was requested — do not assume based on file type or name similarity.
-
-### Configuration
-- `.claude/settings.json` holds shared defaults; `.claude/settings.local.json` holds machine-local overrides. Do not modify either unless explicitly requested.
+- Prefer small, reviewable changes; align new files with existing repo patterns, not generic templates.
+- Never bulk-rewrite `CLAUDE.md`; changes must be scoped, intentional, user-initiated.
+- Verify the exact file path before editing — do not assume based on name/type similarity.
+- `.claude/settings.json` = shared defaults, `.claude/settings.local.json` = machine-local; don't modify either unless explicitly requested.
+- Evaluate all suggestions critically; never transcribe user text verbatim — compress and clarify. Say so directly if a suggestion contradicts existing rules.
 
 ### Architecture Decision Records (ADR)
-- New ADRs MUST start from `docs/adr/_template.md`. Do not freeform; the template encodes the project's required structure (Status / Context / Decision / Rationale / Consequences / Alternatives Considered / Implementation Rules + governance clause).
-- File naming: `docs/adr/adr-NNN-kebab-case-title.md` (next available number). <!-- machinery-check:ignore: placeholder pattern, not a real file -->
-- Reference other docs by stable anchors (file + section heading, file + symbol, or quoted content) — never by `file:line`.
-- The final Implementation Rule MUST be the governance clause: "任何提案修改 1–N，必須先開新 ADR".
-- ADRs that touch reference docs / CLAUDE.md / examples MUST explicitly list "同步項目" — either as a one-liner under Status (when the list is short, like ADR-004) or as a Decision sub-section (when it's a substantive checklist, like ADR-005 §6 / ADR-006 §6). All sync edits MUST land in the same commit as the ADR.
+- New ADRs MUST start from `docs/adr/_template.md` (encodes required structure + governance clause); file naming `docs/adr/adr-NNN-kebab-case-title.md`. <!-- machinery-check:ignore: placeholder pattern, not a real file -->
+- Reference other docs by stable anchors (heading / symbol / quote) — never `file:line`. Final Implementation Rule MUST be the governance clause ("任何提案修改 1–N，必須先開新 ADR").
+- ADRs touching reference docs / CLAUDE.md / examples MUST list "同步項目" (Status one-liner or Decision sub-section) and land all sync edits in the same commit.
 
 #### Validation
-- **Structural lint (mechanical)**: `scripts/adr-lint.sh` checks Status format, required sections, governance clause, file:line bans, filename numbering, Alternatives "Rejected." markers, and trade-off "Mitigation:" follow-ups. Pre-commit hook auto-runs it whenever `docs/adr/` is staged. Install once per clone via `scripts/install-git-hooks.sh`.
-- **Acceptance commands**: ADRs that promise repo-wide cleanups (grep歸零、refactor across docs) MUST embed runnable verification commands in their Implementation Rules (see ADR-006 §6 for the canonical pattern). Run them before marking the ADR Accepted.
-- **Review checklist (judgment, not mechanical)** — apply to every ADR PR:
-  1. Context 是否並排引用實際衝突（程式碼 / 設計文件 / CLAUDE.md），而非泛泛敘述？
-  2. Decision 是否明確劃定「不在本 ADR 範圍」的邊界，避免被過度解讀？
-  3. Decision 每條是否附最小 code 範例（before/after 對比優先）？
-  4. Rationale 是否回答「為何選 X 而不選 Y」「為何不擴張」「為何不機械化」三類問題？
-  5. 至少列出 3 個 Alternatives？少於 3 個通常代表沒想夠。
-  6. Implementation Rules 每條是否「能被 review 打勾」（祈使句、可驗證）？
-  7. 同步項目是否在「同 commit」一起改，而非另開 PR？
-
-### Intellectual Independence
-- Evaluate all suggestions critically. Never transcribe user text verbatim — compress, clarify, and find the more precise formulation.
-- If a suggestion has issues or contradicts existing rules, say so directly before implementing.
+- **結構性 lint**：`scripts/adr-lint.sh`（Status 格式／必要章節／governance clause／禁 file:line／檔名編號／Alternatives 需 "Rejected."／Trade-off 需 "Mitigation:"）；staged 含 `docs/adr/` 時 pre-commit 自動跑。
+- **驗收指令**：承諾 repo 範圍清理的 ADR，Implementation Rules 須內嵌可執行驗證指令（範例見 ADR-006 §6）。
+- **Review checklist（判斷型，7 項）**：合併 ADR PR 前逐條核對，清單見 `docs/adr/_template.md` 內建的 Review Checklist 註解區。
 
 ## Workflow Orchestration
 
 ### 0. Reference Loading
-
-Before writing any backend code (production or test) in this session, read `.claude/references/dotnet/*.rule.md` and `.claude/references/general/*.rule.md` if not yet loaded in this session. Load once per session — skip if already read.
+Before writing any backend code (production or test) this session, read `.claude/references/{dotnet,general}/*.rule.md` if not yet loaded. Once per session.
 
 ### 1. Plan-First Approach
-
-**Enter Plan Mode when ANY of the following apply:**
-- Task touches 3+ files with interdependent changes
-- Task involves architectural decisions (new BC slice, new dependency, schema change, integration contract)
-- The wrong approach would cause significant rework
-- A previous attempt at this task failed
-
-**Skip Plan Mode when:**
-- Change is confined to a single file and the solution is clear
-- It's a hotfix, typo, or rename
-- The task is reversible with no downstream impact
-
-- **Pivot:** If a task deviates or encounters unexpected issues, STOP and re-plan immediately. NEVER force progress.
-- **Specificity:** Write detailed technical specifications upfront to eliminate ambiguity.
+Enter Plan Mode when: 3+ interdependent files; architectural decisions (new BC slice, dependency, schema/contract change); a wrong approach risks major rework; a prior attempt failed. Skip when: single-file change with a clear solution; hotfix/typo/rename; fully reversible with no downstream impact.
+- **Pivot**: on deviation or unexpected issues, STOP and re-plan immediately — never force progress.
 
 ### 2. Subagent Strategy
-
-- Use subagents for: deep research, parallel independent queries, tasks that would bloat the main context (e.g. reading 10+ files, broad codebase exploration).
-- DO NOT use subagents for: single-file reads, simple searches, tasks answerable in 1-2 tool calls, or anything where you already have the answer.
-- One specific task per subagent; NEVER delegate synthesis or decision-making to a subagent.
-- Subagents MUST return exact file paths, accurate code snippets, or explicit factual answers. NEVER accept generalized summaries or speculative logic from a subagent.
+Use for deep research, parallel independent queries, or context-bloating tasks (10+ file reads, broad exploration); skip for single-file reads or answers you already have. One task per subagent — never delegate synthesis. Subagents must return exact paths / snippets / facts, never generalized summaries.
 
 ### 3. Self-Improvement Loop
-
-Write to `tasks/lessons.md` after ANY of the following:
-  - User correction or pushback ("no", "don't", "change it to...")
-  - I self-correct after a failed command, wrong approach, or misunderstanding
-  - A non-obvious technical decision is made (architecture, library choice, tradeoff)
-  - A bug's root cause is non-trivial or surprising
-  - A repeated issue appears for the second time
-  - User confirms a non-obvious approach worked ("yes exactly", "perfect", accepting an unusual choice)
+Write to `tasks/lessons.md` (under `## Active`) after: user correction/pushback; self-correction post a failed attempt; a non-obvious technical decision; a surprising bug root cause; a repeated issue; user confirms a non-obvious approach worked.
 
 ### 4. Verification Standards
-
-**Definition of Done — ALL must pass before marking complete:**
-
-_Tests:_
-- BDD scenario(s) covering the change pass via Reqnroll + xUnit
-- Unit test coverage ≥ 80% for Handler code
-- Architecture tests pass (no BC cross-references via NetArchTest)
-- Each Guard condition has positive AND negative scenario
-
-_Error Handling (Critical — zero tolerance):_
-- CRITICAL: Service layer uses `Result<T, Failure>` — NEVER `throw` for business logic
-- NEVER use `new Failure()` — all failures created via `FailureProvider.CreateFailure()`
-- NEVER access `.Value` without checking `.IsFailure` first
-- NEVER use empty catch blocks; NEVER use `throw ex;` (use `throw;`)
-- NEVER inject `ILogger` into Service, Domain, or Handler layers. Diagnostic context (entity IDs, input values, tenant scope) is captured at the boundary — Endpoint, Middleware, Pipeline Behavior, or Background Service — by reading `HttpContext`, the inbound Command, or the Query object. `Failure.Code` is the only thing Service / Handler propagates upward; it is a stable string contract, never a free-form message. See `docs/adr/adr-004-failure-shape-and-claude-md-alignment.md`.
-
-_Code Quality:_
-- Async methods must accept `CancellationToken cancel` and propagate it to every I/O call — EF Core queries, `SaveChangesAsync`, HTTP clients, and message bus operations. NEVER silently drop it.
-- Naming conventions: PascalCase methods, `_camelCase` fields, `Async` suffix on async methods
-- NEVER add direct BC-to-BC references (only via SharedKernel interfaces)
-- FluentAssertions used in tests, not direct comparison
-
-_Performance (for hotpath changes):_
-- API Key validation latency P99 < 50ms
-- Validation throughput ≥ 100 RPS
-
-_Evidence:_
-- Always run tests and provide output to demonstrate correctness
-- For changes touching existing behavior, compare against master branch before marking done
+**Definition of Done — all must pass before marking complete:**
+- BDD scenario(s) pass via Reqnroll + xUnit; unit coverage ≥ 80% for Handler code; architecture tests pass (no BC cross-references); each Guard has positive AND negative scenarios.
+- Error handling / code quality (critical, zero tolerance): Result-only in the service layer (never `throw` for business logic, never `new Failure()`, never bare-string codes), `CancellationToken cancel` propagated to every I/O call, no `ILogger` in Service/Domain/Handler, no direct BC-to-BC references, FluentAssertions in tests. Full rule text: `.claude/references/dotnet/*.rule.md`, `docs/adr/adr-003-error-handling-and-cross-bc-contracts.md`, `docs/adr/adr-004-failure-shape-and-claude-md-alignment.md`; enforcement registry (which mechanism, when): `docs/verification-matrix.md`.
+- Performance (hotpath changes only): P99 < 50ms, throughput ≥ 100 RPS.
+- Evidence: always run tests and show output; compare against `main` for behavior-changing work.
 
 ### 5. Demand Elegance
-
-- Before presenting a solution, silently evaluate: "Is there a more elegant way?" — assess internally first; only ask the user if evaluation reveals a genuine ambiguity or tradeoff that requires their input.
-- If a fix feels like a "hack," find the root cause and implement the proper solution instead.
-- Avoid over-engineering: elegance means the simplest correct solution, not the cleverest one.
+Silently ask "is there a more elegant way?" before presenting a solution — surface to the user only on genuine ambiguity/trade-off. A "hack" means find the root cause instead; elegance = simplest correct solution, not the cleverest one.
 
 ### Orchestration & Verification
-
 多模型協調與驗證機制的權威來源不在本檔，只放指針（見 `docs/adr/adr-010-norm-doc-discovery-wiring.md`）：
 - `docs/orchestration.md` — 多模型協調憲章（模型分級、executor contract、全域停止條件）
 - `docs/verification-matrix.md` — 驗證登記表（哪條規則由什麼機制、在什麼時機、由誰驗證）
-- `tasks/_templates/checkpoint.md` — session 交接模板
+- `tasks/checkpoint.md` — session 交接的唯一續接入口
 - `AGENTS.md` — 非 Claude Code harness 的薄入口
 
 ## BDD Scenario Development Cycle
 
-> **Scope**: This cycle covers the **development** phase only — it assumes `.feature` scenarios and API specs are already produced (via the `requirements-analysis-design` skill or equivalent discovery process). Do not write new `.feature` files within this cycle; only implement pre-existing scenarios tracked in `tasks/bdd-progress.md`.
+> Development phase only — `.feature` scenarios and API specs are already produced. Do not author new `.feature` files here.
 
-**Kanban**: `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` → ✅ Done. New scenarios from discovery go to backlog first; only the user decides when and where to promote them to progress. Claude MUST NOT move items from backlog to progress autonomously.
+**Kanban**: `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` → ✅ Done. Only the user promotes backlog → progress; Claude MUST NOT do this autonomously. `tasks/bdd-progress.md` is the queue SSOT; find the next scenario via `grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1`.
 
-**Progress**: `tasks/bdd-progress.md` is the single source of truth for the implementation queue. To find the next scenario at runtime, run:
-```bash
-grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1
-```
-Unimplemented scenarios are tagged `@ignore` in their `.feature` files so the test suite stays Green at all times.
+**Execute via** the `/bdd-vertical-slice` skill (procedure, BC identification, patterns).
 
-**To execute the cycle, invoke the `/bdd-vertical-slice` skill.** Step-by-step procedure, BC identification, vertical slice patterns, and implementation guidance live there.
+**Constraints (always enforced, regardless of skill — human/agent discipline, not mechanically gated)**: never remove more than one `@ignore` at a time unless scenarios share identical new step definitions; never mark done without test output showing it passing; `tasks/bdd-progress.md` update MUST land in the same commit as the implementation; never commit red (exceptions: confirming a scenario/its steps are unimplemented, immediately before writing them).
 
-**Constraints — enforced at all times regardless of skill invocation:**
-
-- Never remove more than one `@ignore` at a time unless scenarios share the exact same new step definitions.
-- Never mark a scenario done unless the test output shows it passing.
-- NEVER commit a completed scenario without first updating `tasks/bdd-progress.md` (mark ✅, increment count). The progress update must be included in the same commit as the implementation.
-- NEVER commit or mark a scenario done with a failing test suite. The suite MUST be Green before any commit and throughout refactoring. The only permitted Red states are: (a) after removing `@ignore` to confirm the scenario is unimplemented, and (b) after writing step definitions to confirm they are not yet implemented. All other failures require an immediate stop and fix.
-
-**Refactor Constraints:**
-- **Production refactor**: only touch `backend/src/` — NEVER change `backend/tests/`
-- **Test refactor**: only touch `backend/tests/` — NEVER change `backend/src/`
-- NEVER mix both in the same refactor pass; run tests after each pass to confirm Green.
-- Exception: interface or DTO renames that span both may be done in a single pass, but MUST be the only change in that commit.
+**Refactor discipline**: production-only (`backend/src/`) or test-only (`backend/tests/`) passes — never mixed — except interface/DTO renames spanning both as the sole change in that commit.
 
 ## Task Management Protocol
-
-1. Plan First: Document the execution plan in tasks/todo.md with checkable items before starting. (Autonomy and approval rules are in the Working Agreement above.)
-2. Track Progress: Mark items as complete in real-time.
-3. Explain Changes: Provide a high-level summary after completing each major step.
-4. Document Results: Add a summary/review section to tasks/todo.md upon completion, then write any lessons to tasks/lessons.md.
+1. Plan first in `tasks/todo.md` (approval rules: see Working Agreement).
+2. Track progress in real time; explain changes after each major step.
+3. On completion: add a summary/review to `tasks/todo.md`, write lessons to `tasks/lessons.md`.
 
 ## Core Principles
-
-- Minimal Blast Radius: Touch only the code necessary for the task. DO NOT introduce side effects, unrelated changes, or speculative abstractions.
-- Root Cause Only: NEVER apply band-aid fixes. Always find and fix the actual cause.
-- Security First: Never introduce command injection, hardcoded secrets, or OWASP Top 10 vulnerabilities. Validate at system boundaries only.
+- **Minimal Blast Radius**: touch only what the task needs — no side effects, unrelated changes, or speculative abstractions.
+- **Root Cause Only**: never band-aid; find and fix the actual cause.
+- **Security First**: never introduce injection / hardcoded secrets / OWASP Top 10 issues; validate at boundaries.
 
 ## Non-Negotiable Constraints (repeated for attention)
 
 These apply at all times regardless of other instructions:
 
-- CRITICAL: NEVER `throw` for business logic — use `Result<T, Failure>` throughout the service layer.
-- CRITICAL: NEVER commit or complete a task with a failing test suite — suite must be Green before every commit and throughout refactoring. Intentional Red states during the TDD cycle (confirming unimplemented scenario or step definitions) are the only exceptions.
-- CRITICAL: NEVER remove more than one `@ignore` tag at a time.
-- CRITICAL: NEVER add direct BC-to-BC references — only via SharedKernel interfaces.
+- CRITICAL: NEVER `throw` for business logic — use `Result<T, Failure>` throughout the service layer. (架構測試強制：`HandlerResultReturnTests.cs`)
+- CRITICAL: NEVER commit or complete a task with a failing test suite — Green before every commit and throughout refactoring; TDD's intentional Red (confirming a scenario/its steps are unimplemented) is the only exception. (`scripts/ci-checks.sh` 強制)
+- CRITICAL: NEVER remove more than one `@ignore` tag at a time. (人工紀律，無機械化防線)
+- CRITICAL: NEVER add direct BC-to-BC references — only via SharedKernel interfaces. (架構測試強制：`BoundedContextIsolationTests.cs`)

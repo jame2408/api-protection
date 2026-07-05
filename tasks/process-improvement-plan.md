@@ -375,21 +375,11 @@ Status enum wire format 已由 ADR-006 補強，但 RFC 9457 ProblemDetails、`t
 
 最內層（寫的當下）已補上；唯一休眠的是 CI（待 repo 上 GitHub）。涵蓋 9 類 CLAUDE.md / ADR 規則：BC 隔離、Repository raw return、Handler 必回 Result、ILogger 邊界、Handler/Repository/FailureCodes 命名、Failure shape lock、禁 `new Failure(`、bare-string code、`cancel` 命名。
 
-### 8.5 Resume Checkpoint（給下個 session — 從這裡接上）
+### 8.5 Resume Checkpoint — 已遷出
 
-**現況（2026-07-05 二次更新，Phase I 全部收尾後）**：**分支現況 = main only**。TBD 轉換完成：`hardening/architecture-tests-mvp` 已併入 main（merge commit `5647b21`，衝突依裁決取 hardening 版）並退役（remote + local 皆刪除）；main 分支保護（required status check）已解除；CI on main 綠（run 28725618658，含合併後即修的 machinery-check gitignore 豁免 `bb2bcfc`——首個 CI 曾紅，root cause 與修復記於 §8.2 Phase I 行）。自此依 ADR-012 (e)／`docs/orchestration.md` §7：所有工作直接於 main commit + push，本機 pre-push full gate 為主防線。
-
-**Phase I 全部落地（§8.2 Phase I 行為完整紀錄）**：P1 寫後語法驗證 hook（`d1ee08d`）、P2 機制自體健檢（`d756e50` + 修復 `bb2bcfc`）、P3 ADR-012 憲章修訂（`56ff07d`）、階段 0 TBD 轉換（`5647b21`）。O-8 已由 ADR-012 決策 (a) 關閉（見 §9.2）。
-
-**下一步**：無排定事項。跨全檔僅剩 **Tessl 擱置項**（D-2，見 §9.3）與 §8.3 的低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞。新任務來源由規格擁有者決定；接手方式見 `docs/orchestration.md` §6 冷啟動標準 prompt。
-
-> Phase 3（API contract）2026-06-24；Phase A / B / C + Phase D 大半 2026-07-04；Phase H + Phase I 2026-07-05 — 均見 §8.2。
-
-**工作區未提交狀態（不要誤刪／誤併）**：
-- `.agents/`、`.claude/skills/tessl__*`、`.mcp.json`、`.tessl/`、`tessl.json`：Tessl 相關，依 §9.3 D-2 裁決維持 untracked，不要 `git add`。
-- `tasks/phase-g/h/i-spec.md` 已於本次回寫 commit 補齊 tracked（比照 `phase-a/b/c/e/f-spec.md` 前例）。
-
-**如何接上**：新 session 直接在 main 上工作，讀本節（§8.5）即知全貌；session-init hook 會自動注入 must-read 規則。每條新檢驗記得「綠＋故意紅」驗證、進度同步回 §8.2/§8.3。
+> 續接入口已遷至 `tasks/checkpoint.md`（單一權威來源，欄位比照 `tasks/_templates/checkpoint.md`），依 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c)。
+> 冷啟動 prompt 見 `docs/orchestration.md` §6；本節之前版本的完整交接內容見 git log。
+> 本節不再更新——新交接內容一律寫入 `tasks/checkpoint.md`。
 
 ---
 

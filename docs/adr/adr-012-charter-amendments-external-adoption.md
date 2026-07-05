@@ -102,13 +102,15 @@ Accepted (2026-07-05)
 
 給使用者 / 協調者在開新 session 接手時使用的固定開場文字，取代每次臨場手寫指示。內容只放指針，不重複規範本體（比照 §5 原則 2）：
 
-    讀 `tasks/process-improvement-plan.md` §8.5（Resume Checkpoint）掌握現況，
+    讀 `tasks/checkpoint.md`（Resume Checkpoint）掌握現況，
     再讀本文件（協調憲章）掌握模型分級、executor 義務、全域停止條件與
-    checkpoint 格式；依 §8.5 記載的「下一步」清單接手，若清單已空則向規格
-    擁有者確認下一個任務來源。
+    checkpoint 格式；依 `tasks/checkpoint.md` 記載的「下一步」清單接手，若
+    清單已空則向規格擁有者確認下一個任務來源。
 
 修改本節文字，比照本文件其餘章節的治理層級，須先開新 ADR。
 ```
+
+> **2026-07-05 修訂**（`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c)）：交接入口從 `tasks/process-improvement-plan.md` §8.5 遷至獨立檔案 `tasks/checkpoint.md`；上方 prompt 文字已就地更新為新指針，原文字（指向 §8.5）不再有效，歷史版本見 git log。
 
 ### (e) TBD 分支紀律
 
