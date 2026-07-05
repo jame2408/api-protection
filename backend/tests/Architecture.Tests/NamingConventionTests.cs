@@ -16,7 +16,7 @@ public class NamingConventionTests
     public void Classes_ImplementingHandlerInterface_Should_BeNamedHandler()
     {
         var offenders = ConcreteClassesImplementing("^I.+Handler$")
-            .Where(type => !type.Name.EndsWith("Handler"))
+            .Where(type => !type.Name.EndsWith("Handler", StringComparison.Ordinal))
             .Select(type => type.FullName)
             .ToArray();
 
@@ -28,7 +28,7 @@ public class NamingConventionTests
     public void Classes_ImplementingRepositoryInterface_Should_BeNamedRepository()
     {
         var offenders = ConcreteClassesImplementing("^I.+Repository$")
-            .Where(type => !type.Name.EndsWith("Repository"))
+            .Where(type => !type.Name.EndsWith("Repository", StringComparison.Ordinal))
             .Select(type => type.FullName)
             .ToArray();
 
@@ -41,7 +41,7 @@ public class NamingConventionTests
     {
         var offenders =
             (from type in ArchitectureRules.AllProductionTypes()
-             where type.IsClass && type.Name.EndsWith("FailureCodes")
+             where type.IsClass && type.Name.EndsWith("FailureCodes", StringComparison.Ordinal)
              let isStatic = type is { IsAbstract: true, IsSealed: true } // C# `static class` == abstract+sealed in IL
              let fieldsOk = type.GetFields().All(f => f is { IsLiteral: true } && f.FieldType == typeof(string))
              where !isStatic || !fieldsOk

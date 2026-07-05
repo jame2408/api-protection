@@ -20,7 +20,7 @@ public class LoggerBoundaryTests
              where type.IsClass
                    && (type.Namespace is not null
                        && (type.Namespace.Contains(".Domain") || type.Namespace.Contains(".Application"))
-                       || type.Name.EndsWith("Handler"))
+                       || type.Name.EndsWith("Handler", StringComparison.Ordinal))
              where ArchitectureRules.InjectsLogger(type)
              select type.FullName).ToArray();
 

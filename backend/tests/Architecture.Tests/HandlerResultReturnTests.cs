@@ -18,7 +18,7 @@ public class HandlerResultReturnTests
     {
         var offenders =
             (from type in ArchitectureRules.AllProductionTypes()
-             where type is { IsClass: true, IsAbstract: false } && type.Name.EndsWith("Handler")
+             where type is { IsClass: true, IsAbstract: false } && type.Name.EndsWith("Handler", StringComparison.Ordinal)
              from method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
              where ArchitectureRules.ReturnsTaskLike(method) && !ArchitectureRules.ReturnsResult(method)
              select $"{type.Name}.{method.Name}").ToArray();

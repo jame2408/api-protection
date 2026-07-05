@@ -14,7 +14,7 @@ public class RepositoryReturnTypeTests
     {
         var offenders =
             (from type in ArchitectureRules.AllProductionTypes()
-             where type.IsInterface && type.Name.StartsWith('I') && type.Name.EndsWith("Repository")
+             where type.IsInterface && type.Name.StartsWith('I') && type.Name.EndsWith("Repository", StringComparison.Ordinal)
              from method in type.GetMethods()
              where ArchitectureRules.ReturnsResult(method)
              select $"{type.Name}.{method.Name}").ToArray();
