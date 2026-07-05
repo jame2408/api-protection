@@ -12,8 +12,8 @@
 
 | # | 規則（一句話 + 權威來源指針） | 機制（確切檔名） | 時機層 | 執行者 |
 |---|---|---|---|---|
-| **Architecture.Tests — 13 個測試案例（6 個測試類，`BoundedContextIsolationTests` 為 5 筆資料的 Theory）** ||||
-| 1 | BC 不得直接依賴其他 BC，只能透過 `SharedKernel/Contracts`（`CLAUDE.md` §Non-Negotiable Constraints「NEVER add direct BC-to-BC references」+ `docs/adr/adr-003-error-handling-and-cross-bc-contracts.md`） | `backend/tests/Architecture.Tests/BoundedContextIsolationTests.cs`（`[Theory]`，5 個 BC × 1 斷言 = 5 個測試案例） | push 前 / CI（`scripts/ci-checks.sh full`） | 腳本 |
+| **Architecture.Tests — 14 個測試案例（6 個測試類，`BoundedContextIsolationTests` 為動態發現的 Theory + 1 個 guard `[Fact]`）** ||||
+| 1 | BC 不得直接依賴其他 BC，只能透過 `SharedKernel/Contracts`（`CLAUDE.md` §Non-Negotiable Constraints「NEVER add direct BC-to-BC references」+ `docs/adr/adr-003-error-handling-and-cross-bc-contracts.md`） | `backend/tests/Architecture.Tests/BoundedContextIsolationTests.cs`（`[Theory]`，BC 名單動態發現：檔案系統掃描 `backend/src/`，現況 5 BC = 5 個測試案例；新 BC 自動納管，漏加 ProjectReference 時 `Assembly.Load` fail-loud。另 1 個 guard `[Fact]` 鎖住已知最小 BC 集合，防發現邏輯靜默失效） | push 前 / CI（`scripts/ci-checks.sh full`） | 腳本 |
 | 2 | `Failure` 只能有 `Code` 一個公開成員，禁止加欄位（shape lock） — `docs/adr/adr-004-failure-shape-and-claude-md-alignment.md` §4 | `backend/tests/Architecture.Tests/FailureShapeTests.cs`（2 個 `[Fact]`） | push 前 / CI | 腳本 |
 | 3 | BC 內 `*Handler` 的 public async 方法必回 `Task<Result<T,Failure>>`，不得為業務邏輯 `throw` — `CLAUDE.md` §4 Verification Standards「Result-only in the service layer」+ `.claude/references/dotnet/exceptions.rule.md` §A | `backend/tests/Architecture.Tests/HandlerResultReturnTests.cs`（1 個 `[Fact]`） | push 前 / CI | 腳本 |
 | 4 | `Service`/`Domain`/`*Handler` 不得注入 `ILogger` — `CLAUDE.md` §4「no \`ILogger\` in Service/Domain/Handler」+ `.claude/references/dotnet/di.rule.md` §F | `backend/tests/Architecture.Tests/LoggerBoundaryTests.cs`（1 個 `[Fact]`） | push 前 / CI | 腳本 |
