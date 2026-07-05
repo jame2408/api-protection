@@ -20,23 +20,6 @@ Patterns and lessons captured during development. Updated automatically per Self
 
 > 尚未有機械化防線接管的教訓；`session-init.sh` 每個 session 注入以下每條的標題與 Rule 行。
 
-### [decision] HTTP boundary helper 放 BC 內，不放 Host（BC→Host 會循環引用）
-**Date:** 2026-06-24
-**Context:** Phase 3 對齊 RFC 9457 時，原計畫把 `ApiProblem` error-mapping helper 放 `Host/Http/`。但 endpoint（`CreateApiKeyEndpoint`）住在 KeyLifecycle BC，BC 呼叫 Host 會造成循環引用（Host 已 reference 各 BC）→ 編譯不過。SharedKernel 又是純 domain、不該注入 ASP.NET 型別。
-**Rule:** HTTP boundary helper（回 `IResult`、用 `HttpContext`）放在「擁有該 endpoint 的 BC」內（如 `KeyLifecycle/Http/`，該 BC 已有 `FrameworkReference Microsoft.AspNetCore.App`）。等第二個 BC 也需要時再抽共用 web library，別預先放 Host 或污染 SharedKernel。dependency 方向：Host → BC → SharedKernel，不可逆。
-**落地:** `backend/src/KeyLifecycle/Http/ApiProblem.cs`（單一 error envelope 來源）。
-
-### [info] Directory.Packages.props 內 XML 註解含 `--` 會被 MSBuild 靜默跳過（NU1015）
-**Date:** 2026-07-04
-**Context:** 冷啟動 executor 落地 todo #36 時，props 檔首次寫入後 `dotnet restore` 全面 NU1015（找不到版本）。root cause 出乎意料：XML 註解內寫了 `--force`，而 XML 註解不得出現 `--`，整份檔案被判定 invalid 後**靜默跳過匯入**，不是 fail-fast 報錯。`-v:diag` 才看得到 "file being invalid"。
-**Rule:** MSBuild props/targets 檔的 XML 註解內禁用雙連字號（含 CLI flag 範例如 `--force`）；遇到「集中設定像不存在一樣」的症狀，先用 `xml.dom.minidom.parse` 驗證檔案合法性再查其他方向。
-**落地:** `backend/Directory.Packages.props` 註解已改寫為無 `--` 版本（commit `1dc717b`）；本條 lesson 供未來 props/targets 編輯者。
-
-### [correction] 寫 production code 前必須主動載入 .claude/references 規則檔
-**Date:** 2026-04-03
-**Context:** Wave 1 初始實作時，CreateApiKeyHandler 用 throw 做業務邏輯、CancellationToken 命名 ct、ConsumerValidatorService 在 Scoped 服務內建多餘子 scope，三個問題都是因為沒有載入 .claude/references/dotnet/*.rule.md 就直接寫程式造成的。事後 code review 才全部補救。
-**Rule:** 每次對這個 project 寫 production code（Handler、Service、Repository、Endpoint）前，必須先讀取 .claude/references/general/*.rule.md 和 .claude/references/dotnet/*.rule.md，確認再動手。核心規則：(1) Service 層用 Result<T,Failure> + FailureProvider.CreateFailure()，不 throw；(2) CancellationToken 參數一律命名 cancel；(3) Scoped 服務直接注入依賴，不用 IServiceScopeFactory.CreateScope()。
-
 ### [correction] Orchestrator 越位執行細節 — 路由表也約束 orchestrator 自己
 **Date:** 2026-07-04
 **Context:** 使用者糾正：zh-lint 實作、檔案修正、commit 操作等細節工作由 orchestrator（大型模型）親自執行，違反 docs/orchestration.md §1 自己訂的路由表（實作屬中型模型）。「規劃者不下場」不只是成本原則，也是憲章可移轉性的驗證 — orchestrator 自己繞過路由表，等於憲章沒有被完整遵守。
@@ -78,12 +61,6 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Context:** ADR-016 故意紅驗證時發現：`Xunit.Assert` 的 banned-symbol 違規只出 `warning RS0030`、不擋 build——`CodeAnalysisTreatWarningsAsErrors` 語意上僅提升 `CA*` 前綴診斷，RS／xUnit／第三方 analyzer ID 不在覆蓋範圍。沒做故意紅就會上線一個不會咬人的 gate。
 **Rule:** 引入非 CA 前綴的 analyzer 規則時，阻斷性必須以 `.editorconfig` 的 `dotnet_diagnostic.<ID>.severity = error` 顯式設定，且一律用故意紅證明真的會使 build 失敗；不得假設 TreatWarningsAsErrors 類屬性已涵蓋。
 **落地:** `backend/tests/.editorconfig` RS0030 段（commit `7bb4053`）；本條 lesson。
-
-### [info] 本機 bash 是 macOS 內建 3.2 — 腳本禁用 mapfile；set -e 下 RETURN trap 不觸發
-**Date:** 2026-07-05
-**Context:** coverage gate 落地時 executor 兩度踩雷：(1) `mapfile -t`（bash 4+ 內建）在 `/bin/bash` 3.2.57 直接 `command not found`；(2) 想用 `trap ... RETURN` 清暫存目錄，實測 `set -euo pipefail` 下函式因錯誤中止時 RETURN trap 不會觸發，清理靜默失效。
-**Rule:** repo 腳本以 bash 3.2 為相容底線：清單蒐集用 `while IFS= read -r -d '' … done < <(find … -print0)`，不用 `mapfile`；暫存清理不依賴 RETURN trap，改「執行前 `rm -rf` + `mkdir -p` 固定路徑」模式。
-**落地:** `scripts/coverage-check.sh`、`scripts/ci-checks.sh` coverage 段（commit `e94a381`）。
 
 ### [correction] 「不存在」的斷言也要機械化驗證 — 矩陣誤報 .editorconfig 不存在
 **Date:** 2026-07-04
@@ -136,3 +113,27 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Context:** Phase A executor（Sonnet 級）在 adr-007 Rationale 寫出「执行」。禁用簡體是全域層級規則，但 repo 內無明文、無 lint，任何 executor（尤其非 Claude harness）都可能重犯；本次靠 orchestrator review 的簡體字元掃描才攔下。<!-- zh-lint:allow：本行刻意引用違規字元 -->
 **Rule:** Review executor 產出的中文文件時，必須跑一次簡體字元掃描；接受 executor 報告「驗證全綠」不等於內容合規 — 報告只覆蓋它被要求跑的檢查。
 **落地:** adr-007 修正（commit `d8a006b`）→ 2026-07-04 同日完成機械化：`docs/adr/adr-009-traditional-chinese-and-zh-lint.md` + `scripts/zh-lint.sh`（OpenCC 字表，接入 ci-checks fast+full）。過程中手寫掃描清單兩度漏字、orchestrator 本人 commit message 也違規一次 — 證明此類字元級規則必須用完整字表機械化，人工檢出不可靠。
+
+### [decision] HTTP boundary helper 放 BC 內，不放 Host（BC→Host 會循環引用）
+**Date:** 2026-06-24
+**Context:** Phase 3 對齊 RFC 9457 時，原計畫把 `ApiProblem` error-mapping helper 放 `Host/Http/`。但 endpoint（`CreateApiKeyEndpoint`）住在 KeyLifecycle BC，BC 呼叫 Host 會造成循環引用（Host 已 reference 各 BC）→ 編譯不過。SharedKernel 又是純 domain、不該注入 ASP.NET 型別。
+**Rule:** HTTP boundary helper（回 `IResult`、用 `HttpContext`）放在「擁有該 endpoint 的 BC」內（如 `KeyLifecycle/Http/`，該 BC 已有 `FrameworkReference Microsoft.AspNetCore.App`）。等第二個 BC 也需要時再抽共用 web library，別預先放 Host 或污染 SharedKernel。dependency 方向：Host → BC → SharedKernel，不可逆。
+**落地:** 防線＝編譯器（Host 已 reference 各 BC，BC→Host 必循環引用、build 失敗，違規當下即編譯不過，非事後檢驗）；placement 先例已成程式碼事實 `backend/src/KeyLifecycle/Http/ApiProblem.cs`（單一 error envelope 來源）。
+
+### [info] Directory.Packages.props 內 XML 註解含 `--` 會被 MSBuild 靜默跳過（NU1015）
+**Date:** 2026-07-04
+**Context:** 冷啟動 executor 落地 todo #36 時，props 檔首次寫入後 `dotnet restore` 全面 NU1015（找不到版本）。root cause 出乎意料：XML 註解內寫了 `--force`，而 XML 註解不得出現 `--`，整份檔案被判定 invalid 後**靜默跳過匯入**，不是 fail-fast 報錯。`-v:diag` 才看得到 "file being invalid"。
+**Rule:** MSBuild props/targets 檔的 XML 註解內禁用雙連字號（含 CLI flag 範例如 `--force`）；遇到「集中設定像不存在一樣」的症狀，先用 `xml.dom.minidom.parse` 驗證檔案合法性再查其他方向。
+**落地:** 防線＝`scripts/source-lint.sh` MSBuild XML 合法性段（本 commit，對 `git ls-files '*.props' '*.targets'` 逐檔跑 `xml.dom.minidom.parse`）；`backend/Directory.Packages.props` 註解已改寫為無 `--` 版本（commit `1dc717b`）。
+
+### [correction] 寫 production code 前必須主動載入 .claude/references 規則檔
+**Date:** 2026-04-03
+**Context:** Wave 1 初始實作時，CreateApiKeyHandler 用 throw 做業務邏輯、CancellationToken 命名 ct、ConsumerValidatorService 在 Scoped 服務內建多餘子 scope，三個問題都是因為沒有載入 .claude/references/dotnet/*.rule.md 就直接寫程式造成的。事後 code review 才全部補救。
+**Rule:** 每次對這個 project 寫 production code（Handler、Service、Repository、Endpoint）前，必須先讀取 .claude/references/general/*.rule.md 和 .claude/references/dotnet/*.rule.md，確認再動手。核心規則：(1) Service 層用 Result<T,Failure> + FailureProvider.CreateFailure()，不 throw；(2) CancellationToken 參數一律命名 cancel；(3) Scoped 服務直接注入依賴，不用 IServiceScopeFactory.CreateScope()。
+**落地:** 三條核心規則全數機械化，不再依賴「動手前讀規則」的人工紀律本身：(1) Result → `backend/tests/Architecture.Tests/HandlerResultReturnTests.cs`；(2) `cancel` 命名 → `scripts/source-lint.sh`（`bad_cancel` 段）+ `.claude/hooks/pre-tool-edit.py`（寫的當下）+ Roslyn CA2016（`docs/adr/adr-016-roslyn-analyzer-gate.md`）；(3) `IServiceScopeFactory.CreateScope()` 禁令 → `scripts/source-lint.sh` CreateScope 段（本 commit，`*Middleware.cs`/`Program.cs` 豁免）。「動手前讀規則」的提醒本身仍由 `.claude/hooks/session-init.sh` 每個 session 注入。
+
+### [info] 本機 bash 是 macOS 內建 3.2 — 腳本禁用 mapfile；set -e 下 RETURN trap 不觸發
+**Date:** 2026-07-05
+**Context:** coverage gate 落地時 executor 兩度踩雷：(1) `mapfile -t`（bash 4+ 內建）在 `/bin/bash` 3.2.57 直接 `command not found`；(2) 想用 `trap ... RETURN` 清暫存目錄，實測 `set -euo pipefail` 下函式因錯誤中止時 RETURN trap 不會觸發，清理靜默失效。
+**Rule:** repo 腳本以 bash 3.2 為相容底線：清單蒐集用 `while IFS= read -r -d '' … done < <(find … -print0)`，不用 `mapfile`；暫存清理不依賴 RETURN trap，改「執行前 `rm -rf` + `mkdir -p` 固定路徑」模式。
+**落地:** `scripts/coverage-check.sh`、`scripts/ci-checks.sh` coverage 段（commit `e94a381`）；防線再加一層 `scripts/source-lint.sh` bash 相容段（本 commit，掃 `scripts/*.sh` 與 `.claude/hooks/*.sh` 禁 `mapfile`/`readarray`/`trap ... RETURN`，自身排除）。

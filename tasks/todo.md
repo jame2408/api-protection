@@ -59,6 +59,7 @@ Out of scope here (deferred):
   - AWS secret access keys require a separate design decision because they lack a stable prefix and may cause false positives.
 - `post-tool-failure.sh` writes `tool_use_id`, `duration_ms`, and `is_interrupt` to `failures.jsonl`, but pending lesson records do not include those trace fields. Consider adding them if pending-to-failure traceability becomes useful.
 - `session-init.sh` malformed hook JSON fallback: when payload parsing fails, `TRANSCRIPT_PATH` is empty and lessons may still be injected. This is existing behavior, not a regression; revisit only if stricter hook failure semantics are desired.
+- Lessons triage 常設觸發：`tasks/lessons.md` `## Active` 區 ≥ 15 條、或 phase 收尾時，盤點 Active 條目可否機械化（腳本/lint/gate），可機械化者落地後歸檔到 `## Archived`（判準：`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b)）。
 
 ## Working principles confirmed in this pass
 

@@ -41,7 +41,7 @@ zh_lint() {
 }
 
 source_lint() {
-    echo "[ci-checks] source lint (new Failure / cancel naming)"
+    echo "[ci-checks] source lint (C# bans / msbuild xml / bash 3.2 compat)"
     bash "$REPO_ROOT/scripts/source-lint.sh"
 }
 
