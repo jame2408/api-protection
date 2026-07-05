@@ -51,7 +51,6 @@ Feature: 建立 API 金鑰
     When  Consumer 建立金鑰，scopes 為空
     Then  建立失敗，錯誤原因為「至少需要一個 Scope」
 
-  @ignore
   Scenario: 到期時間已過 — 拒絕建立
     When  Consumer 建立金鑰，到期時間為昨天
     Then  建立失敗，錯誤原因為「到期時間必須在未來」

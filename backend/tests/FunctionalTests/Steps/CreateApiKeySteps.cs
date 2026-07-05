@@ -246,10 +246,11 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
-    // Scenarios whose only Given describes an absence (e.g. unregistered scope) reach the
-    // When step with no tenant/consumer seeded; seed them here so the I1 validator passes
-    // and the request reaches the guard under test.
-    private async Task SeedDefaultTenantAndConsumerIfMissingAsync(string consumerId)
+    // Seed default preconditions (tenant, consumer, default scope "any:read") for scenarios
+    // whose only Given describes an absence (e.g. unregistered scope) and thus reach the
+    // When step with no tenant/consumer/scope seeded; this lets the request pass every guard
+    // ahead of the guard under test.
+    private async Task SeedDefaultPreconditionsIfMissingAsync(string consumerId)
     {
         if (!string.IsNullOrEmpty(_ctx.CurrentTenantId))
             return;
@@ -257,13 +258,14 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         _ctx.CurrentTenantId = "tenant-A";
         Db.Tenants.Add(new Tenant("tenant-A", TenantStatus.Active));
         Db.Consumers.Add(new Consumer(consumerId, "tenant-A"));
+        Db.ScopeRegistryEntries.Add(new ScopeRegistryEntry("any:read"));
         await Db.SaveChangesAsync();
     }
 
     [When(@"Consumer 建立金鑰，scopes 包含 ""(.*)""")]
     public async Task WhenConsumerCreatesKeyWithScope(string scope)
     {
-        await SeedDefaultTenantAndConsumerIfMissingAsync("any-consumer");
+        await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
 
         var request = new CreateApiKeyEndpoint.Request(
             Name: "any-key",
@@ -281,7 +283,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     [When(@"Consumer 建立金鑰，scopes 為空")]
     public async Task WhenConsumerCreatesKeyWithEmptyScopes()
     {
-        await SeedDefaultTenantAndConsumerIfMissingAsync("any-consumer");
+        await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
 
         var request = new CreateApiKeyEndpoint.Request(
             Name: "any-key",
@@ -299,6 +301,8 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     [When(@"Consumer 建立金鑰，到期時間為昨天")]
     public async Task WhenConsumerCreatesKeyExpiredYesterday()
     {
+        await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
+
         var request = new CreateApiKeyEndpoint.Request(
             Name: "any-key",
             Environment: "Production",

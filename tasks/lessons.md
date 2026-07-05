@@ -20,6 +20,11 @@ Patterns and lessons captured during development. Updated automatically per Self
 
 > 尚未有機械化防線接管的教訓；`session-init.sh` 每個 session 注入以下每條的標題與 Rule 行。
 
+### [correction] 啟用後段 guard 場景的 spec 必須沿 guard 鏈核對請求形狀 — 佔位常值視同執行期值
+**Date:** 2026-07-05
+**Context:** scenario「到期時間已過」spec 預測「接 seed 即綠」，但 When step 的佔位 scope `"any:read"` 從未註冊進 Scope Registry，guard 4b（scope 存在性）先於 guard 5（到期）把請求短路成 422，executor 正確停止回報 blocker、白跑一輪。orchestrator 核實了目標 guard 與 Then 映射，唯獨沒沿 handler guard 順序檢查該請求會不會被更早的 guard 攔下；8/44 故意紅的級聯形態（guard 4 破壞後落到 guard 5 的 422）其實已預先暴露同一盲點。
+**Rule:** 凡啟用「測試後段 guard」的場景，spec 背景欄必須列出 handler guard 順序，並逐一核對該場景的請求形狀（URL、payload 常值）與 seed 狀態能通過目標 guard 之前的每一道 guard；佔位常值（如 `"any:read"`）視同執行期值，依既有 lesson 讀宣告與 seed 路徑求證，不得假設「其他場景這樣用沒事」。
+
 ### [info] zsh 對裸 `=` 開頭的字樣做等號展開 — 分隔字串必須加引號
 **Date:** 2026-07-05
 **Context:** ADR-018 首次 failure triage 即抓到最大 REPEAT 群組（4 筆同簽名 `(eval):N: == not found`，另有 `=== not found` 變體）：agent 在 Bash 工具慣用 `echo ===` 當輸出分隔，zsh 對裸 `=word` 參數做等號展開（解析為「尋找名為 `==` 的指令路徑」），直接報錯使整串複合指令中斷、該次工具呼叫作廢重跑。
