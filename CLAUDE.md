@@ -64,7 +64,7 @@ Write to `tasks/lessons.md` (under `## Active`) after: user correction/pushback;
 
 ### 4. Verification Standards
 **Definition of Done — all must pass before marking complete:**
-- BDD scenario(s) pass via Reqnroll + xUnit; unit coverage ≥ 80% for Handler code; architecture tests pass (no BC cross-references); each Guard has positive AND negative scenarios.
+- BDD scenario(s) pass via Reqnroll + xUnit; coverage ≥ 80% per Handler class (metric per docs/adr/adr-014-handler-coverage-gate.md: full suite incl. BDD); architecture tests pass (no BC cross-references); each Guard has positive AND negative scenarios.
 - Error handling / code quality (critical, zero tolerance): Result-only in the service layer (never `throw` for business logic, never `new Failure()`, never bare-string codes), `CancellationToken cancel` propagated to every I/O call, no `ILogger` in Service/Domain/Handler, no direct BC-to-BC references, FluentAssertions in tests. Full rule text: `.claude/references/dotnet/*.rule.md`, `docs/adr/adr-003-error-handling-and-cross-bc-contracts.md`, `docs/adr/adr-004-failure-shape-and-claude-md-alignment.md`; enforcement registry (which mechanism, when): `docs/verification-matrix.md`.
 - Performance (hotpath changes only): P99 < 50ms, throughput ≥ 100 RPS.
 - Evidence: always run tests and show output; compare against `main` for behavior-changing work.

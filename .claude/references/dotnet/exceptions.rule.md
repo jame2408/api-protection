@@ -208,7 +208,7 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
 
 ```csharp
 // ✅ 外部 API boundary 可以把可預期的 remote failure 轉成穩定 Failure code
-//    Infrastructure 邊界允許注入 ILogger（CLAUDE.md NEVER 規則只禁止 Service / Domain）
+//    Infrastructure 邊界允許注入 ILogger（CLAUDE.md NEVER 規則只禁止 Service / Domain / Handler）
 public class ExternalApiClient(
     HttpClient httpClient,
     ILogger<ExternalApiClient> logger) : IExternalApiClient
@@ -260,7 +260,7 @@ app.UseMiddleware<UnhandledExceptionMiddleware>();
 | **裸字串 Failure code** | `CreateFailure("FOO")` 而非引用 `*FailureCodes.Foo` | 🟡 Warning |
 | **未檢查 Result** | 直接使用 `.Value` 未檢查 `.IsFailure` | 🔴 Critical |
 | **Empty Catch** | `catch { }` 或 `catch (Exception) { }` 不處理 | 🔴 Critical |
-| **throw ex** | `throw ex;` 而非 `throw;`（遺失堆疊追蹤） | 🟡 Bug |
+| **throw ex** | `throw ex;` 而非 `throw;`（遺失堆疊追蹤） | 🟡 Bug — 已機械化：CA2200（ADR-016），build 即攔，AI review 免查 |
 | **HTTP 邊界拋例外** | Endpoint / Controller 使用 `throw` 處理商業邏輯 | 🟡 Warning |
 
 > `Service 未回 Result` 不適用於 `SharedKernel/Contracts/` 的跨 BC contract DTO 例外。

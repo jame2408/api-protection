@@ -1,6 +1,6 @@
 # BDD Scenario Backlog
 
-新場景從 Discovery（`requirements-analysis-design` skill）產出後，先進此處等待排程。
+新場景從 Discovery（`requirements-analysis-design` skill）產出後，先進此處等待排程。（`.feature` 產出目前凍結 — 見 CLAUDE.md「BDD Scenario Development Cycle」段；凍結解除前 `requirements-analysis-design` skill 的 Step 5 不得產出新場景檔）
 只有用戶決定順序後，才將項目移入 `tasks/bdd-progress.md`。
 Claude **不得自主將項目從 backlog 升格到 progress**。
 

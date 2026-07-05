@@ -15,14 +15,14 @@
 | **Architecture.Tests — 13 個測試案例（6 個測試類，`BoundedContextIsolationTests` 為 5 筆資料的 Theory）** ||||
 | 1 | BC 不得直接依賴其他 BC，只能透過 `SharedKernel/Contracts`（`CLAUDE.md` §Non-Negotiable Constraints「NEVER add direct BC-to-BC references」+ `docs/adr/adr-003-error-handling-and-cross-bc-contracts.md`） | `backend/tests/Architecture.Tests/BoundedContextIsolationTests.cs`（`[Theory]`，5 個 BC × 1 斷言 = 5 個測試案例） | push 前 / CI（`scripts/ci-checks.sh full`） | 腳本 |
 | 2 | `Failure` 只能有 `Code` 一個公開成員，禁止加欄位（shape lock） — `docs/adr/adr-004-failure-shape-and-claude-md-alignment.md` §4 | `backend/tests/Architecture.Tests/FailureShapeTests.cs`（2 個 `[Fact]`） | push 前 / CI | 腳本 |
-| 3 | BC 內 `*Handler` 的 public async 方法必回 `Task<Result<T,Failure>>`，不得為業務邏輯 `throw` — `CLAUDE.md` §4 Verification Standards「Service layer uses Result」+ `.claude/references/dotnet/exceptions.rule.md` §A | `backend/tests/Architecture.Tests/HandlerResultReturnTests.cs`（1 個 `[Fact]`） | push 前 / CI | 腳本 |
-| 4 | `Service`/`Domain`/`*Handler` 不得注入 `ILogger` — `CLAUDE.md` §4「NEVER inject ILogger into Service, Domain, or Handler layers」+ `.claude/references/dotnet/di.rule.md` §F | `backend/tests/Architecture.Tests/LoggerBoundaryTests.cs`（1 個 `[Fact]`） | push 前 / CI | 腳本 |
+| 3 | BC 內 `*Handler` 的 public async 方法必回 `Task<Result<T,Failure>>`，不得為業務邏輯 `throw` — `CLAUDE.md` §4 Verification Standards「Result-only in the service layer」+ `.claude/references/dotnet/exceptions.rule.md` §A | `backend/tests/Architecture.Tests/HandlerResultReturnTests.cs`（1 個 `[Fact]`） | push 前 / CI | 腳本 |
+| 4 | `Service`/`Domain`/`*Handler` 不得注入 `ILogger` — `CLAUDE.md` §4「no \`ILogger\` in Service/Domain/Handler」+ `.claude/references/dotnet/di.rule.md` §F | `backend/tests/Architecture.Tests/LoggerBoundaryTests.cs`（1 個 `[Fact]`） | push 前 / CI | 腳本 |
 | 5 | 命名慣例：實作 `I*Handler` 必須命名 `*Handler`；實作 `I*Repository` 必須命名 `*Repository`；`*FailureCodes` 必須是 `static class` 且只含 `const string` — `.claude/references/dotnet/naming.guide.md` §A + `.claude/references/dotnet/exceptions.rule.md` §E | `backend/tests/Architecture.Tests/NamingConventionTests.cs`（3 個 `[Fact]`） | push 前 / CI | 腳本 |
 | 6 | `*Repository` 介面方法必須回傳原始型別，禁止回傳 `Result<T,Failure>` — `.claude/references/dotnet/exceptions.rule.md` §B | `backend/tests/Architecture.Tests/RepositoryReturnTypeTests.cs`（1 個 `[Fact]`） | push 前 / CI | 腳本 |
 | **`scripts/source-lint.sh` — 逐 pattern（3 個，method body / 語法層級，NetArchTest 與 reflection 都看不到）** ||||
-| 7 | 禁止 `new Failure(...)` 直接建構，一律經 `FailureProvider.CreateFailure()`（`FailureProvider.cs` 自身豁免） — `CLAUDE.md` §4「NEVER use `new Failure()`」 | `scripts/source-lint.sh`（`new_failure` 檢查段） | commit 前 / push 前 / CI | 腳本 |
+| 7 | 禁止 `new Failure(...)` 直接建構，一律經 `FailureProvider.CreateFailure()`（`FailureProvider.cs` 自身豁免） — `CLAUDE.md` §4「never \`new Failure()\`」 | `scripts/source-lint.sh`（`new_failure` 檢查段） | commit 前 / push 前 / CI | 腳本 |
 | 8 | Failure code 不得為裸字串，須用 `*FailureCodes` 常數 — `.claude/references/dotnet/exceptions.rule.md` §E | `scripts/source-lint.sh`（`bare_code` 檢查段） | commit 前 / push 前 / CI | 腳本 |
-| 9 | `CancellationToken` 參數必須命名 `cancel`，不得是 `cancellationToken` / `ct` — `CLAUDE.md` §4「Naming conventions」+ `.claude/references/dotnet/naming.guide.md` §B | `scripts/source-lint.sh`（`bad_cancel` 檢查段） | commit 前 / push 前 / CI | 腳本 |
+| 9 | `CancellationToken` 參數必須命名 `cancel`，不得是 `cancellationToken` / `ct` — `CLAUDE.md` §4「CancellationToken cancel」propagated to every I/O call + `.claude/references/dotnet/naming.guide.md` §B | `scripts/source-lint.sh`（`bad_cancel` 檢查段） | commit 前 / push 前 / CI | 腳本 |
 | 9a | MSBuild `.props`/`.targets` 檔須為合法 XML（XML 註解含 `--` 會使整檔被 MSBuild 靜默跳過，NU1015） — `tasks/lessons.md` Archived「Directory.Packages.props 內 XML 註解含 `--` 會被 MSBuild 靜默跳過（NU1015）」 | `scripts/source-lint.sh`（`bad_xml` 檢查段，對 `git ls-files '*.props' '*.targets'` 逐檔跑 `xml.dom.minidom.parse`） | commit 前 / push 前 / CI | 腳本 |
 | 9b | repo 腳本（`scripts/*.sh`、`.claude/hooks/*.sh`）須維持 bash 3.2 相容，禁 `mapfile`/`readarray`/`trap ... RETURN` — `tasks/lessons.md` Archived「本機 bash 是 macOS 內建 3.2」 | `scripts/source-lint.sh`（`bash_compat` 檢查段，自身排除） | commit 前 / push 前 / CI | 腳本 |
 | 9c | `backend/src/` 內禁止 `IServiceScopeFactory` / `.CreateScope(`，唯 `*Middleware.cs` 與 `Program.cs` 豁免（Scoped 服務須直接注入依賴，CreateScope 僅限 Singleton Middleware 避免 captive dependency） — `.claude/references/dotnet/di.rule.md` §C + `tasks/lessons.md` Archived「寫 production code 前必須主動載入 .claude/references 規則檔」 | `scripts/source-lint.sh`（`bad_scope` 檢查段） | commit 前 / push 前 / CI | 腳本 |
@@ -47,9 +47,9 @@
 | 17 | `CreateApiKey` 失敗回應必須符合 RFC 9457 Problem Details（`status` / `errorCode` / `title` / `type` / `traceId` + `Content-Type: application/problem+json`），鎖住所有使用此 step 的場景（含 `@ignore`） — `docs/design/api-spec.md` §2.2 | `backend/tests/FunctionalTests/Steps/CreateApiKeySteps.cs` `ThenCreateFailsWithReason` | push 前 / CI（需 Docker／Testcontainers，屬 `ci-checks.sh full` 的 `build_and_test` 段） | 腳本 |
 | 18 | `CreateApiKey` 成功回應必須含 `truncatedKey`（`"..." +` 明碼末 4 碼） — `docs/design/api-spec.md` §2.2 | `backend/tests/FunctionalTests/Steps/CreateApiKeySteps.cs` `ThenRawKeyIsReturned` | push 前 / CI | 腳本 |
 | **SharedKernel.Tests** ||||
-| 19 | `FailureProvider.CreateFailure()` 是建構 `Failure` 的唯一合法入口：合法 code 忠實回填 `Failure.Code`；`null`／空白／空字串 code 必須丟 `ArgumentException` — `CLAUDE.md` §4「NEVER use `new Failure()`」的配套單元測試 | `backend/tests/SharedKernel.Tests/Domain/FailureProviderTests.cs`（1 個 `[Fact]` + 1 個 `[Theory]`×5 = 6 個測試案例） | push 前 / CI | 腳本 |
+| 19 | `FailureProvider.CreateFailure()` 是建構 `Failure` 的唯一合法入口：合法 code 忠實回填 `Failure.Code`；`null`／空白／空字串 code 必須丟 `ArgumentException` — `CLAUDE.md` §4「never \`new Failure()\`」的配套單元測試 | `backend/tests/SharedKernel.Tests/Domain/FailureProviderTests.cs`（1 個 `[Fact]` + 1 個 `[Theory]`×5 = 6 個測試案例） | push 前 / CI | 腳本 |
 | **`scripts/coverage-check.sh`（`docs/adr/adr-014-handler-coverage-gate.md`）** ||||
-| 19a | concrete `*Handler` 類別 unit coverage ≥ 80%（逐類判定，async state machine 併回母類）— `CLAUDE.md` §4「unit coverage ≥ 80% for Handler code」+ `docs/adr/adr-014-handler-coverage-gate.md` | `scripts/coverage-check.sh`（`scripts/ci-checks.sh` full 呼叫，測試段附掛 `--collect:"XPlat Code Coverage"`） | push 前 / CI（僅 full） | 腳本 |
+| 19a | concrete `*Handler` 類別 coverage ≥ 80%（逐類判定，async state machine 併回母類）— `CLAUDE.md` §4「coverage ≥ 80% per Handler class」+ `docs/adr/adr-014-handler-coverage-gate.md` | `scripts/coverage-check.sh`（`scripts/ci-checks.sh` full 呼叫，測試段附掛 `--collect:"XPlat Code Coverage"`） | push 前 / CI（僅 full） | 腳本 |
 | **NuGet audit（`backend/Directory.Build.props` `WarningsAsErrors`）** ||||
 | 19b | NuGet 套件（含 transitive）High/Critical 弱點警告（NU1903/NU1904）升為 build error，不再只靠人／AI 盯 warning 輸出 — `CLAUDE.md` §Core Principles「Security First」+ `docs/adr/adr-015-dependency-vulnerability-audit-gate.md` | `backend/Directory.Build.props`（`WarningsAsErrors` 含 `NU1903;NU1904`） | 每次 restore/build（fast 的 format 段、full 的 build 段、CI 共用同一 build） | 腳本 |
 | **Roslyn analyzer gate（`docs/adr/adr-016-roslyn-analyzer-gate.md`）** ||||
@@ -58,7 +58,7 @@
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
 | **人工類** ||||
-| 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `CLAUDE.md`「Architecture Decision Records (ADR)」→「Validation」→「Review checklist (judgment, not mechanical)」子段 | 無腳本；檢查清單本體見 `CLAUDE.md` 該段文字，本表僅放指針 | review 時 | 人 |
+| 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 由 CLAUDE.md 遷移） | 無腳本；本體見 `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 遷移） | review 時 | 人 |
 
 不列 Tessl（`tasks/process-improvement-plan.md` §9.3 D-2 裁決：擱置，不入制度）。
 
@@ -70,16 +70,16 @@
 
 | 規則 | 權威來源 | 追蹤狀態 |
 |---|---|---|
-| ~~Unit test coverage ≥ 80%（Handler code）~~ | ~~`CLAUDE.md` §4「_Tests:_」~~ | ✅ **2026-07-05 已機械化** — 規則落點 `docs/adr/adr-014-handler-coverage-gate.md`，防線見主表第 19a 項（`scripts/coverage-check.sh`，`scripts/ci-checks.sh` full 呼叫）；自本區塊移出 |
-| 每個 Guard condition 須同時有正向與負向情境 | `CLAUDE.md` §4「_Tests:_」 | 未追蹤——屬 BDD 撰寫完整性，無腳本比對 `.feature` 場景的正/負向覆蓋 |
-| `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試；**ADR-016 §4 裁決不機械化**——自寫 dataflow analyzer 成本高於現階段效益，由 AI review（第 20 項）+ BDD 行為驗證承擔 |
-| `NEVER` 使用空 catch block | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——內建 CA 無對應規則；ADR-016 §4 裁決不為單一規則引入 Sonar 全家桶，維持無防線 |
-| ~~`NEVER` 用 `throw ex;`（須 `throw;`）~~ | ~~`CLAUDE.md` §4「_Error Handling_」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2200 直接命中（防線見主表第 19c 項）；自本區塊移出 |
-| ~~`CancellationToken cancel` 須傳播到每個 I/O 呼叫（EF Core / HTTP client / message bus）~~ | ~~`CLAUDE.md` §4「_Code Quality_」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2016 直接命中（防線見主表第 19c 項），現況零命中屬防患型（違規第一次出現時即攔）；自本區塊移出 |
-| ~~命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴~~ | ~~`CLAUDE.md` §4「_Code Quality_」~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md`，防線見主表第 11 項（`backend/.editorconfig` `dotnet_naming_*` + `EnforceCodeStyleInBuild`，`dotnet build` 與 `dotnet format --verify-no-changes` 皆會擋下）；`backend/tests` 排除 Async 後綴為 ADR-011 §3 明文 carve-out（BDD step 語意衝突），非機械化缺口；自本區塊移出 |
-| ~~FluentAssertions 用於測試斷言，禁止直接比較（如 `Assert.Equal`）~~ | ~~`CLAUDE.md` §4「_Code Quality_」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` `Microsoft.CodeAnalysis.BannedApiAnalyzers` 禁 `T:Xunit.Assert`（防線見主表第 19c 項）；自本區塊移出 |
-| API Key validation latency P99 < 50ms | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——repo 內無負載測試腳本或效能基準測試 |
-| Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——同上，無對應腳本 |
+| ~~Unit test coverage ≥ 80%（Handler code）~~ | ~~`CLAUDE.md` §4 Verification Standards 條列「coverage ≥ 80%」~~ | ✅ **2026-07-05 已機械化** — 規則落點 `docs/adr/adr-014-handler-coverage-gate.md`，防線見主表第 19a 項（`scripts/coverage-check.sh`，`scripts/ci-checks.sh` full 呼叫）；自本區塊移出 |
+| 每個 Guard condition 須同時有正向與負向情境 | `CLAUDE.md` §4 Verification Standards 條列「each Guard has positive AND negative scenarios」 | 未追蹤——屬 BDD 撰寫完整性，無腳本比對 `.feature` 場景的正/負向覆蓋 |
+| `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4 Verification Standards 條列「Error handling / code quality」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試；**ADR-016 §4 裁決不機械化**——自寫 dataflow analyzer 成本高於現階段效益，由 AI review（第 20 項）+ BDD 行為驗證承擔 |
+| `NEVER` 使用空 catch block | `CLAUDE.md` §4 Verification Standards 條列「Error handling / code quality」 | 未追蹤——內建 CA 無對應規則；ADR-016 §4 裁決不為單一規則引入 Sonar 全家桶，維持無防線 |
+| ~~`NEVER` 用 `throw ex;`（須 `throw;`）~~ | ~~`CLAUDE.md` §4 Verification Standards 條列「Error handling / code quality」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2200 直接命中（防線見主表第 19c 項）；自本區塊移出 |
+| ~~`CancellationToken cancel` 須傳播到每個 I/O 呼叫（EF Core / HTTP client / message bus）~~ | ~~`CLAUDE.md` §4 條列「\`CancellationToken cancel\` propagated to every I/O call」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2016 直接命中（防線見主表第 19c 項），現況零命中屬防患型（違規第一次出現時即攔）；自本區塊移出 |
+| ~~命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴~~ | ~~`.claude/references/dotnet/naming.guide.md` §B（原 `CLAUDE.md` §4 命名條文已由 ADR-013 瘦身移除，現行 §4 無對應措辭）~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md`，防線見主表第 11 項（`backend/.editorconfig` `dotnet_naming_*` + `EnforceCodeStyleInBuild`，`dotnet build` 與 `dotnet format --verify-no-changes` 皆會擋下）；`backend/tests` 排除 Async 後綴為 ADR-011 §3 明文 carve-out（BDD step 語意衝突），非機械化缺口；自本區塊移出 |
+| ~~FluentAssertions 用於測試斷言，禁止直接比較（如 `Assert.Equal`）~~ | ~~`CLAUDE.md` §4 條列「FluentAssertions in tests」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` `Microsoft.CodeAnalysis.BannedApiAnalyzers` 禁 `T:Xunit.Assert`（防線見主表第 19c 項）；自本區塊移出 |
+| API Key validation latency P99 < 50ms | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——repo 內無負載測試腳本或效能基準測試 |
+| Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——同上，無對應腳本 |
 | ~~禁止簡體字（正體中文文件）~~ | ~~全域層級規則，repo 內無明文、無 lint~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-009-traditional-chinese-and-zh-lint.md`，防線見主表第 16a 項；自本區塊移出 |
 
 ---

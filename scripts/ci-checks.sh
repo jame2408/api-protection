@@ -2,8 +2,9 @@
 # ci-checks.sh — the single source of truth for this repo's checks.
 #
 # Two modes, one script (so the fast subset can never drift from the full gate):
-#   full  → restore + build + test + format + adr-lint   (pre-push hook AND CI)
-#   fast  → format + adr-lint only                        (pre-commit hook)
+#   full  → 6 cheap checks (format, adr-lint, hook-smoke, zh-lint, source-lint,
+#           machinery-check) + restore/build/test          (pre-push hook AND CI)
+#   fast  → the same 6 cheap checks only, no build/test    (pre-commit hook)
 #
 # Invariant: pre-push and CI both run `full`, so "passes pre-push" provably means
 # "passes CI". `fast` is a quick pre-commit early-warning — a strict subset of the

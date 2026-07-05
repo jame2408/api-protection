@@ -27,7 +27,7 @@ services.AddTransient<IEmailSender, SmtpEmailSender>();
 
 ```csharp
 // ✅ 本專案 Service / Handler 一律使用 Primary Constructor
-// ✅ Service 與 Handler 不注入 ILogger（CLAUDE.md NEVER 規則）
+// ✅ Service / Domain / Handler 不注入 ILogger（CLAUDE.md NEVER 規則）
 public class CreateApiKeyHandler(
     IConsumerValidator consumerValidator,
     IApiKeyRepository keyRepository,
@@ -138,17 +138,22 @@ public class MySingleton // 註冊為 Singleton
     }
 }
 
-// ✅ 使用 IServiceProvider.CreateScope()
-public class MySingleton(IServiceProvider serviceProvider)
+// ✅ Middleware 使用 IServiceProvider.CreateScope()（比照 §C CookieValidationMiddleware）
+public class MyScopedWorkMiddleware(
+    RequestDelegate next,
+    IServiceProvider serviceProvider)
 {
-    public async Task DoWorkAsync()
+    public async Task InvokeAsync(HttpContext context)
     {
         using var scope = serviceProvider.CreateScope();
         var scopedService = scope.ServiceProvider.GetRequiredService<IScopedService>();
         await scopedService.ProcessAsync();
+        await next(context);
     }
 }
 ```
+
+> 本 repo `scripts/source-lint.sh`（`bad_scope` 檢查段）僅豁免 `*Middleware.cs` 與 `Program.cs` 使用 `IServiceScopeFactory` / `.CreateScope(`；非 Middleware 的 Singleton 需要 Scoped 依賴時，本 repo 欽定路徑是 `IDbContextFactory<T>`（見 `ef-core.rule.md` §D 例外註記）或重新設計生命週期，不得用 `CreateScope()` 繞過。
 
 ### Socket Exhaustion (HttpClient)
 
@@ -245,4 +250,4 @@ public static class KeyLifecycleModule
 | **Transient Disposable** | `AddTransient` + `IDisposable` | 🟡 Memory Leak |
 | **Service Locator** | Constructor 內呼叫 `GetService` | 🟢 Code Smell |
 | **Scoped Repository 誤用 Factory** | 一般 Scoped Repository 注入 `IDbContextFactory<>` 而非 `AppDbContext`（Singleton/Background/Blazor 例外） | 🟡 Warning |
-| **Service/Handler 注入 ILogger** | `Service` / `Handler` constructor 注入 `ILogger<T>`（觀測性應在 Endpoint/Middleware/Pipeline Behavior 等邊界） | 🔴 Critical |
+| **Service/Domain/Handler 注入 ILogger** | `Service` / `Domain` / `Handler` constructor 注入 `ILogger<T>`（觀測性應在 Endpoint/Middleware/Pipeline Behavior 等邊界） | 🔴 Critical |

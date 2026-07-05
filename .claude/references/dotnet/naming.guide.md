@@ -70,6 +70,7 @@ backend/src/
 | Property | PascalCase | `TenantId`, `IsActive` |
 | Field (private) | _camelCase | `_repository`, `_clock` |
 | Field (const) | PascalCase | `MaxRetryCount`, `DefaultTimeout` |
+| Field (static readonly) | PascalCase | `ProductionAssemblies`（ADR-011 §2 明文擴大，`.editorconfig` 已 error 級強制） |
 | Parameter | camelCase | `tenantId`, `consumerId` |
 | Local variable | camelCase | `activeCount`, `policyId` |
 | Enum | PascalCase (singular) | `ApiKeyStatus`, `ScopeKind` |

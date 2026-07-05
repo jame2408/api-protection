@@ -229,5 +229,5 @@ _ = Task.Run(async () =>
 | `.GetAwaiter().GetResult()` | Async Deadlock / Thread Pool Starvation | 🔴 Critical |
 | `async void` | Unobserved exceptions | 🔴 Critical |
 | `await` in `foreach` | Sequential when parallelizable | 🟡 Performance |
-| Missing `CancellationToken` | Can't cancel long operations | 🟡 Warning |
+| Missing `CancellationToken` | Can't cancel long operations | 🟡 Warning — 已機械化：CA2016（ADR-016），AI review 免查 |
 | `cancellationToken` 參數名 | 本專案使用 `cancel` | 🟢 Style |
