@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 9 / 44  
-**下一個：** `01_CreateApiKey.feature` — 到期時間超過最大允許有效期 — 拒絕建立
+**已通過：** 10 / 44  
+**下一個：** `02_RevokeKey.feature` — 從 Active 狀態撤銷
 
 ---
 

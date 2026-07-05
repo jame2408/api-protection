@@ -55,7 +55,6 @@ Feature: 建立 API 金鑰
     When  Consumer 建立金鑰，到期時間為昨天
     Then  建立失敗，錯誤原因為「到期時間必須在未來」
 
-  @ignore
   Scenario: 到期時間超過最大允許有效期 — 拒絕建立
     When  Consumer 建立金鑰，到期時間為 5 年後
     Then  建立失敗，錯誤原因為「超過最大允許有效期」

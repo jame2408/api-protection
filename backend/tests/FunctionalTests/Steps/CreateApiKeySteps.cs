@@ -319,6 +319,8 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     [When(@"Consumer 建立金鑰，到期時間為 5 年後")]
     public async Task WhenConsumerCreatesKeyExpiresIn5Years()
     {
+        await SeedDefaultPreconditionsIfMissingAsync("any-consumer");
+
         var request = new CreateApiKeyEndpoint.Request(
             Name: "any-key",
             Environment: "Production",
