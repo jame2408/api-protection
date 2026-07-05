@@ -28,6 +28,8 @@
 - lessons triage 機械化包（使用者核准全包）：source-lint 新增 MSBuild XML 合法性／bash 3.2 相容／CreateScope 禁令（Middleware、Program.cs 豁免）三段，各過綠＋故意紅（executor 與 orchestrator 各一輪）；四條 lesson 歸檔（Active 13→9，注入量下降）；矩陣登記 9a/9b/9c；todo 增設 triage 常設觸發（Active ≥ 15 或 phase 收尾） — `b179fb2`
 - 全 repo 文件衝突掃描（三路平行探查 + orchestrator 逐條裁決）：規範層 8 處衝突修繕（di.rule.md §D 範例對齊 CreateScope lint、ILogger 枚舉三處統一三層版、matrix 失效引用全修、已機械化 pattern 標注、CLAUDE.md coverage 措辭對齊 ADR-014）— `be0152e`；自建雙 skill（bdd-vertical-slice／lesson）指針化對齊 2026-07 制度 — `f90bf3d`；執行面文件七項核對全相符、ADR 間無隱性衝突；ADR-004 第 6 類正名與 upstream skill 凍結 gate 記入 todo follow-up
 - scenario「金鑰名稱在同 Consumer + Environment 下重複 — 拒絕建立」Red→Green（`GivenKeyNameAlreadyExists` 補條件式 seed，production 未動；guard 3 早已存在），自然紅（404 vs 409）＋故意紅（guard 反轉致 422）雙取證，executor 一次到位、orchestrator 親自重跑全套件放行，6/44 — `e70eeed`
+- 架構防線 enrollment gap 修復：`BoundedContextIsolationTests` BC 名單改動態發現（掃 `backend/src/`，漏 ProjectReference 時 fail-loud 指路修法）+ guard Fact 鎖已知最小集合；故意紅 A（FakeBc 自動入列轉紅）與 B（KeyLifecycle→TenantManagement 違規偵測）雙取證；矩陣 13→14 同 commit — `a4094b3`
+- ADR-017 hash 演算法裁決＋實作同 commit：HMAC-SHA256 + pepper（使用者裁決，實測基準 Argon2id 44ms/HMAC 0.0003ms + prefix 不唯一致 salted KDF 不可索引查找）、熵 96→128-bit、BCrypt 依賴全移除、`IApiKeyHasher`（Domain）/`HmacApiKeyHasher`（Infrastructure，pepper 缺值 fail-fast）、hasher 測試 5 項；PRD R-STR-01/02 高熵豁免、design-doc Q1 回填、矩陣 19d、todo #5 結案同批 — `abc71aa`
 
 ## 待驗證
 
@@ -44,7 +46,7 @@
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
 1. **產品主線**：38 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「指定的 Scope 不存在 — 拒絕建立」（handler guard 4 的 `scopeRegistry.AllExistAsync` 與 `GivenScopeNotRegistered`／`WhenConsumerCreatesKeyWithScope` steps 皆已存在；該 When 用 `_ctx.CurrentTenantId` 且路徑帶 `any-consumer`，場景無前置 tenant/consumer Given，預期需在某個 step 補條件式 seed — 派工前照例先讀宣告核實）。派工一律用 `tasks/_templates/executor-spec.md`。
-2. **hash 演算法 ADR**（todo #5）：驗證熱路徑實作前必須裁決（Argon2id / HMAC / BCrypt 續用），連帶 todo #7 併發 guard、#8 constant-time 比較。
+2. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
 3. **小項**：todo #14–#18、#21–#24 housekeeping。
 4. **QA #2 變異測試（Stryker.NET）**：Wave 1（`01_CreateApiKey` 全 10 場景）全綠後啟動；範圍鎖 KeyLifecycle + TenantManagement，跑法為 on-demand script 或 CI 週期性 job，**非 gate**（使用者 2026-07-05 核准排程）。
 
