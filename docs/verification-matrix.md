@@ -54,6 +54,8 @@
 | 19b | NuGet 套件（含 transitive）High/Critical 弱點警告（NU1903/NU1904）升為 build error，不再只靠人／AI 盯 warning 輸出 — `CLAUDE.md` §Core Principles「Security First」+ `docs/adr/adr-015-dependency-vulnerability-audit-gate.md` | `backend/Directory.Build.props`（`WarningsAsErrors` 含 `NU1903;NU1904`） | 每次 restore/build（fast 的 format 段、full 的 build 段、CI 共用同一 build） | 腳本 |
 | **Roslyn analyzer gate（`docs/adr/adr-016-roslyn-analyzer-gate.md`）** ||||
 | 19c | 語意層品質規則（`CancellationToken` 傳播經 CA2016 直接命中、`throw ex;` 經 CA2200 直接命中、文化敏感字串操作經 CA1304/CA1310/CA1311 直接命中）+ FluentAssertions 強制（禁 `xunit.Assert.*`）— 協調憲章明文規則 (i) + `docs/adr/adr-016-roslyn-analyzer-gate.md` | `backend/Directory.Build.props`（`AnalysisLevel=latest-recommended` + `CodeAnalysisTreatWarningsAsErrors=true`）+ `Microsoft.CodeAnalysis.BannedApiAnalyzers`（測試三專案 `PackageReference` + 共用 `backend/tests/BannedSymbols.txt`） | 每次 restore/build（fast 的 format 段、full 的 build 段、CI 共用同一 build） | 腳本 |
+| **HMAC 金鑰雜湊（docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md）** ||||
+| 19d | KeyHash = Base64(HMACSHA256(pepper, rawKey)) 確定性／pepper 敏感性／輸出形狀；pepper 缺值或 < 32 bytes 啟動 fail-fast — docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md Implementation Rules 3/5 | backend/tests/FunctionalTests/Infrastructure/HmacApiKeyHasherTests.cs | push 前 / CI | 腳本 |
 | **AI review 類** ||||
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
@@ -78,8 +80,8 @@
 | ~~`CancellationToken cancel` 須傳播到每個 I/O 呼叫（EF Core / HTTP client / message bus）~~ | ~~`CLAUDE.md` §4 條列「\`CancellationToken cancel\` propagated to every I/O call」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2016 直接命中（防線見主表第 19c 項），現況零命中屬防患型（違規第一次出現時即攔）；自本區塊移出 |
 | ~~命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴~~ | ~~`.claude/references/dotnet/naming.guide.md` §B（原 `CLAUDE.md` §4 命名條文已由 ADR-013 瘦身移除，現行 §4 無對應措辭）~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md`，防線見主表第 11 項（`backend/.editorconfig` `dotnet_naming_*` + `EnforceCodeStyleInBuild`，`dotnet build` 與 `dotnet format --verify-no-changes` 皆會擋下）；`backend/tests` 排除 Async 後綴為 ADR-011 §3 明文 carve-out（BDD step 語意衝突），非機械化缺口；自本區塊移出 |
 | ~~FluentAssertions 用於測試斷言，禁止直接比較（如 `Assert.Equal`）~~ | ~~`CLAUDE.md` §4 條列「FluentAssertions in tests」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` `Microsoft.CodeAnalysis.BannedApiAnalyzers` 禁 `T:Xunit.Assert`（防線見主表第 19c 項）；自本區塊移出 |
-| API Key validation latency P99 < 50ms | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——repo 內無負載測試腳本或效能基準測試 |
-| Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——同上，無對應腳本 |
+| API Key validation latency P99 < 50ms | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——repo 內無負載測試腳本或效能基準測試；ADR-017 Implementation Rule 6 已排定 — validation slice DoD 含 perf smoke 並同 commit 登記入本表 |
+| Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——同上，無對應腳本；ADR-017 Implementation Rule 6 已排定 — validation slice DoD 含 perf smoke 並同 commit 登記入本表 |
 | ~~禁止簡體字（正體中文文件）~~ | ~~全域層級規則，repo 內無明文、無 lint~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-009-traditional-chinese-and-zh-lint.md`，防線見主表第 16a 項；自本區塊移出 |
 
 ---

@@ -27,6 +27,10 @@ public class ApiKeyManagementWebApplicationFactory : WebApplicationFactory<Progr
         // ASP.NET Core env vars (format: Key__NestedKey) override all appsettings files.
         Environment.SetEnvironmentVariable("ConnectionStrings__Default", _postgresConnectionString);
         Environment.SetEnvironmentVariable("RabbitMq__Host", _rabbitMqConnectionString);
+        // ADR-017: fake pepper for functional tests (not a secret — same pattern as connection strings above).
+        Environment.SetEnvironmentVariable(
+            "ApiKeyHashing__Pepper",
+            Convert.ToBase64String("functional-test-pepper-32bytes!!"u8));
 
         builder.ConfigureServices(services =>
         {

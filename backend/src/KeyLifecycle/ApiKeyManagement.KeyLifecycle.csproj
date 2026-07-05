@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="BCrypt.Net-Next" />
     <ProjectReference Include="..\SharedKernel\ApiKeyManagement.SharedKernel.csproj" />
   </ItemGroup>
 

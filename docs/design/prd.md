@@ -143,9 +143,10 @@ API 金鑰不只是一個字串，它是一個帶有豐富上下文的物件。
 - 禁止儲存金鑰明文
 - 禁止使用對稱加密（如 AES）儲存金鑰——一旦主金鑰洩漏，所有 API 金鑰都會淪陷
 - 必須使用專為密碼儲存設計的慢速雜湊演算法（如 Argon2id 或 PBKDF2-SHA256），能抵禦 GPU 暴力破解與彩虹表攻擊
+- 高熵機器 token 豁免（docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md）：系統生成且隨機熵 ≥ 128-bit 的 API 金鑰，以 HMAC-SHA256 + server-side pepper 儲存，不適用慢速雜湊要求；本豁免不及於任何人類選擇的秘密（密碼、自訂 token）
 
 **R-STR-02: 獨立加鹽**
-每個金鑰的雜湊運算必須使用隨機生成的獨立鹽值（Salt），防止攻擊者預先計算雜湊表。
+每個金鑰的雜湊運算必須使用隨機生成的獨立鹽值（Salt），防止攻擊者預先計算雜湊表。高熵機器 token 依 ADR-017 以 server-side pepper 取代 per-key salt：128-bit 隨機輸入本身即不可預計算，而確定性雜湊是驗證熱路徑唯一索引查找的必要條件。
 
 ### 5.3 驗證與授權（Validation & Authorization）
 

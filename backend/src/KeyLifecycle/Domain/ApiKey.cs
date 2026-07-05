@@ -37,10 +37,11 @@ public class ApiKey : AggregateRoot<Guid>
         string environment,
         IReadOnlyList<string> scopes,
         DateTimeOffset expiresAt,
-        Guid policyId)
+        Guid policyId,
+        IApiKeyHasher hasher)
     {
         var keyId = Guid.NewGuid();
-        var (prefix, rawKey, keyHash) = GenerateKeyMaterial(tenantId, environment);
+        var (prefix, rawKey, keyHash) = GenerateKeyMaterial(tenantId, environment, hasher);
 
         var key = new ApiKey
         {
@@ -74,7 +75,7 @@ public class ApiKey : AggregateRoot<Guid>
     }
 
     private static (string prefix, string rawKey, string keyHash) GenerateKeyMaterial(
-        string tenantId, string environment)
+        string tenantId, string environment, IApiKeyHasher hasher)
     {
         // prefix: apk_{first4ofTenant}_{envAbbr}
         var tenantAbbr = (tenantId.Length >= 4 ? tenantId[..4] : tenantId).ToLowerInvariant();
@@ -86,8 +87,8 @@ public class ApiKey : AggregateRoot<Guid>
         };
         var prefix = $"apk_{tenantAbbr}_{envAbbr}";
 
-        // random body: 24 hex chars
-        var randomBytes = RandomNumberGenerator.GetBytes(12);
+        // random body: 32 hex chars (128-bit entropy — ADR-017 Implementation Rule 1)
+        var randomBytes = RandomNumberGenerator.GetBytes(16);
         var randomHex = Convert.ToHexString(randomBytes).ToLowerInvariant();
 
         // checksum: first 4 hex chars of SHA256 of the combined
@@ -97,8 +98,8 @@ public class ApiKey : AggregateRoot<Guid>
 
         var rawKey = $"{combined}_{checksum}";
 
-        // hash: BCrypt of the full key
-        var keyHash = BCrypt.Net.BCrypt.HashPassword(rawKey, workFactor: 4);
+        // hash: HMAC-SHA256 + server-side pepper (ADR-017 Implementation Rule 3)
+        var keyHash = hasher.ComputeHash(rawKey);
 
         return (prefix, rawKey, keyHash);
     }

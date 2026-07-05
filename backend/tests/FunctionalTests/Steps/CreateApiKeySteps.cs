@@ -29,6 +29,9 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     private AppDbContext Db =>
         _ctx.ServiceScope!.ServiceProvider.GetRequiredService<AppDbContext>();
 
+    private IApiKeyHasher Hasher =>
+        _ctx.ServiceScope!.ServiceProvider.GetRequiredService<IApiKeyHasher>();
+
     // -------------------------------------------------------------------------
     // Given
     // -------------------------------------------------------------------------
@@ -95,7 +98,8 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
                 environment: "Production",
                 scopes: ["seed:read"],
                 expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-                policyId: Guid.NewGuid());
+                policyId: Guid.NewGuid(),
+                hasher: Hasher);
 
             Db.ApiKeys.Add(key);
         }
@@ -129,7 +133,8 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
             environment: "Production",
             scopes: ["seed:read"],
             expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid());
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
 
         Db.ApiKeys.Add(key);
         await Db.SaveChangesAsync();

@@ -1,6 +1,7 @@
 using ApiKeyManagement.AccessPolicy.Domain;
 using ApiKeyManagement.Infrastructure.Persistence;
 using ApiKeyManagement.Infrastructure.Persistence.Repositories;
+using ApiKeyManagement.Infrastructure.Security;
 using ApiKeyManagement.KeyLifecycle.Domain;
 using ApiKeyManagement.TenantManagement.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,10 @@ public static class InfrastructureModule
         services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
         services.AddScoped<IAccessPolicyRepository, AccessPolicyRepository>();
         services.AddScoped<IScopeRegistry, ScopeRegistryService>();
+
+        // ADR-017: HMAC-SHA256 + pepper key hasher; options validation runs at first resolution (fail-fast).
+        services.AddOptions<ApiKeyHashingOptions>().Bind(configuration.GetSection(ApiKeyHashingOptions.SectionName));
+        services.AddSingleton<IApiKeyHasher, HmacApiKeyHasher>();
 
         return services;
     }

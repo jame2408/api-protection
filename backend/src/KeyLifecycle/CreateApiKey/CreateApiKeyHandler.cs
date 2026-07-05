@@ -8,7 +8,8 @@ public class CreateApiKeyHandler(
     IConsumerValidator consumerValidator,
     IApiKeyRepository keyRepository,
     IScopeRegistry scopeRegistry,
-    IAccessPolicyService accessPolicyService
+    IAccessPolicyService accessPolicyService,
+    IApiKeyHasher keyHasher
 ) : ICreateApiKeyHandler
 {
     public async Task<Result<CreateApiKeyResponse, Failure>> HandleAsync(
@@ -58,7 +59,8 @@ public class CreateApiKeyHandler(
             command.Environment,
             command.Scopes,
             command.ExpiresAt,
-            policyId);
+            policyId,
+            keyHasher);
 
         // 8. Persist
         await keyRepository.SaveAsync(apiKey, cancel);
