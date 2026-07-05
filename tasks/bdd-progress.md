@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 2 / 44  
-**下一個：** `01_CreateApiKey.feature` — 租戶狀態非 Active — 拒絕建立
+**已通過：** 3 / 44  
+**下一個：** `01_CreateApiKey.feature` — Consumer 不屬於該租戶 — 拒絕建立
 
 ---
 
