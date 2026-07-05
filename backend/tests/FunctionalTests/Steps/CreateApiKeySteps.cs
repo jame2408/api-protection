@@ -64,10 +64,12 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     }
 
     [Given(@"Consumer ""(.*)"" 不屬於 ""(.*)""")]
-    public void GivenConsumerDoesNotBelongToTenant(string consumerId, string tenantId)
+    public async Task GivenConsumerDoesNotBelongToTenant(string consumerId, string tenantId)
     {
         _ctx.CurrentTenantId = tenantId;
-        // no-op: consumer absent from DB
+        Db.Tenants.Add(new Tenant(tenantId, TenantStatus.Active));
+        await Db.SaveChangesAsync();
+        // consumer intentionally absent from DB
     }
 
     [Given(@"""(.*)"" 在 Production 環境的 Active 金鑰數為 (\d+)，上限為 (\d+)")]

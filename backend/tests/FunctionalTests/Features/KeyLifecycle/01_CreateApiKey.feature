@@ -27,7 +27,6 @@ Feature: 建立 API 金鑰
     When  Consumer 嘗試在 "tenant-A" 下建立金鑰
     Then  建立失敗，錯誤原因為「租戶未啟用」
 
-  @ignore
   Scenario: Consumer 不屬於該租戶 — 拒絕建立
     Given Consumer "consumer-2" 不屬於 "tenant-A"
     When  "consumer-2" 嘗試在 "tenant-A" 下建立金鑰
