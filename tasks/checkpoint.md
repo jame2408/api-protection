@@ -40,6 +40,7 @@
 - BDD 重構判斷留痕機械化（使用者糾正驅動）：skill 步驟 9 早已存在但被 spec 管道繞過 — executor-spec 範本增「重構評估」必填欄、enablement commit 強制 `Refactor-assessment:` trailer（`scripts/git-hooks/commit-msg`，三面故意紅取證）、SKILL.md 留痕義務、CLAUDE.md §BDD Constraints 一行、矩陣 9f、lesson「skill 步驟不入 spec 就不會發生」— `129ecc9`
 - Stryker survived 處置包（使用者裁決 A–D 全執行）：Batch 1 斷言強化＋跨租戶 seed 正名 — `5efed80`；Batch 2 TimeProvider 注入（production-only）— `f2c1079`；Batch 3 FrozenTimeProvider＋到期精確邊界場景 ×2（44→46，12/46）— `d4542cb`；重跑對照 KeyLifecycle 54.39%→**73.68%**、TenantManagement 72.73%→**81.82%**，A1/A3/A4/B5/B7 全轉 killed；A2 裁決降級（事件無發佈管道，待 Wave 2 事件基礎設施 ADR）；C/D 明文不處置 — 全紀錄 `tasks/archive/stryker-baseline-2026-07-05.md`
 - Loop engineering 閉環包（使用者裁決 Q1–Q5 全數落地）：ADR-018 failures triage 回饋化＋`observations.jsonl` 除役（`scripts/failure-triage.sh`，矩陣 19e）— `75a9433` `1017a2b`；ADR-019 token 經濟四條升 `docs/orchestration.md` §5 可打勾規則、兩條懸空 lesson 落地欄收口 — `3d6b884`；BDD 紀律機械化（`scripts/bdd-lint.sh` 帳面一致性入 fast/full/CI + pre-commit staged guard 單移 `@ignore`／進度檔同 commit，三面故意紅取證，矩陣 9d/9e，CLAUDE.md CRITICAL 條註記防線）— `c6dce1d`；矩陣無防線區正名（Guard 正負場景裁決不機械化、refactor 紀律／backlog 晉升權／矩陣同步義務誠實登記）— `f1bbfdc`；審計報告歸檔 `tasks/archive/loop-audit-2026-07-05.md`＋首次 phase 收尾 triage 處置＋zsh 等號展開 lesson — 本 commit
+- Lessons triage 第二輪（Active 15 觸發常設門檻；兩項使用者裁決）：(1) 機械化 — Bash 寫時 hook `.claude/hooks/pre-tool-bash.py`（heredoc 攔截＋zsh 裸 `=` 參數攔截，遮蔽引號/算術防誤報，矩陣 23/23a，11 條合成 payload 綠＋故意紅全對）— `275e6ec`；(2) 歸檔判準爭議 — orchestrator 原建議「開 ADR 擴充判準」，經 grep 發現 ADR-019 Alternatives 已明文拒絕同案，使用者知情後改裁「瘦身不歸檔」：#Refactor-spec-管道與 #zsh-等號歸檔（防線代記）、5 條範本／憲章承載 lesson 的 Rule 行改一行指針、executor-spec 範本補 guard 鏈核對註記、新 lesson「制度修訂提案前反查既往 ADR Alternatives」；Active 14／Archived 12 — `52ada12`
 
 ## 待驗證
 
@@ -55,7 +56,6 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-0. **lessons triage 觸發**：Active 已達 15 條（常設門檻 ≥ 15），接手 session 先跑一輪 triage（機械化／歸檔裁決）再進主線。
 1. **A2 正式閉環（小項，test-only；使用者 2026-07-05 指示優先）**：CreateApiKey「系統產生 KeyCreated 事件」Then 依 ADR-020 §4 補 outbox row 斷言（取代 response-body 代理）＋重跑 `bash scripts/mutation-test.sh KeyLifecycle` 驗證 `ApiKey.cs` AddDomainEvent(KeyCreated) mutant 轉 killed、更新 stryker 歸檔。
 2. **產品主線 Wave 2 續**：33 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Rotating 狀態撤銷 — 同時清除輪替關聯」（需 Rotating 狀態 seed 與 successor/predecessor 關聯 — 盤 slice 現況後派工；RevokeKey guard 場景（未提供原因／終態）晉升亦可補 `RevokeKeyHandler` 失敗分支覆蓋）。派工一律用 `tasks/_templates/executor-spec.md`。
 3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
@@ -63,6 +63,7 @@
 
 ## 工作區狀態警告
 
+- 2026-07-06 failure triage：無新 REPEAT；三個舊簽名皆屬 2026-07-05 已處置項，其中 `== not found` 現由矩陣 23a hook 接管。注意：Bash 工具的 heredoc 與裸 `=` 參數自 `275e6ec` 起會被寫時 hook 以 exit 2 阻擋——多行 commit message 改以 Write 寫訊息檔＋`git commit -F <file>`。
 - 2026-07-05 首次 failure triage（ADR-018 決策 §3）處置紀錄：`(eval):N: == not found` ×4 → 已轉 lesson（zsh 等號展開）；`(eval):cd:N: no such file or directory: backend` ×2 → 不轉，探索性 cwd 誤試、無制度性根因；`Exit code N` ×2 → 不轉，簽名過泛（多個不同指令的非零退出被摺疊）、無共同根因。
 - `.agents/`、`.claude/skills/tessl__*`、`.mcp.json`、`.tessl/`、`tessl.json`：Tessl 相關，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。
 - 目錄歸檔（Tessl 相關 skill 目錄、`docs/arch-flow.html` 等可重產產物）另包處理，不在本檔範圍內處理。
