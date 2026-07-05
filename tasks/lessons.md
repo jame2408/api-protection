@@ -40,8 +40,8 @@ Patterns and lessons captured during development. Updated automatically per Self
 ### [correction] Orchestrator 越位執行細節 — 路由表也約束 orchestrator 自己
 **Date:** 2026-07-04
 **Context:** 使用者糾正：zh-lint 實作、檔案修正、commit 操作等細節工作由 orchestrator（大型模型）親自執行，違反 docs/orchestration.md §1 自己訂的路由表（實作屬中型模型）。「規劃者不下場」不只是成本原則，也是憲章可移轉性的驗證 — orchestrator 自己繞過路由表，等於憲章沒有被完整遵守。
-**Rule:** orchestrator 只做：設計裁決、ADR 起草或規格撰寫、review、與使用者的決策互動。任何有明確規格可循的實作（腳本、文件編輯、git 操作、勘誤）一律派 executor，即使「自己做比較快」。
-**落地:** 本條 lesson + Phase E 起全部實作改派 executor（本任務即範例）。
+**Rule:** orchestrator 只做：設計裁決、ADR 起草或規格撰寫、review、與使用者的決策互動。任何有明確規格可循的實作（腳本、文件編輯、git 操作、勘誤）一律派 executor，即使「自己做比較快」。界線澄清：checkpoint 產出、以及親自驗證後的放行 commit/push，屬 orchestrator 的交接與 gate 職責，不算越位。
+**落地:** 本條 lesson + Phase E 起全部實作改派 executor（本任務即範例）；界線澄清為 2026-07-05 使用者裁決（維持現狀不收緊）。
 
 ### [correction] Token 經濟三個反模式：巨型任務包、resume 大 transcript、馬拉松 session
 **Date:** 2026-07-05
@@ -54,6 +54,18 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Context:** 使用者連環糾正 CLAUDE.md 新增的 Orchestrator Brief：加了無操作意義的日期、五條內容有四條複寫 orchestration.md（違反 ADR-007 規則 5 / SSOT）、CLAUDE.md 因此變胖 — 且這是反射式補丁，動手前沒全盤檢查內容是否已有權威落點。
 **Rule:** 動自動載入面（CLAUDE.md / session-init 注入 / AGENTS.md）前先問三題：(1) 這內容已有權威落點嗎？有 → 只放指針；(2) 每一行對「下個 session 的行為」有操作意義嗎？沒有（日期、出處、敘事）→ 刪，出處查 git；(3) 改完後自動載入總量是變大還是持平？CLAUDE.md 的正確內容 = 高層 workflow + non-negotiable + 指派與指針（§2 根因 1 處理原則早已寫明）。
 **落地:** Brief 12 行縮至 3 行（本 commit）；本條 lesson。
+
+### [correction] 啟用型 BDD 場景直接綠 — 測試「會失敗」的能力未被證明，必須補故意紅
+**Date:** 2026-07-05
+**Context:** scenario「租戶狀態非 Active — 拒絕建立」的 slice 早已完整（guard／HTTP 映射／steps 全就位），移除 `@ignore` 後直接綠，整個週期沒有紅過 — vacuous pass 風險未被排除。使用者稽核後裁定補為義務。
+**Rule:** 凡「移除 `@ignore` 後未經 Red 直接 Green」的啟用型場景，必須做一次故意紅：暫時破壞對應 guard（或斷言期望值）→ 跑測試取得紅的原始輸出 → 還原 → 確認回綠；紅與綠兩份輸出都列入回報。此事實由指令輸出證明，不由 AI 宣稱「測試有意義」代替。
+**落地:** `tasks/_templates/executor-spec.md`「故意紅」欄（本 commit）。
+
+### [correction] Executor 派工規格必須內建取證指令與 friction 欄位 — 回報品質是 spec 精度問題
+**Date:** 2026-07-05
+**Context:** executor 為滿足「scenario 名稱 + Passed 原文」的回報要求，自行摸索跑了 3 次 test suite（其中一次 `grep "Failed"` 誤中 MSBuild 雜訊行而整次無效）；另有 4 條 blocker 以下的不順（繞路、重跑）靠 orchestrator 事後追問才浮現。
+**Rule:** 派工一律用 `tasks/_templates/executor-spec.md`：(1) 驗證與取證步驟由 spec 給死可執行指令與預期取證行（例如 `dotnet test … --logger "console;verbosity=detailed"`），能機械化的驗證不留給 executor 判斷「怎麼證明」；(2) 回報格式必含「非 blocker 的不順與繞路」欄位，friction 常態收集，不靠追問。
+**落地:** `tasks/_templates/executor-spec.md`（本 commit）。
 
 ### [correction] 「不存在」的斷言也要機械化驗證 — 矩陣誤報 .editorconfig 不存在
 **Date:** 2026-07-04
