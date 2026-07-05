@@ -67,6 +67,9 @@
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
 | **人工類** ||||
 | 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 由 CLAUDE.md 遷移） | 無腳本；本體見 `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 遷移） | review 時 | 人 |
+| **`.claude/hooks/pre-tool-bash.py` — Bash 指令寫時攔截，2 個 pattern（僅 Claude Code harness 有效）** ||||
+| 23 | heredoc（`<<`／`<<-`，排除 herestring `<<<`）攔截——heredoc 寫檔曾致本 harness 背景卡死 3.5 小時，見 `tasks/lessons.md` heredoc 條 | `.claude/hooks/pre-tool-bash.py`（`_HEREDOC` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
+| 23a | zsh 對裸 `=` 開頭參數（`=word` 展開）攔截——對應 `(eval):N: == not found` 事故，見 `tasks/lessons.md` zsh 等號條 | `.claude/hooks/pre-tool-bash.py`（`_ZSH_EQUALS_TOKEN` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
 
 不列 Tessl（`tasks/process-improvement-plan.md` §9.3 D-2 裁決：擱置，不入制度）。
 
