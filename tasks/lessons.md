@@ -24,27 +24,17 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Date:** 2026-07-05
 **Context:** 同一 session 內 heredoc 咬人兩次：(1) for 迴圈內 `python3 - <<EOF` 卡 stdin 致 2 分鐘 timeout；(2) `cat > file <<'EOF'` 寫檔被 harness 自動轉背景，檔案寫成但 `cat` 卡等 stdin 不終止，掛在「running」3.5 小時 — orchestrator 當下已注意到「怎麼自己轉背景了」卻只讀輸出檔就當完成，未追蹤；事後排查又因 `ps` grep 只列預期嫌犯（headless/dotnet/stryker）而漏掉 `cat`，靠使用者出示 UI 截圖才定位。
 **Rule:** (1) 建立/覆寫檔案一律用 Write 工具，不用 `cat > file <<EOF`；需要餵 stdin 給程式時優先「先 Write 腳本檔再執行」。(2) 前景指令被 harness 自動轉背景 = 異常訊號，當下必須追蹤到終態（完成或 TaskStop），不得只驗證副作用（檔案存在）就放行。(3) 排查殘留程序不得只 grep 預期樣式，要以 session 起始時間列全量（如 `ps -o etime` 過濾長時程序）。
+**落地:** 第 (1) 段已機械化 — `.claude/hooks/pre-tool-bash.py` heredoc 攔截（矩陣 23，commit `275e6ec`）；(2)(3) 仍為行為紀律。多行 commit message 改以 Write 寫訊息檔＋`git commit -F <file>`，不用 heredoc。
 
 ### [correction] 故意紅的還原手法取決於目標檔案是否已 commit — 未 commit 的檔案禁用 git checkout/restore 還原
 **Date:** 2026-07-05
 **Context:** RevokeKey 場景故意紅後，orchestrator 以 `git checkout -- ApiKey.cs` 還原 mutation — 但該檔載有 P2 executor 未 commit 的 `Revoke()` 方法，checkout 恢復到 HEAD 把 mutation 與 executor 工作一併洗掉，被迫依規格重建並以測試證明等價。先前場景的同手法安全，純因當時 production 早已 commit — 手法的前提條件從未被明文。
 **Rule:** 對「工作區有未 commit 改動」的檔案做暫時 mutation，還原一律走快照法：mutate 前 `cp` 原檔至 scratchpad，還原用 `cp` 覆寫回來；`git checkout/restore -- <file>` 只允許用於「該檔相對 HEAD 無未 commit 改動」的情境，動手前先 `git diff --stat <file>` 確認。
 
-### [correction] Refactor 判斷被 spec 管道繞過 — skill 步驟不入 spec 就不會發生
-**Date:** 2026-07-05
-**Context:** bdd-vertical-slice skill 步驟 9（Refactor）與完整 checklist 早已存在，但 8/44–10/44 全部經「orchestrator spec → executor」管道執行，spec 未含步驟 9，重構判斷整段未發生，Wave 1 收齊後才以補救式重構 pass 收拾。使用者糾正：重構判斷屬每個 scenario 循環內的義務，補救不是常態做法。
-**Rule:** skill 定義的必經步驟，凡以 spec 派工執行，spec 範本必須逐一鏡射（或明文引用該步驟並要求回報）；「判斷不做」也是一種判斷，必須留痕（enablement commit 的 Refactor-assessment trailer，commit-msg hook 強制）。新增流程步驟時同步檢查 spec 範本是否承載。
-
 ### [correction] 啟用後段 guard 場景的 spec 必須沿 guard 鏈核對請求形狀 — 佔位常值視同執行期值
 **Date:** 2026-07-05
 **Context:** scenario「到期時間已過」spec 預測「接 seed 即綠」，但 When step 的佔位 scope `"any:read"` 從未註冊進 Scope Registry，guard 4b（scope 存在性）先於 guard 5（到期）把請求短路成 422，executor 正確停止回報 blocker、白跑一輪。orchestrator 核實了目標 guard 與 Then 映射，唯獨沒沿 handler guard 順序檢查該請求會不會被更早的 guard 攔下；8/44 故意紅的級聯形態（guard 4 破壞後落到 guard 5 的 422）其實已預先暴露同一盲點。
-**Rule:** 凡啟用「測試後段 guard」的場景，spec 背景欄必須列出 handler guard 順序，並逐一核對該場景的請求形狀（URL、payload 常值）與 seed 狀態能通過目標 guard 之前的每一道 guard；佔位常值（如 `"any:read"`）視同執行期值，依既有 lesson 讀宣告與 seed 路徑求證，不得假設「其他場景這樣用沒事」。
-
-### [info] zsh 對裸 `=` 開頭的字樣做等號展開 — 分隔字串必須加引號
-**Date:** 2026-07-05
-**Context:** ADR-018 首次 failure triage 即抓到最大 REPEAT 群組（4 筆同簽名 `(eval):N: == not found`，另有 `=== not found` 變體）：agent 在 Bash 工具慣用 `echo ===` 當輸出分隔，zsh 對裸 `=word` 參數做等號展開（解析為「尋找名為 `==` 的指令路徑」），直接報錯使整串複合指令中斷、該次工具呼叫作廢重跑。
-**Rule:** 本機 shell 是 zsh：任何以 `=` 開頭的裸參數（含 `echo ===` 這類分隔字串）一律加引號（`echo '==='`），或改用不以 `=` 開頭的分隔符。
-**落地:** 本條 lesson（首例由 `scripts/failure-triage.sh` 的 REPEAT 訊號捕獲）。
+**Rule:** 派工一律用 `tasks/_templates/executor-spec.md`；本條實質內容由其背景欄「guard 鏈核對」註記承載（本 commit 補入）。
 
 ### [correction] Orchestrator 越位執行細節 — 路由表也約束 orchestrator 自己
 **Date:** 2026-07-04
@@ -55,7 +45,7 @@ Patterns and lessons captured during development. Updated automatically per Self
 ### [correction] Token 經濟四個反模式：巨型任務包、resume 大 transcript、馬拉松 session、limit 中斷後原地續舊 session
 **Date:** 2026-07-05
 **Context:** 使用者發現單一句「先繼續」使 5h 用量瞬間 +37%。root cause 三層：(1) Phase I 規格把四階段捆成一包，養出 225K tokens / 111 tool calls 的巨型 executor；(2) orchestrator 用 SendMessage resume 該 agent 續行 — resume 會把整份巨型 transcript 無快取重讀計費，正確做法是開新 executor + 小規格（checkpoint 就是為此存在）；(3) orchestrator 自己的 session 從盤點跑到 Phase I 不曾重啟，每次使用者發話都重讀全史 — 對 executor 執行了「任務切小」卻沒對自己執行。同日 [repeat]：limit 中斷恢復後在原 session 說「繼續」+ resume 死掉的 executor → 瞬間 +13%（prompt cache TTL 5 分鐘，limit 空窗必然全冷，恢復第一輪把整段對話史與 executor transcript 以未快取輸入重讀）。
-**Rule:** (1) executor 任務規格以單一階段為原則，預估超過 ~50 次工具呼叫就拆包；(2) resume 既有 agent 只限小型追問；需要續行長任務時一律新開 executor、以 spec/checkpoint 銜接；(3) orchestrator session 以一個 Phase 為壽命上限，Phase 落地即結束 session，下個 Phase 冷啟動接 checkpoint；(4) limit／服務中斷視同 phase 邊界 — 快到 limit 時最後一動是 checkpoint 落盤，恢復一律開新 session 接 checkpoint（僅當舊對話有未落盤狀態才回去，先落盤再換）；中斷的 executor 一律新開接手（讀 spec + 檢視現有 `git diff` 從斷點續跑），不得 resume。
+**Rule:** 四條反模式已升為 `docs/orchestration.md` §5 第 5–8 條（ADR-019 管轄），依憲章條文執行。
 **落地:** docs/orchestration.md §5 第 5–8 條（docs/adr/adr-019-token-economy-charter-rules.md）。
 
 ### [correction] 自動載入面有 token 預算 — 不放日期出處、不複寫憲章、先查既有落點
@@ -67,13 +57,13 @@ Patterns and lessons captured during development. Updated automatically per Self
 ### [correction] 啟用型 BDD 場景直接綠 — 測試「會失敗」的能力未被證明，必須補故意紅
 **Date:** 2026-07-05
 **Context:** scenario「租戶狀態非 Active — 拒絕建立」的 slice 早已完整（guard／HTTP 映射／steps 全就位），移除 `@ignore` 後直接綠，整個週期沒有紅過 — vacuous pass 風險未被排除。使用者稽核後裁定補為義務。
-**Rule:** 凡「移除 `@ignore` 後未經 Red 直接 Green」的啟用型場景，必須做一次故意紅：暫時破壞對應 guard（或斷言期望值）→ 跑測試取得紅的原始輸出 → 還原 → 確認回綠；紅與綠兩份輸出都列入回報。此事實由指令輸出證明，不由 AI 宣稱「測試有意義」代替。
+**Rule:** 派工一律用 `tasks/_templates/executor-spec.md`；本條實質內容由其「故意紅（適用時必填）」欄承載。
 **落地:** `tasks/_templates/executor-spec.md`「故意紅」欄（本 commit）。
 
 ### [correction] Executor 派工規格必須內建取證指令與 friction 欄位 — 回報品質是 spec 精度問題
 **Date:** 2026-07-05
 **Context:** executor 為滿足「scenario 名稱 + Passed 原文」的回報要求，自行摸索跑了 3 次 test suite（其中一次 `grep "Failed"` 誤中 MSBuild 雜訊行而整次無效）；另有 4 條 blocker 以下的不順（繞路、重跑）靠 orchestrator 事後追問才浮現。
-**Rule:** 派工一律用 `tasks/_templates/executor-spec.md`：(1) 驗證與取證步驟由 spec 給死可執行指令與預期取證行（例如 `dotnet test … --logger "console;verbosity=detailed"`），能機械化的驗證不留給 executor 判斷「怎麼證明」；(2) 回報格式必含「非 blocker 的不順與繞路」欄位，friction 常態收集，不靠追問。
+**Rule:** 派工一律用 `tasks/_templates/executor-spec.md`；本條實質內容由其步驟取證原則與「非 blocker 的不順與繞路」必填欄承載。
 **落地:** `tasks/_templates/executor-spec.md`（本 commit）。
 
 ### [decision] 制度凍結啟發式 — 治理機制視為 feature-complete，新機制只能事故驅動
@@ -97,7 +87,7 @@ Patterns and lessons captured during development. Updated automatically per Self
 ### [correction] Spec 背景欄的執行期值敘述必須讀宣告求證 — null 推測害 executor 白跑一輪
 **Date:** 2026-07-05
 **Context:** 派工「Active 金鑰數達到上限」場景時，spec 背景欄寫「`_ctx.CurrentTenantId` 此場景中為 null」— 這是「沒有 Given 設過它」的推測，未讀 `FunctionalTestContext` 宣告（實為 `= string.Empty` 預設）。executor 依 spec 寫 `is null` 條件恆假，多跑一輪測試才自行改成 `string.IsNullOrEmpty` 修正。
-**Rule:** spec「背景（已核實事實）」欄凡涉及執行期值（預設值、null 與否、初始狀態），必須讀該欄位/屬性的宣告與初始化行求證，不得從「沒人設定過」推論為 null；核實深度以「executor 可直接照抄判斷式」為準。
+**Rule:** 派工一律用 `tasks/_templates/executor-spec.md`；本條實質內容由其背景欄執行期值求證註記承載。
 **落地:** tasks/_templates/executor-spec.md 背景欄求證註記（docs/adr/adr-019-token-economy-charter-rules.md）。
 
 ### [correction] ADR 改寫被引用文字時，同步項目須 grep 反查「逐字引用者」
@@ -105,6 +95,12 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Context:** 全 repo 衝突掃描發現 `docs/verification-matrix.md` 有 5+ 處逐字引用 ADR-013 瘦身前的舊 CLAUDE.md §4 文字（grep 全數 0 命中），另 checklist 本體位置說法錯誤 — 根因是 ADR-013 改寫 CLAUDE.md 時，「同步項目」清單只列了被改的檔案，沒列「逐字引用被改文字的文件」。同型還有：新 lint 上線（source-lint CreateScope 段）未反查 rule 檔既有範例是否會被攔（di.rule.md §D ✅ 範例直接違規）。
 **Rule:** 任何修改「會被其他文件逐字引用的文字」（CLAUDE.md 條文、ADR 決策句、lint 豁免範圍）時，同步項目清單必須先 grep 反查引用者（含 `docs/verification-matrix.md` 與 `.claude/references/`）並列入同 commit；新 lint 上線前反查 rule 檔的 ✅ 範例是否落在禁令內。
 **落地:** 本次修繕 commit `be0152e`；本條 lesson。
+
+### [correction] 制度修訂提案前必須反查既往 ADR 是否已裁決過同議題 — Alternatives 的 Rejected 段也是裁決
+**Date:** 2026-07-06
+**Context:** lessons triage 時 orchestrator 建議「開 ADR 擴充歸檔判準」並獲初步核准，事後才 grep 到 ADR-019 Alternatives 段已明文拒絕同一提案（二階制度修訂違反制度凍結、稀釋「防線代記」語意），使用者知情後改裁「瘦身不歸檔」。檢索範圍不能只查「誰引用了要改的文字」（另一條 grep 反查 lesson 只覆蓋這種），還要查「這個提案本身是否被裁決過」。
+**Rule:** 任何制度／判準修訂提案，成案前必須 grep `docs/adr/` 全文（含各 ADR Alternatives／Rejected 段）確認同議題是否已有裁決；重提已被拒絕的提案時，必須明列原拒絕理由與新事證，交使用者知情裁決。
+**落地:** 本條 lesson。
 
 ## Archived（已機械化 — 防線代記）
 
@@ -169,3 +165,15 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Context:** coverage gate 落地時 executor 兩度踩雷：(1) `mapfile -t`（bash 4+ 內建）在 `/bin/bash` 3.2.57 直接 `command not found`；(2) 想用 `trap ... RETURN` 清暫存目錄，實測 `set -euo pipefail` 下函式因錯誤中止時 RETURN trap 不會觸發，清理靜默失效。
 **Rule:** repo 腳本以 bash 3.2 為相容底線：清單蒐集用 `while IFS= read -r -d '' … done < <(find … -print0)`，不用 `mapfile`；暫存清理不依賴 RETURN trap，改「執行前 `rm -rf` + `mkdir -p` 固定路徑」模式。
 **落地:** `scripts/coverage-check.sh`、`scripts/ci-checks.sh` coverage 段（commit `e94a381`）；防線再加一層 `scripts/source-lint.sh` bash 相容段（本 commit，掃 `scripts/*.sh` 與 `.claude/hooks/*.sh` 禁 `mapfile`/`readarray`/`trap ... RETURN`，自身排除）。
+
+### [correction] Refactor 判斷被 spec 管道繞過 — skill 步驟不入 spec 就不會發生
+**Date:** 2026-07-05
+**Context:** bdd-vertical-slice skill 步驟 9（Refactor）與完整 checklist 早已存在，但 8/44–10/44 全部經「orchestrator spec → executor」管道執行，spec 未含步驟 9，重構判斷整段未發生，Wave 1 收齊後才以補救式重構 pass 收拾。使用者糾正：重構判斷屬每個 scenario 循環內的義務，補救不是常態做法。
+**Rule:** skill 定義的必經步驟，凡以 spec 派工執行，spec 範本必須逐一鏡射（或明文引用該步驟並要求回報）；「判斷不做」也是一種判斷，必須留痕（enablement commit 的 Refactor-assessment trailer，commit-msg hook 強制）。新增流程步驟時同步檢查 spec 範本是否承載。
+**落地:** `scripts/git-hooks/commit-msg`（`Refactor-assessment:` trailer 機械化強制，矩陣 9f）＋ `tasks/_templates/executor-spec.md`「重構評估」必填欄（commit `129ecc9`）。
+
+### [info] zsh 對裸 `=` 開頭的字樣做等號展開 — 分隔字串必須加引號
+**Date:** 2026-07-05
+**Context:** ADR-018 首次 failure triage 即抓到最大 REPEAT 群組（4 筆同簽名 `(eval):N: == not found`，另有 `=== not found` 變體）：agent 在 Bash 工具慣用 `echo ===` 當輸出分隔，zsh 對裸 `=word` 參數做等號展開（解析為「尋找名為 `==` 的指令路徑」），直接報錯使整串複合指令中斷、該次工具呼叫作廢重跑。
+**Rule:** 本機 shell 是 zsh：任何以 `=` 開頭的裸參數（含 `echo ===` 這類分隔字串）一律加引號（`echo '==='`），或改用不以 `=` 開頭的分隔符。
+**落地:** `.claude/hooks/pre-tool-bash.py` `_ZSH_EQUALS_TOKEN` 段（矩陣 23a，commit `275e6ec`）；首例由 `scripts/failure-triage.sh` REPEAT 訊號捕獲。
