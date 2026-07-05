@@ -19,18 +19,26 @@ metadata:
 
 一個 Gherkin scenario 可能橫跨多個 BC。實作時，每個 BC **只實作該場景需要的最小切片**，不預先建整個 BC 的完整功能。
 
+> **協作模式**：在多模型協調模式下，本流程由 orchestrator 以 `tasks/_templates/executor-spec.md` 派工、executor 依規格執行、orchestrator 驗證後放行 commit（詳見 `docs/orchestration.md`）。
+
 ---
 
 ## 實作節奏（BDD Red-Green-Refactor 循環）
+
+> 前置：本 skill 只處理已在 `tasks/bdd-progress.md` 的場景；backlog → progress 的晉升是使用者專屬動作，不得自行執行（見 CLAUDE.md「BDD Scenario Development Cycle」段）。
 
 ```
 1. 讀取 tasks/bdd-progress.md，找到「下一個」欄位確認目標場景。
    若需驗證與 .feature 檔一致，可執行：
    grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1
 
-2. 移除該場景的 @ignore tag（只移除一個）
+2. 移除該場景的 @ignore tag（只移除一個；例外：多個 scenarios 共用完全相同的新
+   step definitions 時可一併移除 — 見 CLAUDE.md「BDD Scenario Development Cycle」段）
 
 3. 執行 dotnet test → 確認 Red（場景 Pending）
+   → 若移除 @ignore 後直接 Green（啟用型場景），適用故意紅義務：不得視為完成，
+     依 tasks/_templates/executor-spec.md「故意紅」欄位補驗證，做法見對應 lesson
+     （tasks/lessons.md，不在此重複其步驟）。
 
 4. Pre-implementation check — 對照 CLAUDE.md §4 Verification Standards 確認：
    - Result pattern（Result<T, Failure>，禁止 throw 控制業務邏輯）
@@ -42,7 +50,10 @@ metadata:
 
 6. 撰寫 step definitions → 執行 dotnet test 確認失敗為「not implemented」
 
-7. 逐 BC 實作最小切片（Domain → Repository 介面 → Handler → Repository 實作 → Endpoint → DI 註冊）
+7. 先診斷失敗點：若 guard/slice 邏輯已存在、失敗純因 step 缺 seed 資料，走「純
+   test-side 修正」路徑（production 零異動，先例見 commit 9101bff、26a1160），
+   回到步驟 6 修正 step definitions 即可；只有切片邏輯真的缺少時才逐 BC 實作
+   （Domain → Repository 介面 → Handler → Repository 實作 → Endpoint → DI 註冊）
 
 8. 執行 dotnet test → 場景 Green ✅（其他場景維持 pass/skip）
 
@@ -50,6 +61,8 @@ metadata:
    → 執行 dotnet test → 確認仍 Green ✅
 
 10. 更新 tasks/bdd-progress.md：標記 ✅，遞增「已通過」數
+    （此更新須與本場景實作同一個 commit — 見 CLAUDE.md「BDD Scenario Development
+    Cycle」段）
 
 11. Commit，回到步驟 1
 ```

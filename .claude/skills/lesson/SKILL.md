@@ -59,14 +59,20 @@ Step 4: 確認寫入完成
 
 ## Step 3：寫入 tasks/lessons.md
 
-附加至 `tasks/lessons.md` 的格式：
+附加至 `tasks/lessons.md` 的 `## Active` 區**尾端**（Archived 區只進不出，由 triage
+依 ADR-013 決策 (b) 判準搬移，此處不重複其判準），格式：
 
 ```markdown
 ### [類型代號] 標題（一句話）
 **Date:** YYYY-MM-DD
 **Context:** 簡述當時情境（1-2句）
 **Rule:** 未來應遵循的具體做法（可執行，不模糊）
+**落地:** 防線／檔案落點（若尚無機械化防線，填「本條 lesson」）
 ```
+
+> **注入機制提醒**：`.claude/hooks/session-init.sh` 每次 session 只注入 Active 區
+> 每條的「標題 + Rule 行」（Context、落地不注入）。Rule 必須自足、可執行，讀者
+> 不看 Context 也要能照做。
 
 範例：
 
@@ -75,6 +81,7 @@ Step 4: 確認寫入完成
 **Date:** 2026-04-03
 **Context:** 將 session-init 和 post-tool-observe hook 自動化後，CLAUDE.md 仍保留了描述 hook 運作的說明文字。
 **Rule:** CLAUDE.md 只記錄「我需要主動判斷並執行」的規則。自動化由 hook 處理的事項不寫進 CLAUDE.md，避免重複與矛盾。
+**落地:** 本條 lesson
 ```
 
 ---
