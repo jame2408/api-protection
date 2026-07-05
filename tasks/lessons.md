@@ -91,6 +91,12 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Rule:** 寫「X 不存在」的結論前，必須用遞迴搜尋驗證（如 find . -name 'X' 或 git ls-files '**/X'），不能只看單一目錄。
 **落地:** 矩陣與 plan 勘誤（本commit）；本條 lesson。
 
+### [correction] Spec 背景欄的執行期值敘述必須讀宣告求證 — null 推測害 executor 白跑一輪
+**Date:** 2026-07-05
+**Context:** 派工「Active 金鑰數達到上限」場景時，spec 背景欄寫「`_ctx.CurrentTenantId` 此場景中為 null」— 這是「沒有 Given 設過它」的推測，未讀 `FunctionalTestContext` 宣告（實為 `= string.Empty` 預設）。executor 依 spec 寫 `is null` 條件恆假，多跑一輪測試才自行改成 `string.IsNullOrEmpty` 修正。
+**Rule:** spec「背景（已核實事實）」欄凡涉及執行期值（預設值、null 與否、初始狀態），必須讀該欄位/屬性的宣告與初始化行求證，不得從「沒人設定過」推論為 null；核實深度以「executor 可直接照抄判斷式」為準。
+**落地:** 本條 lesson（spec 不入 repo，無檔案可勘誤）。
+
 ## Archived（已機械化 — 防線代記）
 
 > 落地已成為機械化測試 / lint / hook，防線本身即代替記憶；保留於此僅供追溯，不再注入 session context。

@@ -24,6 +24,7 @@
 - QA #1 coverage gate：ADR-014（度量 = 全套件含 BDD、逐 `*Handler` 類 ≥ 80%）+ `scripts/coverage-check.sh` 接線 full gate，綠＋故意紅驗證過，矩陣無防線區再消一條 — `e94a381`
 - ADR-015 依賴弱點 audit gate：`Microsoft.OpenApi` 弱點（GHSA-v5pm-xwqc-g5wc）以 CPM transitive pin 2.7.5 消除、NU1903/NU1904 升 build error，綠＋故意紅驗證過 — `94c22b7`
 - ADR-016 Roslyn analyzer gate：latest-recommended + CA 升 error + BannedApiAnalyzers（禁 `Xunit.Assert`），baseline 31 處清償（修正/generated_code/documented 降級），無防線區再消三條（CA2016/CA2200/FluentAssertions）、`.Value` 條明文裁決不機械化 — `4e60c71` `7bb4053`
+- scenario「Active 金鑰數達到上限 — 拒絕建立」Red→Green（`GivenActiveKeyCount` 補條件式 seed tenant+consumer，production 未動；guard 早已存在），故意紅（`>=`→`>` 使測試 422 vs 409 轉紅）orchestrator 親自重演確認，5/44 — `26a1160`
 
 ## 待驗證
 
@@ -39,7 +40,7 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **產品主線**：40 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「Active 金鑰數達到上限 — 拒絕建立」（handler guard 與 `GivenActiveKeyCount` step 皆已存在，可能是啟用型 → 依 executor-spec 範本適用「故意紅」欄）。派工一律用 `tasks/_templates/executor-spec.md`。
+1. **產品主線**：39 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「金鑰名稱在同 Consumer + Environment 下重複 — 拒絕建立」（handler guard 3 與 `GivenKeyNameAlreadyExists` step 皆已存在；該 Given 同樣不 seed tenant/consumer，但 `GivenActiveKeyCount` 的條件式 seed 先例可循 — 注意 `GivenKeyNameAlreadyExists` 引用 `_ctx.CurrentTenantId`，需同型補 seed）。派工一律用 `tasks/_templates/executor-spec.md`。
 2. **hash 演算法 ADR**（todo #5）：驗證熱路徑實作前必須裁決（Argon2id / HMAC / BCrypt 續用），連帶 todo #7 併發 guard、#8 constant-time 比較。
 3. **小項**：todo #14–#18、#21–#24 housekeeping。
 4. **QA #2 變異測試（Stryker.NET）**：Wave 1（`01_CreateApiKey` 全 10 場景）全綠後啟動；範圍鎖 KeyLifecycle + TenantManagement，跑法為 on-demand script 或 CI 週期性 job，**非 gate**（使用者 2026-07-05 核准排程）。
