@@ -20,6 +20,11 @@ Patterns and lessons captured during development. Updated automatically per Self
 
 > 尚未有機械化防線接管的教訓；`session-init.sh` 每個 session 注入以下每條的標題與 Rule 行。
 
+### [correction] Refactor 判斷被 spec 管道繞過 — skill 步驟不入 spec 就不會發生
+**Date:** 2026-07-05
+**Context:** bdd-vertical-slice skill 步驟 9（Refactor）與完整 checklist 早已存在，但 8/44–10/44 全部經「orchestrator spec → executor」管道執行，spec 未含步驟 9，重構判斷整段未發生，Wave 1 收齊後才以補救式重構 pass 收拾。使用者糾正：重構判斷屬每個 scenario 循環內的義務，補救不是常態做法。
+**Rule:** skill 定義的必經步驟，凡以 spec 派工執行，spec 範本必須逐一鏡射（或明文引用該步驟並要求回報）；「判斷不做」也是一種判斷，必須留痕（enablement commit 的 Refactor-assessment trailer，commit-msg hook 強制）。新增流程步驟時同步檢查 spec 範本是否承載。
+
 ### [correction] 啟用後段 guard 場景的 spec 必須沿 guard 鏈核對請求形狀 — 佔位常值視同執行期值
 **Date:** 2026-07-05
 **Context:** scenario「到期時間已過」spec 預測「接 seed 即綠」，但 When step 的佔位 scope `"any:read"` 從未註冊進 Scope Registry，guard 4b（scope 存在性）先於 guard 5（到期）把請求短路成 422，executor 正確停止回報 blocker、白跑一輪。orchestrator 核實了目標 guard 與 Then 映射，唯獨沒沿 handler guard 順序檢查該請求會不會被更早的 guard 攔下；8/44 故意紅的級聯形態（guard 4 破壞後落到 guard 5 的 422）其實已預先暴露同一盲點。

@@ -87,7 +87,7 @@ Silently ask "is there a more elegant way?" before presenting a solution — sur
 
 **Execute via** the `/bdd-vertical-slice` skill (procedure, BC identification, patterns).
 
-**Constraints (always enforced, regardless of skill; mechanized items note their gate)**: never remove more than one `@ignore` at a time unless scenarios share identical new step definitions（pre-commit staged 檢查，豁免用 `ALLOW_MULTI_IGNORE=1`）; never mark done without test output showing it passing; `tasks/bdd-progress.md` update MUST land in the same commit as the implementation（pre-commit staged 檢查 + `scripts/bdd-lint.sh` 帳面一致性）; never commit red (exceptions: confirming a scenario/its steps are unimplemented, immediately before writing them).
+**Constraints (always enforced, regardless of skill; mechanized items note their gate)**: never remove more than one `@ignore` at a time unless scenarios share identical new step definitions（pre-commit staged 檢查，豁免用 `ALLOW_MULTI_IGNORE=1`）; never mark done without test output showing it passing; `tasks/bdd-progress.md` update MUST land in the same commit as the implementation（pre-commit staged 檢查 + `scripts/bdd-lint.sh` 帳面一致性）; never commit red (exceptions: confirming a scenario/its steps are unimplemented, immediately before writing them); every `@ignore`-removal commit MUST carry a `Refactor-assessment:` trailer recording the step-9 refactor verdict for both production and test sides（commit-msg hook 機械化強制）.
 
 **Refactor discipline**: production-only (`backend/src/`) or test-only (`backend/tests/`) passes — never mixed — except interface/DTO renames spanning both as the sole change in that commit.
 

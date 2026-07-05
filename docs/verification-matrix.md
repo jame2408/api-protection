@@ -29,6 +29,7 @@
 | **`scripts/bdd-lint.sh` + pre-commit staged 檢查（BDD 佇列紀律，`CLAUDE.md` §Non-Negotiable + §BDD Constraints）** ||||
 | 9d | 一次只移除一個 `@ignore`；「identical new step definitions」例外以 `ALLOW_MULTI_IGNORE=1` 豁免 — `CLAUDE.md` §Non-Negotiable Constraints | `scripts/git-hooks/pre-commit`（staged diff 計數 guard） | commit 前（僅本機 hook；`--no-verify` 可繞過，CI 不覆蓋——誠實標注，殘餘風險由 9e 帳面檢查部分回補） | 腳本 |
 | 9e | `tasks/bdd-progress.md` 與實作同 commit + 帳面一致（已通過 N/M 必等於 場景總數−`@ignore` 數） — `CLAUDE.md` §BDD「same commit」條 | `scripts/git-hooks/pre-commit`（同 commit staged 檢查）+ `scripts/bdd-lint.sh`（帳面一致性） | commit 前 / push 前 / CI | 腳本 |
+| 9f | scenario enablement commit 必附重構判斷 trailer——`.claude/skills/bdd-vertical-slice/SKILL.md` 步驟 9 的判斷（含「不重構」）不得省略留痕 — `CLAUDE.md` §BDD Constraints「Refactor-assessment」條 | `scripts/git-hooks/commit-msg`（staged net `@ignore` 移除 ≥ 1 時強制 message 含 `Refactor-assessment: .+`） | commit 前（僅本機 hook；`--no-verify` 可繞過，CI 不覆蓋——誠實標注，殘餘風險比照 9d） | 腳本 |
 | **`scripts/adr-lint.sh` — 結構性（1 項，涵蓋 7 個子檢查：Status 格式 / 7 個必要章節 / governance clause / 禁 file:line / 檔名編號連續 / Alternative 需 `Rejected.` / Trade-off 需 `Mitigation:`）** ||||
 | 10 | `docs/adr/adr-*.md` 結構性合規 — `CLAUDE.md`「Architecture Decision Records (ADR)」段 + 其「Validation」→「Structural lint (mechanical)」子段 | `scripts/adr-lint.sh` | commit 前（僅當 `docs/adr/` 有 staged 變更才觸發，見 `scripts/git-hooks/pre-commit`）/ push 前 / CI | 腳本 |
 | **`dotnet format`** ||||
@@ -126,6 +127,7 @@ OK   CLAUDE.md
 OK   AGENTS.md
 OK   scripts/git-hooks/pre-commit
 OK   scripts/git-hooks/pre-push
+OK   scripts/git-hooks/commit-msg
 OK   .github/workflows/ci.yml
 OK   scripts/hook-smoke.sh   (已接入 ci-checks.sh fast + full——見審校紀錄)
 ```

@@ -35,6 +35,15 @@
 - `docs/orchestration.md` §3 全域停止條件（連續失敗 3 次、規格模糊、範圍超出、context 將耗盡）。
 - <本任務特有停止條件，例：測試紅且原因指向檔案集外 → 記錄診斷作為 blocker 回報，不得自行修 production code>
 
+## 重構評估（BDD scenario 派工必填）
+
+> 對應 `.claude/skills/bdd-vertical-slice/SKILL.md` 步驟 9 / Refactor Checklist。兩側各自獨立判斷、各自獨立 pass（先一種、確認 Green、再另一種，絕不混改）：
+
+- **Production 側**（`backend/src/`）：需要重構的具體項目清單，或明確寫「無，理由：<原因>」。
+- **Test 側**（`backend/tests/`）：需要重構的具體項目清單，或明確寫「無，理由：<原因>」。
+
+判斷結果須寫入 enablement commit message 的 `Refactor-assessment:` trailer（`scripts/git-hooks/commit-msg` 機械化強制，staged net `@ignore` 移除 ≥ 1 時觸發）；「不重構」也是判斷，必須留痕，不得省略。
+
 ## 回報格式
 
 1. checkpoint 欄位（定義見 `tasks/_templates/checkpoint.md`，不複寫）。

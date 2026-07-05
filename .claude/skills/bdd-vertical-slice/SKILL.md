@@ -71,6 +71,8 @@ metadata:
 
 隔離規則見 CLAUDE.md Refactor Constraints。兩種 Refactor 絕不混用，各自獨立執行後必須重新確認 Green：
 
+> **留痕義務**：判斷結果必須留痕 — enablement commit 的 message 須含 `Refactor-assessment:` trailer（`scripts/git-hooks/commit-msg` 機械化強制，staged net `@ignore` 移除 ≥ 1 時觸發）；判斷「不重構」也要寫明理由，不得省略。以 spec 派工執行本流程時（見上方「協作模式」），spec 必須鏡射本步驟並要求 executor 回報，見 `tasks/_templates/executor-spec.md`「重構評估」欄。
+
 | 類型 | 允許修改 | 禁止碰觸 |
 |------|---------|---------|
 | **Production Refactor** | `backend/src/` | `backend/tests/` |

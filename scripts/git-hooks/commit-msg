@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# commit-msg — enforces that any commit removing an '@ignore' tag (scenario
+# enablement) carries a `Refactor-assessment:` trailer recording the BDD
+# skill's step-9 (Refactor) verdict for both production and test sides.
+#
+# Governance: .claude/skills/bdd-vertical-slice/SKILL.md step 9 / Refactor
+# Checklist has always existed, but scenarios executed via the
+# "orchestrator spec → executor" pipeline skipped it because the spec never
+# mirrored the step — the refactor judgment silently never happened for
+# 8/44–10/44 until a remedial pass caught up. User correction, 2026-07-05
+# (see tasks/lessons.md "Refactor 判斷被 spec 管道繞過"). This hook makes
+# "no refactor needed" a judgment that must be recorded, not one that can be
+# silently skipped.
+#
+# Args: $1 = path to the commit message file (git commit-msg convention).
+# Uses the same staged-diff net-@ignore-removal computation as
+# scripts/git-hooks/pre-commit (kept in sync intentionally; both operate on
+# the staged index, not the working tree).
+set -euo pipefail
+
+MSG_FILE="$1"
+
+removed=$(git diff --cached -- 'backend/tests/FunctionalTests/Features/*.feature' 'backend/tests/FunctionalTests/Features/**/*.feature' | grep -c '^-[^-].*@ignore' || true)
+added=$(git diff --cached -- 'backend/tests/FunctionalTests/Features/*.feature' 'backend/tests/FunctionalTests/Features/**/*.feature' | grep -c '^+[^+].*@ignore' || true)
+net=$((removed - added))
+
+if [[ "$net" -ge 1 ]]; then
+    if ! grep -qE '^Refactor-assessment: .+' "$MSG_FILE"; then
+        echo "[commit-msg] this commit removes $net '@ignore' tag(s) but the commit" >&2
+        echo "             message has no 'Refactor-assessment:' trailer." >&2
+        echo "             .claude/skills/bdd-vertical-slice/SKILL.md step 9 requires the" >&2
+        echo "             Refactor judgment (production side + test side) to be recorded" >&2
+        echo "             even when the verdict is 'no refactor needed' — state the reason." >&2
+        echo "             Add a trailer line, e.g.:" >&2
+        echo "               Refactor-assessment: production none (no prod change); test none (seed reuse, no duplication added)" >&2
+        exit 1
+    fi
+fi
+
+exit 0
