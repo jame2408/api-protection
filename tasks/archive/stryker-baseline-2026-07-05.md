@@ -37,6 +37,20 @@
 11. `ApiProblem.cs:63`：unknown-code 500 fallback — 防禦分支，所有現行 code 皆有映射。
 12. `KeyLifecycleModule.cs:12,18`、`CreateApiKeyEndpoint.cs:19-20`、`TenantManagementModule.cs:11`：DI／endpoint 註冊等啟動期程式碼。
 
+## 處置結果（同日執行，使用者裁決 A–D 全類）
+
+重跑對照（commits `5efed80` Batch 1 test-only、`f2c1079` TimeProvider production-only、`d4542cb` 凍結時鐘＋邊界場景 test-only）：
+
+| BC | 基線 → 處置後 | Killed | Survived | NoCoverage |
+|---|---|---|---|---|
+| KeyLifecycle | 54.39% → **73.68%** | 31→42 | 19→12 | 7→3 |
+| TenantManagement | 72.73% → **81.82%** | 8→9 | 2→1 | 1→1 |
+
+- **A1 落庫**（Handler:66）、**A3 跨租戶**（Validator:24）、**A4+B5 到期雙邊界**（Handler:45/47）、**B7 Location**（Endpoint:46）— 全數轉 killed。A4/B5 依賴 `FrozenTimeProvider` 凍結等值（解凍故意紅證實：解凍不翻轉判定、僅使等式邊界失效）。
+- **A2（ApiKey.cs:62 AddDomainEvent）維持 survived — 裁決降級**：調查證實 domain event 無任何發佈管道（EF `Ignore(DomainEvents)`、無 interceptor/outbox/publisher，RabbitMQ 容器為未接線鷹架，「事件已發佈」Then step 實際只驗 HTTP body）。為殺 mutant 而建事件架構屬本末倒置；Wave 2 RevokeKey「觸發主動快取失效」必然引入事件基礎設施（需 ADR），屆時自然閉環。
+- **B6 殘留**（ApiKey:81×2、84-85×2）：prefix 斷言已殺可殺者；殘留需 tenantId < 4 字的場景（8 字 tenant 下為等價變異），留待有短 tenant 需求的 wave。
+- **C 類**（初始器 ×7、ApiProblem traceId）與 **D 類**（sandbox 分支、500 fallback、DI 註冊）：明文不處置，維持原裁決。KeyLifecycleModule/Endpoint 註冊行意外由新斷言連帶轉 killed。
+
 ## 附註
 
 - CompileError ×2（`CreateApiKeyFailureCodes.cs`）：const 字串無法參與 Stryker 的 mutant switching，屬工具限制、無資訊量；錯誤碼字串的防線實際在 Then 映射表的 wire-format 逐字斷言（ADR-006）。
