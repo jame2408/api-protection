@@ -16,6 +16,8 @@
 - Phase I P2 機制自體健檢（`scripts/machinery-check.sh`）+ 合併後 gitignore 豁免修復 — `d756e50` `bb2bcfc`
 - Phase I P3 ADR-012 憲章修訂（unverified_success 條款、並行派工規則、checkpoint 欄位、冷啟動 prompt、TBD 分支紀律） — `56ff07d`
 - O-8（subagent 事實覆核未機械化）已由 ADR-012 決策 (a) 關閉
+- Phase J：ADR-013 內容分級 — CLAUDE.md 197→111 行、注入改 Active-Rule 行（-56%）、本檔成為唯一續接入口 — `fb14f8b`
+- Phase K：tasks/ 歸檔（phase specs → `tasks/archive/`、todo 結案項收攏、指針全修） — `ac8bdaa`
 
 ## 待驗證
 
@@ -29,9 +31,11 @@
 
 - 無排定事項；跨全檔僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞，不需要立即裁決。
 
-## 下一步（每項獨立可中斷）
+## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. 新任務來源由規格擁有者決定；接手方式見 `docs/orchestration.md` §6 冷啟動標準 prompt。
+1. **產品主線**：42 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。第一個 scenario 建議用「orchestrator 寫 spec → executor 實作」模式跑通 — 這是協調憲章在**產品開發場景**的首次實戰驗證（至今只在制度工程驗證過）。
+2. **hash 演算法 ADR**（todo #5）：驗證熱路徑實作前必須裁決（Argon2id / HMAC / BCrypt 續用），連帶 todo #7 併發 guard、#8 constant-time 比較。
+3. **小項**：`Microsoft.OpenApi` NU1903 弱點升版；todo #14–#18、#21–#24 housekeeping。
 
 ## 工作區狀態警告
 
