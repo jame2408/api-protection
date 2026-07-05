@@ -112,6 +112,16 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     [Given(@"""(.*)"" 在 Production 環境已有名為 ""(.*)"" 的金鑰")]
     public async Task GivenKeyNameAlreadyExists(string consumerId, string keyName)
     {
+        // Scenarios reaching this step directly (without a prior tenant/consumer Given)
+        // need tenant + consumer seeded so the I1 validator passes before the key-name-duplicate guard runs.
+        if (string.IsNullOrEmpty(_ctx.CurrentTenantId))
+        {
+            _ctx.CurrentTenantId = "tenant-A";
+            Db.Tenants.Add(new Tenant("tenant-A", TenantStatus.Active));
+            Db.Consumers.Add(new Consumer(consumerId, "tenant-A"));
+            await Db.SaveChangesAsync();
+        }
+
         var (key, _) = ApiKey.Create(
             consumerId: consumerId,
             tenantId: _ctx.CurrentTenantId,

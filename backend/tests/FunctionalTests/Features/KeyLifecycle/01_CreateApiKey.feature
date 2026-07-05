@@ -37,7 +37,6 @@ Feature: 建立 API 金鑰
     When  "consumer-1" 在 Production 環境建立新金鑰
     Then  建立失敗，錯誤原因為「超過金鑰數量上限」
 
-  @ignore
   Scenario: 金鑰名稱在同 Consumer + Environment 下重複 — 拒絕建立
     Given "consumer-1" 在 Production 環境已有名為 "order-service-key" 的金鑰
     When  "consumer-1" 在 Production 環境建立名為 "order-service-key" 的金鑰
