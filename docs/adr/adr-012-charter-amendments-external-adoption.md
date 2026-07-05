@@ -187,7 +187,7 @@ Rejected. 四項機制都是同一批外部借鏡分析（`tasks/process-improve
 
 ### Alternative B：分支紀律 (e) 另開一個獨立 ADR，不與 (a)–(d) 合併
 
-Rejected. (e) 雖然來源不同（使用者裁決，非外部借鏡），但同樣是 `docs/orchestration.md` 的修改，且與 (a)–(d) 同一批任務規格（`tasks/phase-i-spec.md`）一次執行、一次 commit；分成兩個 ADR 會讓同一個 commit 同時觸發兩個 ADR 的 lint 與 review，徒增流程負擔，且兩者都不需要獨立的 Alternatives 論證深度。
+Rejected. (e) 雖然來源不同（使用者裁決，非外部借鏡），但同樣是 `docs/orchestration.md` 的修改，且與 (a)–(d) 同一批任務規格（`tasks/archive/phase-i-spec.md`）一次執行、一次 commit；分成兩個 ADR 會讓同一個 commit 同時觸發兩個 ADR 的 lint 與 review，徒增流程負擔，且兩者都不需要獨立的 Alternatives 論證深度。
 
 ### Alternative C：用機械化工具（例如要求 subagent 回傳結構化 raw output，而非摘要）取代 unverified_success 的人工覆核義務
 

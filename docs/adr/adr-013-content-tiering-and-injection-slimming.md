@@ -103,7 +103,7 @@ Accepted (2026-07-05)
 ### 不在本 ADR 範圍
 
 - 不處理 `tasks/phase-*-spec.md` 等歷史執行紀錄內對 §8.5 的舊引用——那些是完成當下的執行記錄，如同 git commit message，不因交接入口遷移而回頭改寫；歷史準確性優先於指針一致性。
-- 不處理目錄歸檔（`.claude/skills/tessl__*`、`docs/arch-flow.html` 等）——依 `tasks/phase-j-spec.md` 開頭裁決，另開 Phase K。
+- 不處理目錄歸檔（`.claude/skills/tessl__*`、`docs/arch-flow.html` 等）——依 `tasks/archive/phase-j-spec.md` 開頭裁決，另開 Phase K。
 - 不重建或修改 `.claude/hooks/pre-tool-edit.py`、`observations.jsonl` / `failures.jsonl` 的行為——與注入無關。
 - 不機械化「新內容該落在哪一 Tier」的判斷本身（見 Rationale「為何不機械化」段）。
 - 不變更 `tasks/_templates/checkpoint.md` 既有欄位定義——`tasks/checkpoint.md` 只是套用該模板產生的實例檔案。
