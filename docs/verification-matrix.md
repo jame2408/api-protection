@@ -78,7 +78,7 @@
 | 規則 | 權威來源 | 追蹤狀態 |
 |---|---|---|
 | ~~Unit test coverage ≥ 80%（Handler code）~~ | ~~`CLAUDE.md` §4 Verification Standards 條列「coverage ≥ 80%」~~ | ✅ **2026-07-05 已機械化** — 規則落點 `docs/adr/adr-014-handler-coverage-gate.md`，防線見主表第 19a 項（`scripts/coverage-check.sh`，`scripts/ci-checks.sh` full 呼叫）；自本區塊移出 |
-| 每個 Guard condition 須同時有正向與負向情境 | `CLAUDE.md` §4 Verification Standards 條列「each Guard has positive AND negative scenarios」 | 未追蹤——屬 BDD 撰寫完整性，無腳本比對 `.feature` 場景的正/負向覆蓋 |
+| 每個 Guard condition 須同時有正向與負向情境 | `CLAUDE.md` §4 Verification Standards 條列「each Guard has positive AND negative scenarios」 | 未追蹤——**2026-07-05 使用者裁決不機械化**（`.feature` 正負配對比對腳本成本高於效益；由 BDD 撰寫紀律 + AI review（主表第 20 項）承擔），比照 `.Value` 條先例 |
 | `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4 Verification Standards 條列「Error handling / code quality」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試；**ADR-016 §4 裁決不機械化**——自寫 dataflow analyzer 成本高於現階段效益，由 AI review（第 20 項）+ BDD 行為驗證承擔 |
 | `NEVER` 使用空 catch block | `CLAUDE.md` §4 Verification Standards 條列「Error handling / code quality」 | 未追蹤——內建 CA 無對應規則；ADR-016 §4 裁決不為單一規則引入 Sonar 全家桶，維持無防線 |
 | ~~`NEVER` 用 `throw ex;`（須 `throw;`）~~ | ~~`CLAUDE.md` §4 Verification Standards 條列「Error handling / code quality」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2200 直接命中（防線見主表第 19c 項）；自本區塊移出 |
@@ -88,6 +88,9 @@
 | API Key validation latency P99 < 50ms | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——repo 內無負載測試腳本或效能基準測試；ADR-017 Implementation Rule 6 已排定 — validation slice DoD 含 perf smoke 並同 commit 登記入本表 |
 | Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「Performance (hotpath changes only)」 | 未追蹤——同上，無對應腳本；ADR-017 Implementation Rule 6 已排定 — validation slice DoD 含 perf smoke 並同 commit 登記入本表 |
 | ~~禁止簡體字（正體中文文件）~~ | ~~全域層級規則，repo 內無明文、無 lint~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-009-traditional-chinese-and-zh-lint.md`，防線見主表第 16a 項；自本區塊移出 |
+| Refactor 紀律：production-only / test-only 不混改（介面/DTO 改名與 wire-contract 變更豁免） | `CLAUDE.md` §BDD「Refactor discipline」段 | 未追蹤——**2026-07-05 使用者裁決不機械化**（合法例外多，staged 路徑比對必然誤報；由 review 承擔） |
+| `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` 晉升只能由使用者執行 | `CLAUDE.md` §BDD Kanban 段 | 本質不可機械化（無法從 diff 判定「誰」決定的）；由 review 與 git 歷史事後稽核承擔，明文承認無防線 |
+| 驗證矩陣同步義務（機制異動同 commit 登記本表） | 本檔治理聲明「同步義務」段 | 半防線——`scripts/machinery-check.sh` 驗「本表引用的路徑存在」，不驗反向「新機制已登記」；缺口明文承認，靠 ADR 同步項目清單與 review 承擔 |
 
 ---
 
