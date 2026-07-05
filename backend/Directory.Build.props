@@ -6,6 +6,11 @@
          `dotnet build`, not just the format-verification step. Unrelated to
          `Directory.Packages.props` (central package version management). -->
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- ADR-015: High/Critical dependency-vulnerability advisories (NU1903/NU1904) fail
+         restore/build instead of only warning, so a new advisory cannot silently pass
+         through the same way Microsoft.OpenApi 2.0.0's did for months. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
   </PropertyGroup>
 
 </Project>

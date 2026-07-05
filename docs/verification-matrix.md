@@ -47,6 +47,8 @@
 | 19 | `FailureProvider.CreateFailure()` 是建構 `Failure` 的唯一合法入口：合法 code 忠實回填 `Failure.Code`；`null`／空白／空字串 code 必須丟 `ArgumentException` — `CLAUDE.md` §4「NEVER use `new Failure()`」的配套單元測試 | `backend/tests/SharedKernel.Tests/Domain/FailureProviderTests.cs`（1 個 `[Fact]` + 1 個 `[Theory]`×5 = 6 個測試案例） | push 前 / CI | 腳本 |
 | **`scripts/coverage-check.sh`（`docs/adr/adr-014-handler-coverage-gate.md`）** ||||
 | 19a | concrete `*Handler` 類別 unit coverage ≥ 80%（逐類判定，async state machine 併回母類）— `CLAUDE.md` §4「unit coverage ≥ 80% for Handler code」+ `docs/adr/adr-014-handler-coverage-gate.md` | `scripts/coverage-check.sh`（`scripts/ci-checks.sh` full 呼叫，測試段附掛 `--collect:"XPlat Code Coverage"`） | push 前 / CI（僅 full） | 腳本 |
+| **NuGet audit（`backend/Directory.Build.props` `WarningsAsErrors`）** ||||
+| 19b | NuGet 套件（含 transitive）High/Critical 弱點警告（NU1903/NU1904）升為 build error，不再只靠人／AI 盯 warning 輸出 — `CLAUDE.md` §Core Principles「Security First」+ `docs/adr/adr-015-dependency-vulnerability-audit-gate.md` | `backend/Directory.Build.props`（`WarningsAsErrors` 含 `NU1903;NU1904`） | 每次 restore/build（fast 的 format 段、full 的 build 段、CI 共用同一 build） | 腳本 |
 | **AI review 類** ||||
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
