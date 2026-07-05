@@ -31,4 +31,7 @@ public class FunctionalTestContext
 
     /// <summary>DI scope opened for the scenario; used by step definitions to resolve DbContext.</summary>
     public IServiceScope? ServiceScope { get; set; }
+
+    /// <summary>Maps a Gherkin key alias (e.g. "key-A") to its seeded Id, for steps that need to reference a previously-seeded key by name.</summary>
+    public Dictionary<string, Guid> SeededKeys { get; } = new();
 }

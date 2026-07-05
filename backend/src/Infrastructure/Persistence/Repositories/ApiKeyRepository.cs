@@ -31,4 +31,15 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
             k.Environment == environment &&
             k.TenantId == tenantId, cancel);
     }
+
+    // Tracked (no AsNoTracking) — caller mutates and persists via UpdateAsync.
+    public async Task<ApiKey?> GetByIdAsync(Guid keyId, string tenantId, CancellationToken cancel = default)
+    {
+        return await db.ApiKeys.FirstOrDefaultAsync(k =>
+            k.Id == keyId &&
+            k.TenantId == tenantId, cancel);
+    }
+
+    public Task UpdateAsync(ApiKey apiKey, CancellationToken cancel = default)
+        => db.SaveChangesAsync(cancel);
 }

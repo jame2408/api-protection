@@ -74,6 +74,23 @@ public class ApiKey : AggregateRoot<Guid>
         return (key, rawKey);
     }
 
+    /// <summary>
+    /// Revokes the key. Captures the previous status for the KeyRevoked event; guards
+    /// (not-found / empty reason / terminal state) are the handler's responsibility.
+    /// </summary>
+    public void Revoke(string reason)
+    {
+        var previousStatus = Status;
+        Status = ApiKeyStatus.Revoked;
+
+        AddDomainEvent(new KeyRevoked(
+            EventId: Guid.NewGuid(),
+            OccurredAt: DateTimeOffset.UtcNow,
+            KeyId: Id,
+            PreviousStatus: previousStatus.ToString(),
+            Reason: reason));
+    }
+
     private static (string prefix, string rawKey, string keyHash) GenerateKeyMaterial(
         string tenantId, string environment, IApiKeyHasher hasher)
     {

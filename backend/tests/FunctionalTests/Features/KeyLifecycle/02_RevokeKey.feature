@@ -1,6 +1,5 @@
 Feature: 撤銷金鑰
 
-  @ignore
   Scenario: 從 Active 狀態撤銷
     Given 金鑰 "key-A" 狀態為 Active
     When  操作者撤銷 "key-A"，原因為「不再使用」

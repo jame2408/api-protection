@@ -1,4 +1,5 @@
 using ApiKeyManagement.KeyLifecycle.CreateApiKey;
+using ApiKeyManagement.KeyLifecycle.RevokeKey;
 using ApiKeyManagement.SharedKernel.Contracts;
 using ApiKeyManagement.SharedKernel.Domain;
 using Microsoft.AspNetCore.Http;
@@ -27,6 +28,8 @@ public static class ApiProblem
             [CreateApiKeyFailureCodes.KeyNameDuplicate] = (StatusCodes.Status409Conflict, "Key Name Duplicate"),
             [CreateApiKeyFailureCodes.ScopeNotFound] = (StatusCodes.Status422UnprocessableEntity, "Scope Not Found"),
             [CreateApiKeyFailureCodes.ExpiresAtExceedsMax] = (StatusCodes.Status422UnprocessableEntity, "Expiry Exceeds Maximum"),
+            [RevokeKeyFailureCodes.KeyNotFound] = (StatusCodes.Status404NotFound, "Key Not Found"),
+            [RevokeKeyFailureCodes.KeyInTerminalState] = (StatusCodes.Status409Conflict, "Key In Terminal State"),
         };
 
     /// <summary>Builds the RFC 9457 response for a failure. <c>errorCode</c> carries the stable
