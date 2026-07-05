@@ -67,6 +67,12 @@ Patterns and lessons captured during development. Updated automatically per Self
 **Rule:** 派工一律用 `tasks/_templates/executor-spec.md`：(1) 驗證與取證步驟由 spec 給死可執行指令與預期取證行（例如 `dotnet test … --logger "console;verbosity=detailed"`），能機械化的驗證不留給 executor 判斷「怎麼證明」；(2) 回報格式必含「非 blocker 的不順與繞路」欄位，friction 常態收集，不靠追問。
 **落地:** `tasks/_templates/executor-spec.md`（本 commit）。
 
+### [info] 本機 bash 是 macOS 內建 3.2 — 腳本禁用 mapfile；set -e 下 RETURN trap 不觸發
+**Date:** 2026-07-05
+**Context:** coverage gate 落地時 executor 兩度踩雷：(1) `mapfile -t`（bash 4+ 內建）在 `/bin/bash` 3.2.57 直接 `command not found`；(2) 想用 `trap ... RETURN` 清暫存目錄，實測 `set -euo pipefail` 下函式因錯誤中止時 RETURN trap 不會觸發，清理靜默失效。
+**Rule:** repo 腳本以 bash 3.2 為相容底線：清單蒐集用 `while IFS= read -r -d '' … done < <(find … -print0)`，不用 `mapfile`；暫存清理不依賴 RETURN trap，改「執行前 `rm -rf` + `mkdir -p` 固定路徑」模式。
+**落地:** `scripts/coverage-check.sh`、`scripts/ci-checks.sh` coverage 段（commit `e94a381`）。
+
 ### [correction] 「不存在」的斷言也要機械化驗證 — 矩陣誤報 .editorconfig 不存在
 **Date:** 2026-07-04
 **Context:** 驗證矩陣與 plan 宣稱「repo 無 .editorconfig」，實際 backend/.editorconfig 存在（executor 只查 repo root，orchestrator 抽驗也未抓到）。「存在性」核對清單只驗證了「列出的檔案存在」，沒驗證「宣稱不存在的東西真的不存在」。

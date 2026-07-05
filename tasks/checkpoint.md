@@ -21,6 +21,7 @@
 - 產品主線首戰：scenario「租戶狀態非 Active — 拒絕建立」以 orchestrator 寫 spec → executor 實作模式落地（slice 早已完整，僅移 `@ignore` + 進度檔同 commit），3/44 — `39b2ecc`
 - Executor spec 範本 + lessons（故意紅義務、取證紀律、orchestrator 界線澄清）— `fee94c9`
 - scenario「Consumer 不屬於該租戶 — 拒絕建立」Red→Green（step 補 seed Active tenant，production 未動），4/44，首次套用 executor-spec 範本 — `9101bff`
+- QA #1 coverage gate：ADR-014（度量 = 全套件含 BDD、逐 `*Handler` 類 ≥ 80%）+ `scripts/coverage-check.sh` 接線 full gate，綠＋故意紅驗證過，矩陣無防線區再消一條 — `e94a381`
 
 ## 待驗證
 
@@ -39,6 +40,7 @@
 1. **產品主線**：40 個 `@ignore` BDD scenario 等待實作（backlog→progress 只能由使用者晉升）。下一個：`01_CreateApiKey.feature`「Active 金鑰數達到上限 — 拒絕建立」（handler guard 與 `GivenActiveKeyCount` step 皆已存在，可能是啟用型 → 依 executor-spec 範本適用「故意紅」欄）。派工一律用 `tasks/_templates/executor-spec.md`。
 2. **hash 演算法 ADR**（todo #5）：驗證熱路徑實作前必須裁決（Argon2id / HMAC / BCrypt 續用），連帶 todo #7 併發 guard、#8 constant-time 比較。
 3. **小項**：`Microsoft.OpenApi` NU1903 弱點升版；todo #14–#18、#21–#24 housekeeping。
+4. **QA #2 變異測試（Stryker.NET）**：Wave 1（`01_CreateApiKey` 全 10 場景）全綠後啟動；範圍鎖 KeyLifecycle + TenantManagement，跑法為 on-demand script 或 CI 週期性 job，**非 gate**（使用者 2026-07-05 核准排程）。
 
 ## 工作區狀態警告
 
