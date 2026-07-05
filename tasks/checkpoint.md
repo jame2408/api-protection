@@ -55,6 +55,7 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
+0. **lessons triage 觸發**：Active 已達 15 條（常設門檻 ≥ 15），接手 session 先跑一輪 triage（機械化／歸檔裁決）再進主線。
 1. **A2 正式閉環（小項，test-only；使用者 2026-07-05 指示優先）**：CreateApiKey「系統產生 KeyCreated 事件」Then 依 ADR-020 §4 補 outbox row 斷言（取代 response-body 代理）＋重跑 `bash scripts/mutation-test.sh KeyLifecycle` 驗證 `ApiKey.cs` AddDomainEvent(KeyCreated) mutant 轉 killed、更新 stryker 歸檔。
 2. **產品主線 Wave 2 續**：33 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Rotating 狀態撤銷 — 同時清除輪替關聯」（需 Rotating 狀態 seed 與 successor/predecessor 關聯 — 盤 slice 現況後派工；RevokeKey guard 場景（未提供原因／終態）晉升亦可補 `RevokeKeyHandler` 失敗分支覆蓋）。派工一律用 `tasks/_templates/executor-spec.md`。
 3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
