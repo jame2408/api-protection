@@ -71,8 +71,10 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = tenantId;
         Db.Tenants.Add(new Tenant(tenantId, TenantStatus.Active));
+        // Consumer exists but belongs to a different tenant — this scenario must test
+        // cross-tenant isolation, not mere absence of the consumer row.
+        Db.Consumers.Add(new Consumer(consumerId, "tenant-OTHER"));
         await Db.SaveChangesAsync();
-        // consumer intentionally absent from DB
     }
 
     [Given(@"""(.*)"" 在 Production 環境的 Active 金鑰數為 (\d+)，上限為 (\d+)")]
@@ -258,6 +260,13 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         // not just the round-tripped enum value.
         using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
         doc.RootElement.GetProperty("lifecycleStatus").GetString().Should().Be("Active");
+
+        var keyId = doc.RootElement.GetProperty("keyId").GetGuid();
+
+        Db.ApiKeys.Any(k => k.Id == keyId).Should().BeTrue("the created key must be persisted");
+
+        _ctx.Response.Headers.Location.Should().NotBeNull();
+        _ctx.Response.Headers.Location!.ToString().Should().EndWith($"/keys/{keyId}");
     }
 
     [Then(@"系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、environment、scopes、keyPrefix、expiresAt、policyId")]
@@ -283,6 +292,11 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         body.Should().NotBeNull();
         body!.RawKey.Should().NotBeNullOrEmpty();
         body.RawKey.Should().StartWith("apk_");
+
+        // Success-scenario seed is tenant-A / Production, so KeyPrefix is a deterministic
+        // wire value: apk_{first 4 chars of tenantId, lowercased}_{env abbr} = apk_tena_prod.
+        body.KeyPrefix.Should().Be("apk_tena_prod");
+        body.RawKey.Should().StartWith(body.KeyPrefix + "_");
 
         // truncatedKey: display-safe suffix "..." + last 4 of rawKey (api-spec.md §2.2).
         body.TruncatedKey.Should().MatchRegex(@"^\.\.\..{4}$");
