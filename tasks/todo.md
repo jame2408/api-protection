@@ -80,8 +80,6 @@ Each item below is tagged 🐞 (real drift to fix), 🏗️ (scaffolding — spe
 
 ### A. Wire-format / contract drift vs `api-spec.md` 🐞
 
-1. **Endpoint error responses don't follow RFC 9457 ProblemDetails** (`api-spec.md` §2.2). Production `CreateApiKeyEndpoint.cs:42-51` returns `{ error: "..." }`; spec mandates `{ type, title, status, detail, errorCode, errors[] }`. The fallback `Results.Problem(result.Error.Code)` also passes `Code` as `detail` instead of `errorCode`.
-2. **`CreateApiKeyResponse.cs` missing `truncatedKey` field** that `api-spec.md` §3.2.1 specifies (e.g. `"...a9B3"` for UI display).
 4. **`VALIDATION_ERROR` prefix matches too loosely** (`CreateApiKeyEndpoint.cs:49`, `CreateApiKeyFailureCodes.cs:11`). Tighten to `"VALIDATION_ERROR:"` so unrelated codes starting with the same letters can't accidentally fall into 400. Already in old follow-ups; promoted to actionable.
 
 ### B. Security: PRD-mandated invariants not yet honoured 🐞
@@ -154,7 +152,7 @@ Deep cross-check of ADRs ↔ CLAUDE.md ↔ `.claude/references` ↔ production c
 
 - [ ] **38. (P3, doc erratum — needs mechanism decision)** ADR-002 §3 `tests/` tree omits `SharedKernel.Tests` (present in `.slnx`). Illustrative tree, low impact, but doc trails reality.
   - ⚠️ #37/#38 touch Accepted ADR bodies → governance clause "任何提案修改 1–N 必須先開新 ADR" applies. Decide **erratum note vs new ADR** before editing; do **not** silently edit ADR bodies.
-- [ ] **39. (P4, tied to #20)** CLAUDE.md "Definition of Done" lists "Architecture tests pass (no BC cross-references via NetArchTest)" as an active gate, but Architecture.Tests is an empty shell (#20) so the gate is currently vacuous. Resolved automatically by seeding #20; alternatively soften CLAUDE.md wording. Do **not** edit CLAUDE.md independently of #20.
+- [x] **39. ✅ 2026-07-05（登記滯後補記）** 已隨 #20 落地自動消解 — Architecture.Tests 現有 14 個測試（含動態發現的 BC 隔離 Theory），CLAUDE.md DoD 的架構測試 gate 不再空轉。原描述：CLAUDE.md "Definition of Done" lists "Architecture tests pass" as an active gate, but Architecture.Tests is an empty shell (#20) so the gate is currently vacuous.
 
 ---
 
@@ -192,6 +190,8 @@ Deep cross-check of ADRs ↔ CLAUDE.md ↔ `.claude/references` ↔ production c
 
 ## Archived（已結案）
 
+1. ~~**Endpoint error responses don't follow RFC 9457 ProblemDetails.**~~ ✅ Resolved（2026-07-05 盤查確認，登記滯後補記）— `backend/src/KeyLifecycle/Http/ApiProblem.cs` 為單一 error envelope 來源（`type`/`title`/`status`/`errorCode`/`traceId` + `application/problem+json`），BDD `ThenCreateFailsWithReason` 逐欄鎖定 wire format（`docs/verification-matrix.md` 第 17 項），現行 7 個通過場景全數驗證。
+2. ~~**`CreateApiKeyResponse.cs` missing `truncatedKey` field.**~~ ✅ Resolved（2026-07-05 盤查確認，登記滯後補記）— `CreateApiKeyResponse` 已含 `TruncatedKey`，`ThenRawKeyIsReturned` 斷言 `"..." + rawKey[^4..]`（`docs/verification-matrix.md` 第 18 項）。
 3. ~~**`lifecycleStatus` wire-format inconsistency.**~~ ✅ Resolved by ADR-006 (2026-05-02). Decision opposite to the original suggestion: `ApiKeyStatus` enum **was** renamed to PascalCase, paired with `JsonStringEnumConverter(allowIntegerValues: false)`; DTO type changed from `string` to `ApiKeyStatus`; functional tests now lock raw JSON wire literal `"Active"` via `JsonDocument`.
 6. ~~**`BCrypt.Net-Next` version mismatch** between `KeyLifecycle/.csproj:5` (`4.0.3`) and `Infrastructure/.csproj:13` (`4.1.0`).~~ ✅ Resolved (2026-07-04) via #36 — `backend/Directory.Packages.props` now centrally pins `BCrypt.Net-Next` to `4.1.0` for both projects.
 9. ~~**Dev `appsettings.Development.json:9` commits a plaintext DB password.** Move to User Secrets / env var even for dev to avoid normalising the pattern.~~ ✅ Resolved (2026-07-04) — `Password=` 段自 `appsettings.Development.json` 移除，Host 專案加 `<UserSecretsId>`，本機設定指令寫入 root `README.md`。使用者裁決：不重寫 git 歷史（localhost postgres/postgres 為通用預設值，無保密價值）。
