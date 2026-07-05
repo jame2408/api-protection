@@ -33,6 +33,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Host\ApiKeyManagement.Api.csproj" />
+    <!-- Direct references for BC types used in step definitions (previously satisfied
+         only transitively via Host); also required by Stryker "project" resolution,
+         which searches direct references only. -->
+    <ProjectReference Include="..\..\src\KeyLifecycle\ApiKeyManagement.KeyLifecycle.csproj" />
+    <ProjectReference Include="..\..\src\TenantManagement\ApiKeyManagement.TenantManagement.csproj" />
     <ProjectReference Include="..\TestInfrastructure\ApiKeyManagement.TestInfrastructure.csproj" />
   </ItemGroup>
 

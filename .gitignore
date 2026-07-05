@@ -34,6 +34,9 @@ coverage/
 *.coverage
 *.coveragexml
 
+# Stryker.NET mutation testing output (QA #2, on-demand, non-gate)
+StrykerOutput/
+
 # Python bytecode cache (created by `py_compile` syntax checks in
 # post-edit-validate.sh / machinery-check.sh — PYTHONDONTWRITEBYTECODE has no
 # effect on explicit py_compile invocation, only on import-time caching)

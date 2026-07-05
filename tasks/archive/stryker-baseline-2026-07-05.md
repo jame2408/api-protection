@@ -1,0 +1,43 @@
+# Stryker.NET 變異測試基線 — 2026-07-05（QA #2）
+
+> Wave 1 收齊＋test-only 重構 pass 後量測。工具：dotnet-stryker 4.16.0（local manifest），
+> 跑法：`bash scripts/mutation-test.sh <BC>`（on-demand，非 gate，使用者 2026-07-05 核准）。
+> 報告原檔在 `backend/tests/FunctionalTests/StrykerOutput/`（gitignored，本檔為 survived 清單的持久化歸檔）。
+
+## 總分
+
+| BC | Mutation score | 總 mutants | Killed | Survived | NoCoverage | Ignored | CompileError | 耗時 |
+|---|---|---|---|---|---|---|---|---|
+| KeyLifecycle | **54.39%** | 69 | 31 | 19 | 7 | 10 | 2 | 1m42s |
+| TenantManagement | **72.73%** | 13 | 8 | 2 | 1 | 2 | 0 | 47s |
+
+對照：`CreateApiKeyHandler` line coverage 96.4%（ADR-014 gate）— coverage 與斷言品質的落差即本清單。
+
+## A. 真缺口 — 高價值（建議優先處置，處置方式待使用者裁決）
+
+1. **`KeyLifecycle/CreateApiKey/CreateApiKeyHandler.cs:66`** — Statement removal：整行刪掉 `await keyRepository.SaveAsync(apiKey, cancel);` 全套件照綠。成功場景的 Then 斷言了 response body 與 AccessPolicy 落庫，**唯獨沒斷言 ApiKey 本身落庫**。
+2. **`KeyLifecycle/Domain/ApiKey.cs:62`** — Statement removal：刪掉 `key.AddDomainEvent(new KeyCreated(...))` 照綠。「系統產生 KeyCreated 事件」Then step 實際只驗 response body，事件是否真的發出無斷言。
+3. **`TenantManagement/Application/ConsumerValidatorService.cs:24`** — Logical `&&`→`||`：場景「Consumer 不屬於該租戶」的 seed 是「consumer 不存在」，**「consumer 存在但屬另一租戶」的跨租戶隔離從未被測**；`||` 變異讓跨租戶 consumer 通過驗證也無場景抓到。場景名與 seed 語意不符。
+4. **`KeyLifecycle/CreateApiKey/CreateApiKeyHandler.cs:47`** — Equality `>`→`>=`：到期上限精確邊界（恰好 +365 天應成功）無場景，現有場景只測遠超（5 年）與遠低（30 天）。
+
+## B. 真缺口 — 低價值或需基礎設施
+
+5. `CreateApiKeyHandler.cs:45` — `<=`→`<`：`ExpiresAt` 恰等於 `now` 的邊界；`DateTimeOffset.UtcNow` 直取，無時鐘抽象即不可決定性測試。
+6. `ApiKey.cs:81`（×4 mutants）＋ `:84-85`（×3）：keyPrefix 生成（tenantAbbr 4 字截斷、envAbbr 映射）只被 `StartsWith("apk_")` 弱斷言覆蓋；tenantId < 4 字的分支無測試。
+7. `CreateApiKeyEndpoint.cs:46` — 201 Created 的 Location URI 字串無斷言。
+
+## C. 等價／無害變異（裁決不處置）
+
+8. `ApiKey.cs:12-19`（×6）、`TenantManagement/Domain/Consumer.cs:7`：屬性初始器 `= string.Empty` 必被建構流程覆寫，不可觀測。
+9. `KeyLifecycle/Http/ApiProblem.cs:46`：`"traceId"` 鍵名變異存活 — ASP.NET Core ProblemDetails 管線本身會補 traceId，顯式行屬冗餘防護。
+
+## D. NoCoverage — 預期盲區（不處置，留待對應 wave）
+
+10. `ApiKey.cs:85-86`：sandbox envAbbr 分支 — sandbox 場景屬後續 wave。
+11. `ApiProblem.cs:63`：unknown-code 500 fallback — 防禦分支，所有現行 code 皆有映射。
+12. `KeyLifecycleModule.cs:12,18`、`CreateApiKeyEndpoint.cs:19-20`、`TenantManagementModule.cs:11`：DI／endpoint 註冊等啟動期程式碼。
+
+## 附註
+
+- CompileError ×2（`CreateApiKeyFailureCodes.cs`）：const 字串無法參與 Stryker 的 mutant switching，屬工具限制、無資訊量；錯誤碼字串的防線實際在 Then 映射表的 wire-format 逐字斷言（ADR-006）。
+- 成本結論：兩 BC 全量合計 < 3 分鐘 — 遠低於預估，未來可考慮納入 CI 週期 job（另行裁決，維持非 gate）。
