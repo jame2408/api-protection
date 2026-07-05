@@ -74,10 +74,16 @@
 
 ## 5. Token 節約原則
 
+> 治理：第 5–8 條受 `docs/adr/adr-019-token-economy-charter-rules.md` 管轄，修改須先開新 ADR。
+
 1. **注入有上限**：session 啟動或任務交接時自動注入的規則內容（must-read、lessons 摘要等）應有明確上限（筆數或 token 數），不得隨規範或紀錄增長而無界擴張。
 2. **細節單一來源，其餘放指針**：同一條規則的完整內容只存在於一個檔案（通常是 Accepted ADR 或 `CLAUDE.md`）；其他文件（`docs/orchestration.md`、`AGENTS.md`、rule.md）只放「檔案 + 段落標題」形式的指針，不複製規則全文。
 3. **續接靠 checkpoint，不靠重讀全史**：任務交接時，下一個執行者應優先讀取 checkpoint（§4），僅在 checkpoint 指向特定歷史內容時才回頭讀取對應的原始紀錄；不應預設要重讀整個對話歷史或整份 plan 檔案才能接手。
 4. **大範圍掃描派小型模型**：需要讀取或摘要大量檔案、但不需要深度架構判斷的任務（見 §1 路由表），派給小型模型或子代理平行執行，協調者本身不消耗 token 做這類工作。
+5. **任務包單一階段**：executor 任務規格以單一階段為原則，預估超過約 50 次工具呼叫即拆包派發。
+6. **resume 只限小型追問**：續行長任務一律新開 executor、以 spec／checkpoint 銜接；不得 resume 大 transcript（整份 transcript 會以未快取輸入重讀計費）。
+7. **協調者 session 以一個 Phase 為壽命上限**：Phase 落地即結束 session，下個 Phase 冷啟動接 checkpoint。
+8. **limit／服務中斷視同 phase 邊界**：將達 limit 時最後一動是 checkpoint 落盤；恢復一律開新 session 接 checkpoint；中斷的 executor 一律新開接手（讀 spec 與現有 git diff 續跑），不得 resume。
 
 ---
 
