@@ -20,6 +20,12 @@ Patterns and lessons captured during development. Updated automatically per Self
 
 > 尚未有機械化防線接管的教訓；`session-init.sh` 每個 session 注入以下每條的標題與 Rule 行。
 
+### [info] zsh 對裸 `=` 開頭的字樣做等號展開 — 分隔字串必須加引號
+**Date:** 2026-07-05
+**Context:** ADR-018 首次 failure triage 即抓到最大 REPEAT 群組（4 筆同簽名 `(eval):N: == not found`，另有 `=== not found` 變體）：agent 在 Bash 工具慣用 `echo ===` 當輸出分隔，zsh 對裸 `=word` 參數做等號展開（解析為「尋找名為 `==` 的指令路徑」），直接報錯使整串複合指令中斷、該次工具呼叫作廢重跑。
+**Rule:** 本機 shell 是 zsh：任何以 `=` 開頭的裸參數（含 `echo ===` 這類分隔字串）一律加引號（`echo '==='`），或改用不以 `=` 開頭的分隔符。
+**落地:** 本條 lesson（首例由 `scripts/failure-triage.sh` 的 REPEAT 訊號捕獲）。
+
 ### [correction] Orchestrator 越位執行細節 — 路由表也約束 orchestrator 自己
 **Date:** 2026-07-04
 **Context:** 使用者糾正：zh-lint 實作、檔案修正、commit 操作等細節工作由 orchestrator（大型模型）親自執行，違反 docs/orchestration.md §1 自己訂的路由表（實作屬中型模型）。「規劃者不下場」不只是成本原則，也是憲章可移轉性的驗證 — orchestrator 自己繞過路由表，等於憲章沒有被完整遵守。

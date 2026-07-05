@@ -31,6 +31,7 @@
 - 架構防線 enrollment gap 修復：`BoundedContextIsolationTests` BC 名單改動態發現（掃 `backend/src/`，漏 ProjectReference 時 fail-loud 指路修法）+ guard Fact 鎖已知最小集合；故意紅 A（FakeBc 自動入列轉紅）與 B（KeyLifecycle→TenantManagement 違規偵測）雙取證；矩陣 13→14 同 commit — `a4094b3`
 - ADR-017 hash 演算法裁決＋實作同 commit：HMAC-SHA256 + pepper（使用者裁決，實測基準 Argon2id 44ms/HMAC 0.0003ms + prefix 不唯一致 salted KDF 不可索引查找）、熵 96→128-bit、BCrypt 依賴全移除、`IApiKeyHasher`（Domain）/`HmacApiKeyHasher`（Infrastructure，pepper 缺值 fail-fast）、hasher 測試 5 項；PRD R-STR-01/02 高熵豁免、design-doc Q1 回填、矩陣 19d、todo #5 結案同批 — `abc71aa`
 - scenario「指定的 Scope 不存在 — 拒絕建立」Red→Green（seed 落點裁決：「不存在」語意的 Given 維持 no-op，tenant/consumer seed 落 When step，抽 `SeedDefaultTenantAndConsumerIfMissingAsync` helper 供後續無 Given 場景複用；production 未動），自然紅＋故意紅雙取證，7/44 — `03a49f2`
+- Loop engineering 閉環包（使用者裁決 Q1–Q5 全數落地）：ADR-018 failures triage 回饋化＋`observations.jsonl` 除役（`scripts/failure-triage.sh`，矩陣 19e）— `75a9433` `1017a2b`；ADR-019 token 經濟四條升 `docs/orchestration.md` §5 可打勾規則、兩條懸空 lesson 落地欄收口 — `3d6b884`；BDD 紀律機械化（`scripts/bdd-lint.sh` 帳面一致性入 fast/full/CI + pre-commit staged guard 單移 `@ignore`／進度檔同 commit，三面故意紅取證，矩陣 9d/9e，CLAUDE.md CRITICAL 條註記防線）— `c6dce1d`；矩陣無防線區正名（Guard 正負場景裁決不機械化、refactor 紀律／backlog 晉升權／矩陣同步義務誠實登記）— `f1bbfdc`；審計報告歸檔 `tasks/archive/loop-audit-2026-07-05.md`＋首次 phase 收尾 triage 處置＋zsh 等號展開 lesson — 本 commit
 
 ## 待驗證
 
@@ -42,8 +43,7 @@
 
 ## 待裁決
 
-- **Loop engineering 缺口報告 Q1–Q5**（`tasks/loop-audit-2026-07-05.md` §5）：jsonl 回饋化（需修訂 ADR-008）、BDD 紀律 D1/D2 機械化、Guard 正負場景裁決、懸空 lesson 收口、報告去留。Phase 3 動手前須使用者逐條裁決。
-- 跨全檔另僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞，不需要立即裁決。
+- 跨全檔僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞，不需要立即裁決。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
@@ -54,6 +54,7 @@
 
 ## 工作區狀態警告
 
+- 2026-07-05 首次 failure triage（ADR-018 決策 §3）處置紀錄：`(eval):N: == not found` ×4 → 已轉 lesson（zsh 等號展開）；`(eval):cd:N: no such file or directory: backend` ×2 → 不轉，探索性 cwd 誤試、無制度性根因；`Exit code N` ×2 → 不轉，簽名過泛（多個不同指令的非零退出被摺疊）、無共同根因。
 - `.agents/`、`.claude/skills/tessl__*`、`.mcp.json`、`.tessl/`、`tessl.json`：Tessl 相關，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。
 - 目錄歸檔（Tessl 相關 skill 目錄、`docs/arch-flow.html` 等可重產產物）另包處理，不在本檔範圍內處理。
 
