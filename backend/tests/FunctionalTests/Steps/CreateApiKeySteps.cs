@@ -281,6 +281,8 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     [When(@"Consumer 建立金鑰，scopes 為空")]
     public async Task WhenConsumerCreatesKeyWithEmptyScopes()
     {
+        await SeedDefaultTenantAndConsumerIfMissingAsync("any-consumer");
+
         var request = new CreateApiKeyEndpoint.Request(
             Name: "any-key",
             Environment: "Production",

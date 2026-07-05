@@ -47,7 +47,6 @@ Feature: 建立 API 金鑰
     When  Consumer 建立金鑰，scopes 包含 "payments:refund"
     Then  建立失敗，錯誤原因為「Scope 不存在：payments:refund」
 
-  @ignore
   Scenario: 未指定任何 Scope — 拒絕建立
     When  Consumer 建立金鑰，scopes 為空
     Then  建立失敗，錯誤原因為「至少需要一個 Scope」
