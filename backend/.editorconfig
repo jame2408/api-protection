@@ -11,6 +11,13 @@ generated_code = true
 [**/CreateApiKeySteps.cs]
 generated_code = true
 
+# ADR-016 §2: EF Core migrations are tool-generated (scaffolded by `dotnet ef migrations
+# add`, regenerated on schema change, never hand-edited) — marking them `generated_code`
+# is a correct classification, not a downgrade, and exempts them from CA analysis
+# (baseline CA1861 ×2 in InitialCreate.cs).
+[**/Persistence/Migrations/*.cs]
+generated_code = true
+
 # ADR-011: mechanize CLAUDE.md naming conventions (PascalCase methods/types,
 # _camelCase private fields, `I`-prefixed interfaces, `Async`-suffixed async
 # methods) as `dotnet_naming_*` rules with severity=error. Rule detail /
@@ -105,3 +112,10 @@ dotnet_naming_rule.types_and_members_should_be_pascal_case.severity = error
 # it as a build error under EnforceCodeStyleInBuild. See
 # https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide1006
 dotnet_diagnostic.IDE1006.severity = error
+
+# ADR-016 §2 pre-authorized downgrade: CA1848 (use LoggerMessage source-gen delegates
+# instead of ILogger extension methods) is downgraded repo-wide. Only a handful of
+# non-hot-path log calls exist at the Host/Infrastructure boundary (e.g.
+# UnhandledExceptionMiddleware) — the source-gen ceremony (delegate + partial method +
+# attribute per call site) is disproportionate to that volume. Baseline: 1 occurrence.
+dotnet_diagnostic.CA1848.severity = none

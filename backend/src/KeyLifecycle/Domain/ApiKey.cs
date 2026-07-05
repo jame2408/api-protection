@@ -77,23 +77,23 @@ public class ApiKey : AggregateRoot<Guid>
         string tenantId, string environment)
     {
         // prefix: apk_{first4ofTenant}_{envAbbr}
-        var tenantAbbr = (tenantId.Length >= 4 ? tenantId[..4] : tenantId).ToLower();
-        var envAbbr = environment.ToLower() switch
+        var tenantAbbr = (tenantId.Length >= 4 ? tenantId[..4] : tenantId).ToLowerInvariant();
+        var envAbbr = environment.ToLowerInvariant() switch
         {
             "production" => "prod",
             "sandbox" => "sbx",
-            _ => environment.ToLower()[..Math.Min(4, environment.Length)]
+            _ => environment.ToLowerInvariant()[..Math.Min(4, environment.Length)]
         };
         var prefix = $"apk_{tenantAbbr}_{envAbbr}";
 
         // random body: 24 hex chars
         var randomBytes = RandomNumberGenerator.GetBytes(12);
-        var randomHex = Convert.ToHexString(randomBytes).ToLower();
+        var randomHex = Convert.ToHexString(randomBytes).ToLowerInvariant();
 
         // checksum: first 4 hex chars of SHA256 of the combined
         var combined = $"{prefix}_{randomHex}";
         var checksumBytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(combined));
-        var checksum = Convert.ToHexString(checksumBytes)[..4].ToLower();
+        var checksum = Convert.ToHexString(checksumBytes)[..4].ToLowerInvariant();
 
         var rawKey = $"{combined}_{checksum}";
 

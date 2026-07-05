@@ -17,8 +17,8 @@ public static class ApiProblem
     private const string TypeBaseUri = "https://api.example.com/errors/";
 
     // Failure.Code -> (HTTP status, human-readable title). VALIDATION_ERROR:* is handled by prefix.
-    private static readonly IReadOnlyDictionary<string, (int Status, string Title)> Map =
-        new Dictionary<string, (int, string)>
+    private static readonly Dictionary<string, (int Status, string Title)> Map =
+        new()
         {
             [ConsumerValidationFailureCodes.TenantNotFound] = (StatusCodes.Status404NotFound, "Tenant Not Found"),
             [ConsumerValidationFailureCodes.ConsumerNotFound] = (StatusCodes.Status404NotFound, "Consumer Not Found"),

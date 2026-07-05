@@ -1,0 +1,1 @@
+T:Xunit.Assert; CLAUDE.md §4 mandates FluentAssertions for test assertions — direct xunit.Assert.* usage is banned so the rule is enforced by the compiler (Microsoft.CodeAnalysis.BannedApiAnalyzers, ADR-016 §3) instead of resting on AI review attention.

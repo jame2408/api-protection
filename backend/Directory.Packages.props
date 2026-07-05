@@ -31,6 +31,8 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
 
     <!-- Test -->
+    <!-- ADR-016 §3: mechanizes FluentAssertions-only enforcement (bans xunit.Assert). -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <!-- FluentAssertions >= 8.0.0 is source-available (non-OSS license); testing.guide.md mandates < 8.0.0. -->
     <PackageVersion Include="FluentAssertions" Version="7.2.0" />

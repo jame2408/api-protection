@@ -5,3 +5,16 @@
 # inherits — no `root = true` here) still applies to backend/tests/.
 [*.cs]
 dotnet_naming_rule.async_methods_should_have_async_suffix.severity = none
+
+# ADR-016 §2 pre-authorized downgrade, test scope only: CA1707 (remove underscores from
+# member names) conflicts with the established BDD/xUnit test naming convention
+# (`Given_X_When_Y_Then_Z`-style method names carry scenario semantics) — same rationale
+# as the Async-suffix carve-out above, and same source (ADR-011 §3 test carve-out).
+# Baseline: 11 occurrences across Architecture.Tests / SharedKernel.Tests.
+dotnet_diagnostic.CA1707.severity = none
+
+# ADR-016 §3: Microsoft.CodeAnalysis.BannedApiAnalyzers reports banned-symbol usage as
+# RS0030, which `CodeAnalysisTreatWarningsAsErrors` (backend/Directory.Build.props) does
+# NOT cover — that property only escalates `CA*`-prefixed diagnostics. Escalate RS0030
+# explicitly so a banned xunit.Assert.* usage fails the build, not just warns.
+dotnet_diagnostic.RS0030.severity = error

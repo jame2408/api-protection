@@ -11,6 +11,14 @@
          restore/build instead of only warning, so a new advisory cannot silently pass
          through the same way Microsoft.OpenApi 2.0.0's did for months. -->
     <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
+
+    <!-- ADR-016: enable the SDK's latest-recommended NetAnalyzers tier (was: unset, i.e.
+         the minimal default subset at warning severity only) and promote CA warnings to
+         build errors, so semantic-layer quality rules (culture-sensitive string ops,
+         CancellationToken propagation via CA2016, rethrow-loses-stack via CA2200) are
+         caught by the compiler instead of resting on AI review attention. -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
   </PropertyGroup>
 
 </Project>

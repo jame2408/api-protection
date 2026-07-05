@@ -49,6 +49,8 @@
 | 19a | concrete `*Handler` 類別 unit coverage ≥ 80%（逐類判定，async state machine 併回母類）— `CLAUDE.md` §4「unit coverage ≥ 80% for Handler code」+ `docs/adr/adr-014-handler-coverage-gate.md` | `scripts/coverage-check.sh`（`scripts/ci-checks.sh` full 呼叫，測試段附掛 `--collect:"XPlat Code Coverage"`） | push 前 / CI（僅 full） | 腳本 |
 | **NuGet audit（`backend/Directory.Build.props` `WarningsAsErrors`）** ||||
 | 19b | NuGet 套件（含 transitive）High/Critical 弱點警告（NU1903/NU1904）升為 build error，不再只靠人／AI 盯 warning 輸出 — `CLAUDE.md` §Core Principles「Security First」+ `docs/adr/adr-015-dependency-vulnerability-audit-gate.md` | `backend/Directory.Build.props`（`WarningsAsErrors` 含 `NU1903;NU1904`） | 每次 restore/build（fast 的 format 段、full 的 build 段、CI 共用同一 build） | 腳本 |
+| **Roslyn analyzer gate（`docs/adr/adr-016-roslyn-analyzer-gate.md`）** ||||
+| 19c | 語意層品質規則（`CancellationToken` 傳播經 CA2016 直接命中、`throw ex;` 經 CA2200 直接命中、文化敏感字串操作經 CA1304/CA1310/CA1311 直接命中）+ FluentAssertions 強制（禁 `xunit.Assert.*`）— 協調憲章明文規則 (i) + `docs/adr/adr-016-roslyn-analyzer-gate.md` | `backend/Directory.Build.props`（`AnalysisLevel=latest-recommended` + `CodeAnalysisTreatWarningsAsErrors=true`）+ `Microsoft.CodeAnalysis.BannedApiAnalyzers`（測試三專案 `PackageReference` + 共用 `backend/tests/BannedSymbols.txt`） | 每次 restore/build（fast 的 format 段、full 的 build 段、CI 共用同一 build） | 腳本 |
 | **AI review 類** ||||
 | 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons.md` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
@@ -67,11 +69,12 @@
 |---|---|---|
 | ~~Unit test coverage ≥ 80%（Handler code）~~ | ~~`CLAUDE.md` §4「_Tests:_」~~ | ✅ **2026-07-05 已機械化** — 規則落點 `docs/adr/adr-014-handler-coverage-gate.md`，防線見主表第 19a 項（`scripts/coverage-check.sh`，`scripts/ci-checks.sh` full 呼叫）；自本區塊移出 |
 | 每個 Guard condition 須同時有正向與負向情境 | `CLAUDE.md` §4「_Tests:_」 | 未追蹤——屬 BDD 撰寫完整性，無腳本比對 `.feature` 場景的正/負向覆蓋 |
-| `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試 |
-| `NEVER` 使用空 catch block；`NEVER` 用 `throw ex;`（須 `throw;`） | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——`scripts/source-lint.sh` 未涵蓋，可用 grep 機械化但尚未寫 |
-| `CancellationToken cancel` 須傳播到每個 I/O 呼叫（EF Core / HTTP client / message bus） | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——命名本身已由第 9 / 14 項機械化，但「有沒有把 `cancel` 真的傳進每個 I/O 呼叫」屬語意/資料流檢查，現有 grep 與 reflection 皆看不到 |
+| `NEVER` 存取 `.Value` 前未先檢查 `.IsFailure` | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——需資料流/Roslyn analyzer 才可靜態偵測，`backend/tests/Architecture.Tests/` 未見對應測試；**ADR-016 §4 裁決不機械化**——自寫 dataflow analyzer 成本高於現階段效益，由 AI review（第 20 項）+ BDD 行為驗證承擔 |
+| `NEVER` 使用空 catch block | `CLAUDE.md` §4「_Error Handling_」 | 未追蹤——內建 CA 無對應規則；ADR-016 §4 裁決不為單一規則引入 Sonar 全家桶，維持無防線 |
+| ~~`NEVER` 用 `throw ex;`（須 `throw;`）~~ | ~~`CLAUDE.md` §4「_Error Handling_」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2200 直接命中（防線見主表第 19c 項）；自本區塊移出 |
+| ~~`CancellationToken cancel` 須傳播到每個 I/O 呼叫（EF Core / HTTP client / message bus）~~ | ~~`CLAUDE.md` §4「_Code Quality_」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` 由 CA2016 直接命中（防線見主表第 19c 項），現況零命中屬防患型（違規第一次出現時即攔）；自本區塊移出 |
 | ~~命名慣例：一般 PascalCase 方法 / `_camelCase` 欄位 / `Async` 後綴~~ | ~~`CLAUDE.md` §4「_Code Quality_」~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md`，防線見主表第 11 項（`backend/.editorconfig` `dotnet_naming_*` + `EnforceCodeStyleInBuild`，`dotnet build` 與 `dotnet format --verify-no-changes` 皆會擋下）；`backend/tests` 排除 Async 後綴為 ADR-011 §3 明文 carve-out（BDD step 語意衝突），非機械化缺口；自本區塊移出 |
-| FluentAssertions 用於測試斷言，禁止直接比較（如 `Assert.Equal`） | `CLAUDE.md` §4「_Code Quality_」 | 未追蹤——無 lint 禁止 `Assert.*`；現況所有測試皆用 FluentAssertions 純屬慣例延續，非機械保證 |
+| ~~FluentAssertions 用於測試斷言，禁止直接比較（如 `Assert.Equal`）~~ | ~~`CLAUDE.md` §4「_Code Quality_」~~ | ✅ **2026-07-05 已機械化** — 經 `docs/adr/adr-016-roslyn-analyzer-gate.md` `Microsoft.CodeAnalysis.BannedApiAnalyzers` 禁 `T:Xunit.Assert`（防線見主表第 19c 項）；自本區塊移出 |
 | API Key validation latency P99 < 50ms | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——repo 內無負載測試腳本或效能基準測試 |
 | Validation throughput ≥ 100 RPS | `CLAUDE.md` §4「_Performance (for hotpath changes)_」 | 未追蹤——同上，無對應腳本 |
 | ~~禁止簡體字（正體中文文件）~~ | ~~全域層級規則，repo 內無明文、無 lint~~ | ✅ **2026-07-04 已機械化** — 規則落點 `docs/adr/adr-009-traditional-chinese-and-zh-lint.md`，防線見主表第 16a 項；自本區塊移出 |
