@@ -26,6 +26,7 @@
 - ADR-016 Roslyn analyzer gate：latest-recommended + CA 升 error + BannedApiAnalyzers（禁 `Xunit.Assert`），baseline 31 處清償（修正/generated_code/documented 降級），無防線區再消三條（CA2016/CA2200/FluentAssertions）、`.Value` 條明文裁決不機械化 — `4e60c71` `7bb4053`
 - scenario「Active 金鑰數達到上限 — 拒絕建立」Red→Green（`GivenActiveKeyCount` 補條件式 seed tenant+consumer，production 未動；guard 早已存在），故意紅（`>=`→`>` 使測試 422 vs 409 轉紅）orchestrator 親自重演確認，5/44 — `26a1160`
 - lessons triage 機械化包（使用者核准全包）：source-lint 新增 MSBuild XML 合法性／bash 3.2 相容／CreateScope 禁令（Middleware、Program.cs 豁免）三段，各過綠＋故意紅（executor 與 orchestrator 各一輪）；四條 lesson 歸檔（Active 13→9，注入量下降）；矩陣登記 9a/9b/9c；todo 增設 triage 常設觸發（Active ≥ 15 或 phase 收尾） — `b179fb2`
+- 全 repo 文件衝突掃描（三路平行探查 + orchestrator 逐條裁決）：規範層 8 處衝突修繕（di.rule.md §D 範例對齊 CreateScope lint、ILogger 枚舉三處統一三層版、matrix 失效引用全修、已機械化 pattern 標注、CLAUDE.md coverage 措辭對齊 ADR-014）— `be0152e`；自建雙 skill（bdd-vertical-slice／lesson）指針化對齊 2026-07 制度 — `f90bf3d`；執行面文件七項核對全相符、ADR 間無隱性衝突；ADR-004 第 6 類正名與 upstream skill 凍結 gate 記入 todo follow-up
 
 ## 待驗證
 
