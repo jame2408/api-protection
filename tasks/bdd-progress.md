@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 6 / 44  
-**下一個：** `01_CreateApiKey.feature` — 指定的 Scope 不存在 — 拒絕建立
+**已通過：** 7 / 44  
+**下一個：** `01_CreateApiKey.feature` — 未指定任何 Scope — 拒絕建立
 
 ---
 

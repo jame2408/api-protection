@@ -246,9 +246,25 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    // Scenarios whose only Given describes an absence (e.g. unregistered scope) reach the
+    // When step with no tenant/consumer seeded; seed them here so the I1 validator passes
+    // and the request reaches the guard under test.
+    private async Task SeedDefaultTenantAndConsumerIfMissingAsync(string consumerId)
+    {
+        if (!string.IsNullOrEmpty(_ctx.CurrentTenantId))
+            return;
+
+        _ctx.CurrentTenantId = "tenant-A";
+        Db.Tenants.Add(new Tenant("tenant-A", TenantStatus.Active));
+        Db.Consumers.Add(new Consumer(consumerId, "tenant-A"));
+        await Db.SaveChangesAsync();
+    }
+
     [When(@"Consumer 建立金鑰，scopes 包含 ""(.*)""")]
     public async Task WhenConsumerCreatesKeyWithScope(string scope)
     {
+        await SeedDefaultTenantAndConsumerIfMissingAsync("any-consumer");
+
         var request = new CreateApiKeyEndpoint.Request(
             Name: "any-key",
             Environment: "Production",

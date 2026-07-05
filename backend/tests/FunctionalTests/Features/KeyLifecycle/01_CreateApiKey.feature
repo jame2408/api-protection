@@ -42,7 +42,6 @@ Feature: 建立 API 金鑰
     When  "consumer-1" 在 Production 環境建立名為 "order-service-key" 的金鑰
     Then  建立失敗，錯誤原因為「金鑰名稱重複」
 
-  @ignore
   Scenario: 指定的 Scope 不存在 — 拒絕建立
     Given Scope "payments:refund" 未在 Scope Registry 註冊
     When  Consumer 建立金鑰，scopes 包含 "payments:refund"
