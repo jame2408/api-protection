@@ -65,7 +65,7 @@ def main() -> None:
         violations.append(
             "heredoc（<<）建立/覆寫檔案改用 Write 工具；需餵 stdin 給程式時，"
             "先用 Write 寫腳本檔再執行（heredoc 在本 harness 曾致背景卡死，"
-            "見 tasks/lessons.md heredoc 條）"
+            "見 tasks/lessons/20260705-heredoc-write-tool.md）"
         )
 
     bad_tokens = [tok for tok in masked.split() if _ZSH_EQUALS_TOKEN.match(tok)]

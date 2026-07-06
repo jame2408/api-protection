@@ -6,7 +6,8 @@
 # tasks/process-improvement-plan.md §10, P1), extended with an XML family
 # check (.props/.csproj/.targets/.xml) — this repo's own NU1015 incident
 # (an XML comment containing `--` silently broke a .props file; see
-# tasks/lessons.md) is exactly the class of bug this closes.
+# tasks/lessons/20260704-msbuild-xml-comment-double-dash-nu1015.md) is
+# exactly the class of bug this closes.
 #
 # PostToolUse cannot roll back the write that already happened; exit 2 only
 # surfaces the error to the agent immediately on stderr so it can fix it in

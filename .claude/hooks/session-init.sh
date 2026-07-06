@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Hook: UserPromptSubmit
 # Purpose: Once per session, inject (1) a must-read rules reminder and
-# (2) the title + Rule line of every "## Active" entry in tasks/lessons.md
-# (Archived entries are skipped — their risk is already caught by a
-# mechanized gate, see ADR-013 decision (b)), so Claude has the project's
-# rules and prior lessons in context without needing to be reminded.
+# (2) the title + Rule line of every `status: active` lesson file under
+# tasks/lessons/ (archived entries — frontmatter `status: archived` — are
+# skipped; their risk is already caught by a mechanized gate, see ADR-013
+# decision (b)), so Claude has the project's rules and prior lessons in
+# context without needing to be reminded. Carrier is tasks/lessons/ (one
+# file per lesson, ADR-021) — the Active/Archived judgment call itself is
+# unchanged, only its storage moved from a single file's two sections to a
+# directory of files with a frontmatter `status` field.
 #
 # Dedup design: keyed on the hook payload's session_id + a marker file
 # (rewritten instead of the old transcript-turn-counting approach, which
@@ -17,7 +21,7 @@ INPUT=$(cat)
 # go up two levels (hooks -> .claude -> project root).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-LESSONS_FILE="$PROJECT_ROOT/tasks/lessons.md"
+LESSONS_DIR="$PROJECT_ROOT/tasks/lessons"
 
 # Marker file records the session_id we last injected for. SESSION_INIT_MARKER
 # lets tests point this at a scratch file; normal execution always uses the
@@ -60,35 +64,111 @@ echo ""
 echo "這些規則是機械化強制的，不是建議：違規會在「寫的當下」被 PreToolUse hook 擋（\`.claude/hooks/pre-tool-edit.py\`），並由 Architecture.Tests 與 \`scripts/source-lint.sh\` 在 commit / push / CI 攔下（\`scripts/ci-checks.sh\`）。未讀就動手 = 高機率被擋、來回重做。"
 echo ""
 
-# Extract lessons from tasks/lessons.md, tiered per ADR-013 decision (b):
-# the file is split into a "## Active" section (not yet backed by a
-# mechanized gate) and a "## Archived" section (the described risk is now
-# caught by a test/lint/hook, so the gate itself is the memory — no need to
-# keep paying injection tokens for it). Only Active entries are injected,
-# and only their "### [" title line + "**Rule:**" line (Context / 落地
-# are dropped) — this replaces ADR-008 §2 / Implementation Rule 2's
+# Extract lessons from tasks/lessons/*.md (one file per lesson, ADR-021),
+# tiered per ADR-013 decision (b): each file's frontmatter `status` is either
+# `active` (not yet backed by a mechanized gate) or `archived` (the described
+# risk is now caught by a test/lint/hook, so the gate itself is the memory —
+# no need to keep paying injection tokens for it). Only active entries are
+# injected, and only their "### [" title line + "**Rule:**" line (Context /
+# 落地 are dropped) — this replaces ADR-008 §2 / Implementation Rule 2's
 # "most recent 8 entries, full text" design, which predates the
-# Active/Archived split.
-if [ -f "$LESSONS_FILE" ]; then
-  ACTIVE_BLOCK=$(awk '/^## Active/ { f = 1; next } /^## Archived/ { f = 0 } f' "$LESSONS_FILE")
-  ARCHIVED_BLOCK=$(awk '/^## Archived/ { f = 1; next } f' "$LESSONS_FILE")
-  ACTIVE_COUNT=$(printf '%s\n' "$ACTIVE_BLOCK" | grep -c '^### \[')
-  ARCHIVED_COUNT=$(printf '%s\n' "$ARCHIVED_BLOCK" | grep -c '^### \[')
+# Active/Archived split; ADR-021 only changed the split's storage from a
+# single file's two sections to a directory of files with a frontmatter
+# field. `_README.md` (governance header, not a lesson) is excluded by name.
+#
+# Parsing is done in python3 (frontmatter + title + Rule line extraction is
+# awkward in awk/grep and this repo's scripts must stay bash 3.2 compatible —
+# no bash-4+ array-slurp builtins). A file whose frontmatter is missing/has an unrecognized
+# `status` value is fail-loud: it is never injected (never guess `active`),
+# and a visible warning line is added to the injected output itself so the
+# gap is not a silent miss — consistent with this hook's existing bias
+# (mislead by over-injecting once, never by silently skipping).
+if [ -d "$LESSONS_DIR" ]; then
+  LESSONS_PARSE=$(LESSONS_DIR="$LESSONS_DIR" python3 -c '
+import glob
+import os
 
-  LESSONS_OUTPUT=$(printf '%s\n' "$ACTIVE_BLOCK" | awk '
-    /^### \[/ { print; next }
-    /^\*\*Rule:\*\*/ { print }
-  ')
+lessons_dir = os.environ["LESSONS_DIR"]
+paths = sorted(
+    p for p in glob.glob(os.path.join(lessons_dir, "*.md"))
+    if os.path.basename(p) != "_README.md"
+)
 
-  if [ -n "$(echo "$LESSONS_OUTPUT" | tr -d '[:space:]')" ]; then
+active_count = 0
+archived_count = 0
+warnings = []
+output_lines = []
+
+for path in paths:
+    with open(path, "r", encoding="utf-8") as fh:
+        text = fh.read()
+
+    meta = {}
+    if text.startswith("---\n"):
+        end = text.find("\n---\n", 4)
+        if end != -1:
+            frontmatter = text[4:end]
+            body = text[end + 5:]
+            for line in frontmatter.splitlines():
+                if ":" in line:
+                    k, v = line.split(":", 1)
+                    meta[k.strip()] = v.strip()
+        else:
+            body = text
+    else:
+        body = text
+
+    status = meta.get("status", "")
+    lesson_type = meta.get("type", "")
+
+    if status == "archived":
+        archived_count += 1
+        continue
+    if status != "active":
+        warnings.append(
+            "⚠️ [session-init] " + os.path.basename(path)
+            + " frontmatter status 缺失或不合法（"
+            + repr(status) + "）— 未注入，未計入 Active/Archived 計數"
+        )
+        continue
+
+    active_count += 1
+    title = ""
+    rule_line = ""
+    for line in body.splitlines():
+        if not title and line.startswith("# "):
+            title = line[2:].strip()
+        if line.startswith("**Rule:**"):
+            rule_line = line
+    output_lines.append("### [" + lesson_type + "] " + title)
+    if rule_line:
+        output_lines.append(rule_line)
+
+for w in warnings:
+    print(w)
+print("\n".join(output_lines))
+print("___COUNTS___ %d %d" % (active_count, archived_count))
+')
+
+  LESSONS_WARNINGS=$(printf '%s\n' "$LESSONS_PARSE" | grep '^⚠️' || true)
+  LESSONS_OUTPUT=$(printf '%s\n' "$LESSONS_PARSE" | awk '/^___COUNTS___/ { exit } /^⚠️/ { next } { print }')
+  COUNTS_LINE=$(printf '%s\n' "$LESSONS_PARSE" | grep '^___COUNTS___')
+  ACTIVE_COUNT=$(printf '%s\n' "$COUNTS_LINE" | awk '{ print $2 }')
+  ARCHIVED_COUNT=$(printf '%s\n' "$COUNTS_LINE" | awk '{ print $3 }')
+
+  if [ -n "$(echo "$LESSONS_OUTPUT" | tr -d '[:space:]')" ] || [ -n "$LESSONS_WARNINGS" ]; then
     echo "## Session Context: Lessons Learned"
     echo ""
     echo "The following lessons have been captured from previous sessions in this project."
     echo "Apply them proactively without waiting to be reminded."
     echo ""
+    if [ -n "$LESSONS_WARNINGS" ]; then
+      echo "$LESSONS_WARNINGS"
+      echo ""
+    fi
     echo "$LESSONS_OUTPUT"
     echo ""
-    printf '（Active %d 條，Archived %d 條 — 完整內容見 tasks/lessons.md）\n' "$ACTIVE_COUNT" "$ARCHIVED_COUNT"
+    printf '（Active %s 條，Archived %s 條 — 完整內容見 tasks/lessons/）\n' "$ACTIVE_COUNT" "$ARCHIVED_COUNT"
   fi
 fi
 

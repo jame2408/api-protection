@@ -59,7 +59,7 @@ Out of scope here (deferred):
   - AWS secret access keys require a separate design decision because they lack a stable prefix and may cause false positives.
 - `post-tool-failure.sh` writes `tool_use_id`, `duration_ms`, and `is_interrupt` to `failures.jsonl`, but pending lesson records do not include those trace fields. Consider adding them if pending-to-failure traceability becomes useful.
 - `session-init.sh` malformed hook JSON fallback: when payload parsing fails, `TRANSCRIPT_PATH` is empty and lessons may still be injected. This is existing behavior, not a regression; revisit only if stricter hook failure semantics are desired.
-- Lessons triage 常設觸發：`tasks/lessons.md` `## Active` 區 ≥ 15 條、或 phase 收尾時，盤點 Active 條目可否機械化（腳本/lint/gate），可機械化者落地後歸檔到 `## Archived`（判準：`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b)）。
+- Lessons triage 常設觸發：`tasks/lessons/` 內 `status: active` 檔案數 ≥ 15、或 phase 收尾時，盤點 active 條目可否機械化（腳本/lint/gate），可機械化者落地後改該檔 frontmatter 為 `status: archived`（判準：`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b)；載體見 `docs/adr/adr-021-shared-state-files-team-scale.md`）。
 - ADR-004 允許 ILogger 邊界清單第 6 類（Infrastructure ApiClient，`LoggerBoundaryTests` 與 `exceptions.rule.md` §B 已實質採用）待正名——掛到下一份錯誤處理相關 ADR，不單開。
 - `requirements-analysis-design` skill 觸發詞與 `.feature` 凍結相撞——根治在 upstream `jame2408/agent-skills` repo 加凍結 gate，本地已在 `tasks/bdd-backlog.md` 檔頭布防。
 
@@ -187,6 +187,46 @@ Deep cross-check of ADRs ↔ CLAUDE.md ↔ `.claude/references` ↔ production c
 **關聯**：QA #2 變異測試（Stryker.NET）排 Wave 1 全綠後觸發（見 `tasks/checkpoint.md` 下一步）。
 
 ---
+
+## 團隊尺度共享檔 + BDD 需求分流（規劃 2026-07-06，待使用者裁決後執行）
+
+> 兩案皆為使用者主動提出的需求（非投機性立法，不違制度凍結啟發式）。既往 ADR grep 反查完畢：無同案裁決（ADR-019 Alternatives 拒絕的是「歸檔判準擴充」；BDD 側從無行為變更流程裁決）。
+
+### 案一：共享狀態檔的多寫者衝突（→ ADR-021）
+
+衝突根因 = 多寫者 × 同檔同行。依寫入模式分三類，處方不同：
+
+| 檔案 | 寫入模式 | 多寫者壓力 | 處方 |
+|---|---|---|---|
+| `tasks/lessons/` | 累積型（每 session 追加＋triage 搬移） | **高** | 一檔一教訓：`tasks/lessons/YYYYMMDD-slug.md` + frontmatter `status: active\|archived`；歸檔=改單檔 frontmatter；`session-init.sh` 改 glob 注入 active 條目（注入上限維持 ADR-008 原則）— ✅ 2026-07-06 已落地（ADR-021） |
+| `tasks/checkpoint.md` | 快照型（每 session 覆寫） | 中（單協調者時=0） | ADR 內定分流規格：`tasks/checkpoints/<workstream>.md`＋觸發條件「出現第二個常設寫者」才實作；憲章 §6 冷啟動 prompt 同步修訂 |
+| `tasks/bdd-progress.md` | 帳面型（可自 `@ignore` 推導） | 低（場景實作因 build-gate 並行規則天然串行） | 帳面生成化：計數欄由腳本自 grep 重產（`bdd-lint.sh` 檢查邏輯反轉為產生器）；「同 commit」規則不變 |
+| `tasks/todo.md` / `bdd-backlog.md` | 混合 / 低頻 | 低 | 明文不處置（non-goal），事故驅動再議 |
+
+同步項目（executor 需 grep 反查逐字引用者，已知：`session-init.sh`、`lesson` skill、ADR-008/013 引用、CLAUDE.md §3、本檔 triage 常設觸發、`docs/verification-matrix.md`）。Alternatives 需載：`.gitattributes merge=union`（Rejected：Active/Archived 分區邊界追加會交錯、triage 搬移仍衝突）。
+
+### 案二：BDD 流程 × 需求類型分流（→ ADR-022）
+
+現行流程只覆蓋「新功能且場景已預產」。分流表（ADR 本體）：
+
+| 需求類型 | 規格動作 | 紅的形態 | 缺口 |
+|---|---|---|---|
+| 新功能（場景在 backlog） | 使用者晉升 → 移 `@ignore` | Pending／自然紅（啟用型補故意紅） | 無，現制完備 |
+| **既有行為變更** | 使用者裁決 → 修改既有場景（spec-first）→ 修實作 | 修場景後自然紅=舊實作不符新規格；若直接綠=修訂無效，必停回報 | **主缺口**：`@ignore` 機制不觸發；`.feature` 凍結條款誤傷；無 gate |
+| 缺陷修復 | 先補再現（場景或 unit test）證紅 → 修 → 綠 | 再現紅 | 再現場景需明文豁免凍結與 backlog 晉升（缺陷驅動=事故驅動）；帳面 +1 同 commit |
+| 行為移除 | 使用者裁決 → 刪場景＋產碼同 commit | 無（刪後仍綠） | bdd-lint 需容忍分母遞減；明文裁決權 |
+| 純重構 | 禁碰 `.feature` | 無 | 無，Refactor discipline 已覆蓋 |
+| 非功能 | 不進 BDD 看板，路由到對應 gate（coverage／perf／security，見矩陣） | gate 故意紅 | 無 |
+
+行為變更機械化（鏡射 `Refactor-assessment:` 模式）：staged `.feature` diff 觸及**非 `@ignore` 場景**時，commit 須帶 `Spec-change:` trailer（記使用者裁決依據）且同 commit 含對應 steps／production 變更；場景修訂與實作同 commit（never-commit-red 不破例，紅只存在於工作區、以測試輸出取證）。CLAUDE.md「Do not author new `.feature` files」措辭拆分：凍結的是 Discovery 新場景產出，不含既有場景修訂與缺陷再現。
+
+### 執行編排（裁決後）
+
+1. 小型模型（haiku）：全 repo 引用掃描（`tasks/lessons/`／`checkpoint.md`／`bdd-progress.md`／`@ignore` 的逐字引用者清單）→ 餵 ADR 同步項目。
+2. ADR-021、ADR-022 起草（自 `_template.md`，過 `adr-lint.sh`）。
+3. ✅ 2026-07-06 完成 — Executor A（中型）：lessons 拆檔遷移＋`session-init.sh` glob＋引用全修，綠＋故意紅（合成 payload 注入測試）。
+4. Executor B（中型）：bdd-lint／pre-commit／commit-msg 擴充＋CLAUDE.md／SKILL 措辭同 commit，綠＋故意紅（三面取證）。
+5. A、B **串行**（兩者皆觸 CLAUDE.md，檔案集相交）；orchestrator 親自驗證後放行 commit。
 
 ## Archived（已結案）
 

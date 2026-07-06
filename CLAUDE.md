@@ -60,7 +60,7 @@ Enter Plan Mode when: 3+ interdependent files; architectural decisions (new BC s
 Use for deep research, parallel independent queries, or context-bloating tasks (10+ file reads, broad exploration); skip for single-file reads or answers you already have. One task per subagent — never delegate synthesis. Subagents must return exact paths / snippets / facts, never generalized summaries.
 
 ### 3. Self-Improvement Loop
-Write to `tasks/lessons.md` (under `## Active`) after: user correction/pushback; self-correction post a failed attempt; a non-obvious technical decision; a surprising bug root cause; a repeated issue; user confirms a non-obvious approach worked.
+Write to `tasks/lessons/` (one file per lesson, `status: active`) after: user correction/pushback; self-correction post a failed attempt; a non-obvious technical decision; a surprising bug root cause; a repeated issue; user confirms a non-obvious approach worked.
 
 ### 4. Verification Standards
 **Definition of Done — all must pass before marking complete:**
@@ -94,7 +94,7 @@ Silently ask "is there a more elegant way?" before presenting a solution — sur
 ## Task Management Protocol
 1. Plan first in `tasks/todo.md` (approval rules: see Working Agreement).
 2. Track progress in real time; explain changes after each major step.
-3. On completion: add a summary/review to `tasks/todo.md`, write lessons to `tasks/lessons.md`.
+3. On completion: add a summary/review to `tasks/todo.md`, write lessons to `tasks/lessons/`.
 
 ## Core Principles
 - **Minimal Blast Radius**: touch only what the task needs — no side effects, unrelated changes, or speculative abstractions.

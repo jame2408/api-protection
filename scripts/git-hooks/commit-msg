@@ -8,9 +8,9 @@
 # "orchestrator spec → executor" pipeline skipped it because the spec never
 # mirrored the step — the refactor judgment silently never happened for
 # 8/44–10/44 until a remedial pass caught up. User correction, 2026-07-05
-# (see tasks/lessons.md "Refactor 判斷被 spec 管道繞過"). This hook makes
-# "no refactor needed" a judgment that must be recorded, not one that can be
-# silently skipped.
+# (see tasks/lessons/20260705-refactor-judgment-bypassed-by-spec-pipeline.md).
+# This hook makes "no refactor needed" a judgment that must be recorded, not
+# one that can be silently skipped.
 #
 # Args: $1 = path to the commit message file (git commit-msg convention).
 # Uses the same staged-diff net-@ignore-removal computation as

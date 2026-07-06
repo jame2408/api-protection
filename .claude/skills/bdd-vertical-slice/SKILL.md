@@ -38,7 +38,7 @@ metadata:
 3. 執行 dotnet test → 確認 Red（場景 Pending）
    → 若移除 @ignore 後直接 Green（啟用型場景），適用故意紅義務：不得視為完成，
      依 tasks/_templates/executor-spec.md「故意紅」欄位補驗證，做法見對應 lesson
-     （tasks/lessons.md，不在此重複其步驟）。
+     （tasks/lessons/，不在此重複其步驟）。
 
 4. Pre-implementation check — 對照 CLAUDE.md §4 Verification Standards 確認：
    - Result pattern（Result<T, Failure>，禁止 throw 控制業務邏輯）

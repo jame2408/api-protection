@@ -41,8 +41,8 @@ if [[ -n "$bad_cancel" ]]; then
     status=1
 fi
 
-# Rule (tasks/lessons.md Archived「Directory.Packages.props 內 XML 註解含 `--` 會被 MSBuild
-# 靜默跳過（NU1015）」): every MSBuild props/targets file must be well-formed XML — an XML
+# Rule (tasks/lessons/20260704-msbuild-xml-comment-double-dash-nu1015.md): every
+# MSBuild props/targets file must be well-formed XML — an XML
 # comment containing `--` silently invalidates the whole file (NU1015) instead of failing
 # loudly, so validity is checked directly rather than trusting `dotnet restore` to complain.
 bad_xml=""
@@ -58,7 +58,7 @@ if [[ -n "$bad_xml" ]]; then
     status=1
 fi
 
-# Rule (tasks/lessons.md Archived「本機 bash 是 macOS 內建 3.2」): repo scripts must stay
+# Rule (tasks/lessons/20260705-bash-3-2-compat.md): repo scripts must stay
 # bash 3.2 compatible — `mapfile`/`readarray` are bash 4+ builtins, and `trap ... RETURN`
 # does not fire when a function aborts under `set -e`. Excludes this file itself, whose
 # rule text below is a literal self-match, not a violation.
