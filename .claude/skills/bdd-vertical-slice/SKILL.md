@@ -25,6 +25,8 @@ metadata:
 
 ## 實作節奏（BDD Red-Green-Refactor 循環）
 
+> 前置：先判斷需求類型（新功能啟用／既有行為變更／缺陷修復／行為移除／純重構／非功能）— 分流表見 `docs/adr/adr-022-bdd-requirement-type-routing.md` §1；下方步驟 1–11 只覆蓋「新功能，場景已預產」路徑，其他類型走該 ADR 對應章節。
+>
 > 前置：本 skill 只處理已在 `tasks/bdd-progress.md` 的場景；backlog → progress 的晉升是使用者專屬動作，不得自行執行（見 CLAUDE.md「BDD Scenario Development Cycle」段）。
 
 ```

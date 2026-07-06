@@ -81,13 +81,13 @@ Silently ask "is there a more elegant way?" before presenting a solution — sur
 
 ## BDD Scenario Development Cycle
 
-> Development phase only — `.feature` scenarios and API specs are already produced. Do not author new `.feature` files here.
+> Development phase only — `.feature` scenarios and API specs are already produced. 凍結的是 Discovery 新場景產出；既有場景修訂、缺陷再現、行為移除走 `docs/adr/adr-022-bdd-requirement-type-routing.md` 分流（§1 需求類型分流表）。
 
 **Kanban**: `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` → ✅ Done. Only the user promotes backlog → progress; Claude MUST NOT do this autonomously. `tasks/bdd-progress.md` is the queue SSOT; find the next scenario via `grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1`.
 
 **Execute via** the `/bdd-vertical-slice` skill (procedure, BC identification, patterns).
 
-**Constraints (always enforced, regardless of skill; mechanized items note their gate)**: never remove more than one `@ignore` at a time unless scenarios share identical new step definitions（pre-commit staged 檢查，豁免用 `ALLOW_MULTI_IGNORE=1`）; never mark done without test output showing it passing; `tasks/bdd-progress.md` update MUST land in the same commit as the implementation（pre-commit staged 檢查 + `scripts/bdd-lint.sh` 帳面一致性）; never commit red (exceptions: confirming a scenario/its steps are unimplemented, immediately before writing them); every `@ignore`-removal commit MUST carry a `Refactor-assessment:` trailer recording the step-9 refactor verdict for both production and test sides（commit-msg hook 機械化強制）.
+**Constraints (always enforced, regardless of skill; mechanized items note their gate)**: never remove more than one `@ignore` at a time unless scenarios share identical new step definitions（pre-commit staged 檢查，豁免用 `ALLOW_MULTI_IGNORE=1`）; never mark done without test output showing it passing; `tasks/bdd-progress.md` update MUST land in the same commit as the implementation（pre-commit staged 檢查 + `scripts/bdd-lint.sh` 帳面一致性）; never commit red (exceptions: confirming a scenario/its steps are unimplemented, immediately before writing them); every `@ignore`-removal commit MUST carry a `Refactor-assessment:` trailer recording the step-9 refactor verdict for both production and test sides（commit-msg hook 機械化強制）; any non-`@ignore` `.feature` change (scenario amendment, defect-repro addition, scenario removal) MUST carry a `Spec-change:` trailer recording the decision basis（commit-msg hook 機械化強制，逃生口 `ALLOW_FEATURE_MAINTENANCE=1` 限機械性整理；見 `docs/adr/adr-022-bdd-requirement-type-routing.md`）.
 
 **Refactor discipline**: production-only (`backend/src/`) or test-only (`backend/tests/`) passes — never mixed — except interface/DTO renames spanning both as the sole change in that commit.
 

@@ -223,9 +223,9 @@ Deep cross-check of ADRs ↔ CLAUDE.md ↔ `.claude/references` ↔ production c
 ### 執行編排（裁決後）
 
 1. 小型模型（haiku）：全 repo 引用掃描（`tasks/lessons/`／`checkpoint.md`／`bdd-progress.md`／`@ignore` 的逐字引用者清單）→ 餵 ADR 同步項目。
-2. ADR-021、ADR-022 起草（自 `_template.md`，過 `adr-lint.sh`）。
+2. ✅ 2026-07-06 完成 — ADR-021、ADR-022 起草（自 `_template.md`，過 `adr-lint.sh`）。
 3. ✅ 2026-07-06 完成 — Executor A（中型）：lessons 拆檔遷移＋`session-init.sh` glob＋引用全修，綠＋故意紅（合成 payload 注入測試）。
-4. Executor B（中型）：bdd-lint／pre-commit／commit-msg 擴充＋CLAUDE.md／SKILL 措辭同 commit，綠＋故意紅（三面取證）。
+4. ✅ 2026-07-06 完成 — Executor B（中型）：bdd-lint／pre-commit／commit-msg 擴充＋CLAUDE.md／SKILL 措辭同 commit，綠＋故意紅（三面取證）。
 5. A、B **串行**（兩者皆觸 CLAUDE.md，檔案集相交）；orchestrator 親自驗證後放行 commit。
 
 ## Archived（已結案）

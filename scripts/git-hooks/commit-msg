@@ -1,27 +1,46 @@
 #!/usr/bin/env bash
-# commit-msg — enforces that any commit removing an '@ignore' tag (scenario
-# enablement) carries a `Refactor-assessment:` trailer recording the BDD
-# skill's step-9 (Refactor) verdict for both production and test sides.
+# commit-msg — enforces two independent trailer gates on staged `.feature`
+# changes. Both read the staged index (not the working tree) and can fire
+# together on the same commit; they are triggered by disjoint diff shapes so
+# there is no overlap in practice.
 #
-# Governance: .claude/skills/bdd-vertical-slice/SKILL.md step 9 / Refactor
-# Checklist has always existed, but scenarios executed via the
-# "orchestrator spec → executor" pipeline skipped it because the spec never
-# mirrored the step — the refactor judgment silently never happened for
-# 8/44–10/44 until a remedial pass caught up. User correction, 2026-07-05
-# (see tasks/lessons/20260705-refactor-judgment-bypassed-by-spec-pipeline.md).
-# This hook makes "no refactor needed" a judgment that must be recorded, not
-# one that can be silently skipped.
+# 1. Refactor-assessment: any commit with a net '@ignore' removal (scenario
+#    enablement) must carry a `Refactor-assessment:` trailer recording the
+#    BDD skill's step-9 (Refactor) verdict for both production and test
+#    sides.
+#
+#    Governance: .claude/skills/bdd-vertical-slice/SKILL.md step 9 / Refactor
+#    Checklist has always existed, but scenarios executed via the
+#    "orchestrator spec → executor" pipeline skipped it because the spec
+#    never mirrored the step — the refactor judgment silently never
+#    happened for 8/44–10/44 until a remedial pass caught up. User
+#    correction, 2026-07-05
+#    (see tasks/lessons/20260705-refactor-judgment-bypassed-by-spec-pipeline.md).
+#    This hook makes "no refactor needed" a judgment that must be recorded,
+#    not one that can be silently skipped.
+#
+# 2. Spec-change: any commit whose staged `.feature` diff contains changed
+#    lines that are NOT pure `@ignore` tag add/remove (existing scenario
+#    amendment, defect-repro addition, scenario removal) must carry a
+#    `Spec-change:` trailer recording the decision basis — see
+#    docs/adr/adr-022-bdd-requirement-type-routing.md §5. Escape hatch for
+#    mechanical-only maintenance (e.g. an ADR-006-style global rename that
+#    happens to touch `.feature` text without changing its meaning):
+#    ALLOW_FEATURE_MAINTENANCE=1.
 #
 # Args: $1 = path to the commit message file (git commit-msg convention).
-# Uses the same staged-diff net-@ignore-removal computation as
-# scripts/git-hooks/pre-commit (kept in sync intentionally; both operate on
-# the staged index, not the working tree).
+# Both gates reuse the same staged-diff pathspec as scripts/git-hooks/pre-commit
+# (kept in sync intentionally; both operate on the staged index, not the
+# working tree).
 set -euo pipefail
 
 MSG_FILE="$1"
 
-removed=$(git diff --cached -- 'backend/tests/FunctionalTests/Features/*.feature' 'backend/tests/FunctionalTests/Features/**/*.feature' | grep -c '^-[^-].*@ignore' || true)
-added=$(git diff --cached -- 'backend/tests/FunctionalTests/Features/*.feature' 'backend/tests/FunctionalTests/Features/**/*.feature' | grep -c '^+[^+].*@ignore' || true)
+FEATURE_PATHSPEC=('backend/tests/FunctionalTests/Features/*.feature' 'backend/tests/FunctionalTests/Features/**/*.feature')
+
+# --- Gate 1: Refactor-assessment (net @ignore removal) ---
+removed=$(git diff --cached -- "${FEATURE_PATHSPEC[@]}" | grep -c '^-[^-].*@ignore' || true)
+added=$(git diff --cached -- "${FEATURE_PATHSPEC[@]}" | grep -c '^+[^+].*@ignore' || true)
 net=$((removed - added))
 
 if [[ "$net" -ge 1 ]]; then
@@ -33,6 +52,28 @@ if [[ "$net" -ge 1 ]]; then
         echo "             even when the verdict is 'no refactor needed' — state the reason." >&2
         echo "             Add a trailer line, e.g.:" >&2
         echo "               Refactor-assessment: production none (no prod change); test none (seed reuse, no duplication added)" >&2
+        exit 1
+    fi
+fi
+
+# --- Gate 2: Spec-change (non-@ignore .feature change) ---
+feature_diff=$(git diff --cached -- "${FEATURE_PATHSPEC[@]}")
+total_changed=$(echo "$feature_diff" | grep -cE '^[+-][^+-]' || true)
+ignore_changed=$(echo "$feature_diff" | grep -cE '^[+-][^+-].*@ignore' || true)
+non_ignore_changed=$((total_changed - ignore_changed))
+
+if [[ "$non_ignore_changed" -ge 1 && "${ALLOW_FEATURE_MAINTENANCE:-0}" != "1" ]]; then
+    if ! grep -qE '^Spec-change: .+' "$MSG_FILE"; then
+        echo "[commit-msg] this commit changes .feature content beyond pure '@ignore'" >&2
+        echo "             tag add/remove, but the commit message has no 'Spec-change:'" >&2
+        echo "             trailer." >&2
+        echo "             docs/adr/adr-022-bdd-requirement-type-routing.md §5: scenario" >&2
+        echo "             amendments, defect-repro additions, and scenario removals all" >&2
+        echo "             require a recorded decision basis. Add a trailer line, e.g.:" >&2
+        echo "               Spec-change: defect-repro — <one-line defect description>" >&2
+        echo "             If this is purely mechanical maintenance (no meaning change)," >&2
+        echo "             opt out explicitly:" >&2
+        echo "               ALLOW_FEATURE_MAINTENANCE=1 git commit ..." >&2
         exit 1
     fi
 fi
