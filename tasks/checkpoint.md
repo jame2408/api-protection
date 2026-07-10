@@ -17,7 +17,8 @@
 - **ADR-021 共享狀態檔團隊尺度**：`tasks/lessons/` 一檔一教訓（新增=新檔、歸檔=改單行 frontmatter）＋`session-init.sh` glob 注入；checkpoint 分流與 bdd-progress 帳面生成化只定規格（觸發=第二常設寫者）— `1a7e5f3`
 - **ADR-022 BDD 需求類型分流**：六類分流表定案；`Spec-change:` trailer gate 上線（矩陣 9g，逃生口 `ALLOW_FEATURE_MAINTENANCE=1`）；CLAUDE.md 凍結句限縮為 Discovery 管道 — `71a193c`
 - Session 初始載入瘦身＋lessons triage 第三輪（2026-07-10）：claude.ai connectors 停用（使用者端）＋Context7 雙掛消除；Tessl 收納 `.claude/parked/`；plugins 專案層關閉；skill description 瘦身；triage：`untracked-adr-draft` 防線代記歸檔（矩陣 10a 補登、故意紅重演）＋`heredoc` 條瘦身，注入 Active 15→14 — `e08562e` `f9aba4f`
-- GPT-5.6 外部回饋處置（2026-07-10 使用者裁決）：問題約六成認同；解方多數依制度凍結啟發式與既往裁決拒絕（分支模型=ADR-012 Alt E 已拒、流程量測=ADR-018 已裁同域）；落地三小項 — ci.yml required-check 註解勘誤對齊 ADR-012 (e)、本欄裁切至最近數項、todo.md 歸檔 pass（結案內容→`tasks/archive/todo-closed-2026-07-10.md`）；三個觸發制擱置項記入 todo「觸發制擱置項」段 — 本 commit
+- GPT-5.6 外部回饋處置（2026-07-10 使用者裁決）：問題約六成認同；解方多數依制度凍結啟發式與既往裁決拒絕（分支模型=ADR-012 Alt E 已拒、流程量測=ADR-018 已裁同域）；落地三小項 — ci.yml required-check 註解勘誤對齊 ADR-012 (e)、本欄裁切至最近數項、todo.md 歸檔 pass（結案內容→`tasks/archive/todo-closed-2026-07-10.md`）；三個觸發制擱置項記入 todo「觸發制擱置項」段 — `c1fcaaa`
+- **scenario「從 Rotating 狀態撤銷 — 同時清除輪替關聯」Red→Green，14/46** — design-doc T6 垂直切片：ApiKey 增 SuccessorKeyId/PredecessorKeyId＋`Revoke()` 清自身側＋`ClearPredecessorLink()`、handler 跨 aggregate 清 successor 側（缺列靜默跳過，非本場景範圍）、`AddRotationLinkColumns` migration、新 Given（EF CurrentValue seed Rotating 對）＋新 Then（DB 斷言雙向 null，wire 無關聯欄位）。自然紅 A（undefined steps）＋自然紅 B（清除斷言紅）→ 綠，orchestrator 親跑 full gate（19 passed/32 skipped、RevokeKeyHandler coverage 88%）放行；executor 零 blocker（99.9K tokens／47 calls／5.2 分）；spec 兩處精度瑕疵（測試計數外推錯誤、漏列 `dotnet tool restore` 前置）記入下輪範本注意 — `65899b5`
 
 ## 待驗證
 
@@ -34,7 +35,7 @@
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
 1. **A2 正式閉環（小項，test-only；使用者 2026-07-05 指示優先）**：CreateApiKey「系統產生 KeyCreated 事件」Then 依 ADR-020 §4 補 outbox row 斷言（取代 response-body 代理）＋重跑 `bash scripts/mutation-test.sh KeyLifecycle` 驗證 `ApiKey.cs` AddDomainEvent(KeyCreated) mutant 轉 killed、更新 stryker 歸檔。
-2. **產品主線 Wave 2 續**：33 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Rotating 狀態撤銷 — 同時清除輪替關聯」（需 Rotating 狀態 seed 與 successor/predecessor 關聯 — 盤 slice 現況後派工；RevokeKey guard 場景（未提供原因／終態）晉升亦可補 `RevokeKeyHandler` 失敗分支覆蓋）。派工一律用 `tasks/_templates/executor-spec.md`。
+2. **產品主線 Wave 2 續**：32 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`02_RevokeKey.feature`「從 Locked 狀態撤銷」（Locked seed 手法可循 Rotating 場景的 EF CurrentValue 先例；RevokeKey guard 場景（未提供原因／終態）晉升亦可補 `RevokeKeyHandler` 失敗分支覆蓋，現 88% 的未覆蓋處即三條 guard＋successor 缺列分支）。派工一律用 `tasks/_templates/executor-spec.md`；spec 精度注意：全套件測試計數勿外推（FunctionalTests dll 總數 = 46 場景＋5 hasher 測試）、migration 需 `dotnet tool restore` 前置。
 3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
 4. **小項**：todo #14–#18、#21–#24 housekeeping。
 5. **觸發制（勿提前實作）**：checkpoint 分流（`tasks/checkpoints/<workstream>.md`）與 bdd-progress 帳面生成化，規格已定於 ADR-021 §2／§3，觸發條件「第二個常設寫者出現」成立時依規格執行，不需新開 ADR；另三項觸發制擱置（跨 harness CLI／CI 端 trailer 覆核／Discovery 解凍）見 `tasks/todo.md`「觸發制擱置項」段。
