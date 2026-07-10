@@ -83,6 +83,29 @@ if [[ -n "$bad_scope" ]]; then
     status=1
 fi
 
+# Rule (tasks/lessons/20260710-generated-code-marker-is-full-analyzer-exemption.md):
+# `generated_code = true` makes Roslyn skip every analyzer rule for matching files
+# (not just formatting) and changes their nullable context, so it is reserved for
+# true tool artifacts — currently only EF Core migrations. Any occurrence under an
+# .editorconfig section whose glob does not mention Migrations is a silent
+# analyzer blind spot (the 2026-07-10 CA1310 incident hid behind exactly this).
+bad_generated=""
+while IFS= read -r f; do
+    hits=$(awk -v file="$f" '
+        /^\[/ { section = $0 }
+        /^[[:space:]]*generated_code[[:space:]]*=[[:space:]]*true/ && section !~ /Migrations/ {
+            print file ":" FNR ": " $0 "  (section: " (section == "" ? "<global>" : section) ")"
+        }' "$REPO_ROOT/$f" || true)
+    if [[ -n "$hits" ]]; then
+        bad_generated="${bad_generated}${hits}"$'\n'
+    fi
+done < <(git -C "$REPO_ROOT" ls-files '*.editorconfig')
+if [[ -n "$bad_generated" ]]; then
+    echo "[source-lint] 'generated_code = true' outside a Migrations section — whole-file analyzer exemption is reserved for tool artifacts, never hand-written files:" >&2
+    echo "$bad_generated" | sed 's/^/  /' >&2
+    status=1
+fi
+
 if [[ $status -eq 0 ]]; then
     echo "[source-lint] ✓ no forbidden patterns"
 fi
