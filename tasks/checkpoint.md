@@ -29,6 +29,7 @@
 - **ADR-024 Control Plane JWT 認證與 Actor 傳遞（2026-07-10 使用者三裁決：Plan-first AuthToken／既有 endpoints 同步強制／revokedBy 債後續小包單獨還）** — Wave 3 解鎖點勘查證實「成功暫停金鑰」硬依賴 actor（Then 斷言 suspendedBy、spec request body 只有 reason）；ADR 固化 JwtBearer＋對稱金鑰、System=`role=System` 內部 JWT（api-spec §2.1 同 commit 補 System 條目＋name claim）、Actor record 落 SharedKernel 顯式參數鏈、403/IDOR/401 body/internal token 明文後置；順手修 bdd-progress 找場景配方字典序 bug（03 檔誤報 13 行）— `ef35b37`
 - **ADR-024 Phase 2 基礎建設落地** — JwtBearer 10.0.9＋`Actor`/`FromClaims`＋`TestTokenFactory`（四角色）＋Create/Revoke `RequireAuthorization()`、internal 端點顯式 `AllowAnonymous`＋債務註解、TestHooks 預設 SecurityAdmin token；綠 24/27 不變、故意紅剝 token 18 場景清一色 401、驗收 grep 兩條歸零 — `c461319`；executor 零 blocker（140.9K tokens／85 calls／10.4 分）。orchestrator review 抓到 latent bug：`MapInboundClaims` 預設 true 會改名 sub/role（Microsoft Learn 核實），`FromClaims` 本波無消費者故測試抓不到，補 `options.MapInboundClaims = false` — `3ef9d23`，full gate 綠後放行 push（lesson：`tasks/lessons/20260710-jwtbearer-mapinboundclaims-default.md`）
 - **scenario「Secret Scanner 批次自動撤銷」真 Red→Green，19/46 — Wave 2（02_RevokeKey 全 7 場景）收官** — 兩契約缺口先經使用者裁決（api-spec 新 §3.2.9 內部批次端點，無 tenantId 全域 prefix 掃描／通知走 outbox 事件 `KeyLeakNotificationRequested` 含 audiences）；orchestrator 設計裁決＝批次 handler 組合復用 `IRevokeKeyHandler`（逐鍵委派白拿 guard／successor 清理／KeyRevoked，identity map 保證通知事件疊加在同一 tracked instance）。自然紅 A（undefined steps）＋自然紅 B（endpoint 未 Map，404）→ 綠 24/27；Architecture.Tests 14/14；`RevokeLeakedKeysHandler` coverage gate 自動納管 94.4% — `0072337`。executor 137.2K tokens／76 calls／8.5 分，申報兩處背離：(1) 編譯依賴使紅 B 改以「暫緩 Map 註冊」取得（紅仍為真跑）；(2) **spec 瑕疵**：orchestrator 漏查「觸發主動快取失效」Then 也讀 root `keyId`，executor 以 fallback（無 `keyId` 時取唯一 seeded key）擴修並留註解——spec 累積注意新增一條：復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在
+- **Stryker A2 正式閉環（test-only）** — CreateApiKey 的 `ThenKeyCreatedEventIsPublished()` 從 response-body 代理改為依 response `keyId` 精確過濾 `KeyCreated` outbox row，再逐一斷言 payload 八欄；成功場景既有 3 筆 seed 事件，以 `EventType + AggregateId` 隔離本次事件。KeyLifecycle mutation 重跑 112 mutants／70.45%，`ApiKey.cs` line 66–76 statement-removal mutant `id=32` 唯一命中且由 Survived 轉 Killed；orchestrator 親解析 JSON 並跑 full gate：SharedKernel 6/6、Architecture 14/14、Functional 24 passed/27 skipped，Handler coverage 100.0%／96.0%／94.4% — `ce4da06`
 
 ## 待驗證
 
@@ -38,22 +39,26 @@
 
 - sandbox 內首次 `scripts/ci-checks.sh fast` — `dotnet format` 的 restore operation failed；同指令在核可的可連線環境重跑後全綠，屬 sandbox network 限制，非程式失敗。
 - machinery 故意紅首次以 zsh 唯讀變數 `status` 接 exit code，後續 restore trap 又拿到空 mode；已 `chmod 755 scripts/agent/hook.py` 恢復並重跑 machinery／fast gate 綠，教訓記於 `tasks/lessons/20260710-zsh-status-readonly-and-restore-trap.md`。
+- A2 派工使用 `fork_turns=none` 控制 transcript 成本，但 spec 漏列 active lessons；executor 的規範載入腳本再次使用 zsh 唯讀變數 `status` 而中止一次，監控發現後在編輯前補讀 16 條 active lessons 並改用 `exit_code`。根因與做法記於 `tasks/lessons/20260710-fork-none-must-carry-active-lessons.md`。
+- A2 前置 repo 搜尋以 broad `rg` 執行兩次皆被 `exit 137` 終止且零輸出，縮窄範圍仍同；改用 `git grep` 立即取得結果。另 executor 的規範批次輸出曾截斷，改逐檔／小批次重讀補齊，未影響後續實作。
+- A2 checkpoint 首次用單一大型 patch 更新時，context 片段把 `gate 綠` 誤寫成 `gate綠`，`apply_patch` 驗證失敗且零部分寫入；改以小 patch 分段套用並逐段 read-back。
 
 ## 待裁決
 
-- 跨全檔僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞。
+- **KeyCreated payload 的 `name` contract drift（A2 巡檢發現，非本包阻塞）**：`docs/design/context-integration-spec.md` §6.1 列 `name`，但 `01_CreateApiKey.feature` 的事件 Then、`KeyCreated` record 與 A2 outbox 八欄斷言均未包含。需規格擁有者裁決是補 event／場景，或修 integration spec；在裁決前不得由下一個 BDD slice 順手擴修。
+- Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`）仍非阻塞。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **A2 正式閉環（小項，test-only；使用者 2026-07-05 指示優先）**：CreateApiKey「系統產生 KeyCreated 事件」Then 依 ADR-020 §4 補 outbox row 斷言（取代 response-body 代理）＋重跑 `bash scripts/mutation-test.sh KeyLifecycle` 驗證 `ApiKey.cs` AddDomainEvent(KeyCreated) mutant 轉 killed、更新 stryker 歸檔。
-2. **產品主線 Wave 3（Phase 3）**：AuthToken 前置已解除（ADR-024 落地）。下一個：`03_SuspendResumeKey.feature`「成功暫停金鑰」＝標準 BDD slice 派工：SuspendKey Command/Handler/Endpoint（api-spec §3.2.5，掛 `RequireAuthorization()`）、`ApiKey.Suspend(reason, actor)`、`KeySuspended` 事件（keyId／suspendedBy: Actor／reason，outbox Then 斷言巢狀 actor 物件）、endpoint 以 `Actor.FromClaims(httpContext.User)` 建 actor 入 Command。基線：FunctionalTests 24 passed/27 skipped。spec 精度注意（累積）：測試計數勿外推（46 場景＋5 hasher）、migration 需 `dotnet tool restore` 前置、帳面更新排在 ci-checks 之前、scratchpad 訊息檔名帶場景代號、復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在、**When step 需依場景措辭選 token（`TestTokenFactory`，預設已是 SecurityAdmin；claims 原名可讀，MapInboundClaims 已關）**。
-2a. **revokedBy 回補小包（使用者 2026-07-10 裁決：獨立小包）**：排在 Suspend 首場景之後——`RevokeKeyCommand`/`KeyRevoked` 事件/`RevokeKeyResponse` 補 actor 欄位（Actor 型別與端點讀取先例屆時皆備，純機械性增量），同步清 `RevokeKeyResponse.cs` 債務註解與 api-spec §3.2.8 對齊。
-3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
-4. **小項**：todo #14–#18、#21–#24 housekeeping。
-5. **觸發制（勿提前實作）**：checkpoint 分流（`tasks/checkpoints/<workstream>.md`）與 bdd-progress 帳面生成化，規格已定於 ADR-021 §2／§3，觸發條件「第二個常設寫者出現」成立時依規格執行，不需新開 ADR；其餘 CI 端 trailer 覆核／Discovery 解凍見 `tasks/todo.md`「觸發制擱置項」段。
+1. **產品主線 Wave 3（Phase 3）**：AuthToken 前置已解除（ADR-024 落地）。下一個：`03_SuspendResumeKey.feature`「成功暫停金鑰」＝標準 BDD slice 派工：SuspendKey Command/Handler/Endpoint（api-spec §3.2.5，掛 `RequireAuthorization()`）、`ApiKey.Suspend(reason, actor)`、`KeySuspended` 事件（keyId／suspendedBy: Actor／reason，outbox Then 斷言巢狀 actor 物件）、endpoint 以 `Actor.FromClaims(httpContext.User)` 建 actor 入 Command。基線：FunctionalTests 24 passed/27 skipped。spec 精度注意（累積）：測試計數勿外推（46 場景＋5 hasher）、migration 需 `dotnet tool restore` 前置、帳面更新排在 ci-checks 之前、scratchpad 訊息檔名帶場景代號、復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在、**When step 需依場景措辭選 token（`TestTokenFactory`，預設已是 SecurityAdmin；claims 原名可讀，MapInboundClaims 已關）**、使用 `fork_turns=none` 時 spec 明列 active lessons 讀取義務。
+1a. **revokedBy 回補小包（使用者 2026-07-10 裁決：獨立小包）**：排在 Suspend 首場景之後——`RevokeKeyCommand`/`KeyRevoked` 事件/`RevokeKeyResponse` 補 actor 欄位（Actor 型別與端點讀取先例屆時皆備，純機械性增量），同步清 `RevokeKeyResponse.cs` 債務註解與 api-spec §3.2.8 對齊。
+2. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
+3. **小項**：todo #14–#18、#21–#24 housekeeping。
+4. **觸發制（勿提前實作）**：checkpoint 分流（`tasks/checkpoints/<workstream>.md`）與 bdd-progress 帳面生成化，規格已定於 ADR-021 §2／§3，觸發條件「第二個常設寫者出現」成立時依規格執行，不需新開 ADR；其餘 CI 端 trailer 覆核／Discovery 解凍見 `tasks/todo.md`「觸發制擱置項」段。
 
 ## 工作區狀態警告
 
+- 2026-07-10 A2 收尾 failure triage：三個 REPEAT 計數仍為既有簽名（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），與前輪相同，維持既有處置；報表跑於本輪 lesson 新增前為 active=16，本輪新增後 active=17，仍 <20。executor 的 zsh `status` 失敗未進 root `.claude/failures.jsonl`，符合 ADR-023 已登記的跨 harness／tool observation 殘餘限制；由 executor friction 必填欄與 orchestrator 監控捕獲並轉 lesson。
 - 2026-07-10 ADR-024 Phase 收尾 failure triage：三 REPEAT 簽名計數與前輪完全相同（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），未新增，維持既有處置；triage 跑於本輪 lesson 新增前報 active=15，新增 jwtbearer 條後 active=16（口徑：`^status: active` 排除 `_README`），仍 <20 未觸發 lessons triage。
 - 2026-07-10 Codex harness parity 收尾 failure triage：三個 REPEAT 仍為既有簽名（`== not found` ×4／`cd backend` ×2／`Exit code N` ×3）；前兩者維持既有處置，`Exit code N` 雖增一筆仍摺疊多個不同指令、無共同根因，不轉 lesson／todo。`== not found` 與 heredoc 現由矩陣 23/23a 的共用 Claude/Codex hook 接管。批次落地（`1a8e315`）後複跑：三簽名計數未增，維持處置。
 - 2026-07-05 首次 failure triage（ADR-018 決策 §3）處置紀錄：`(eval):N: == not found` ×4 → 已轉 lesson（zsh 等號展開）；`(eval):cd:N: no such file or directory: backend` ×2 → 不轉，探索性 cwd 誤試、無制度性根因；`Exit code N` ×2 → 不轉，簽名過泛（多個不同指令的非零退出被摺疊）、無共同根因。
