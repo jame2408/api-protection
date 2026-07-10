@@ -30,14 +30,16 @@ fi
 JSONL_PATH="${1:-$REPO_ROOT/.claude/failures.jsonl}"
 
 # Standing lessons-triage trigger (tasks/todo.md「Lessons triage 常設觸發」): active
-# lessons >= 15 means a lessons triage is due. The threshold evaluation lives here
+# lessons >= 20 means a lessons triage is due (threshold raised from 15 by the
+# 2026-07-10 D4 ruling — the un-archivable habit-lesson floor sits at 15, so the
+# old threshold was permanently lit). The threshold evaluation lives here
 # because this report is already mandatory before every phase-close checkpoint update
 # (ADR-018 decision §3) — the clause previously existed only as prose and was crossed
 # without firing (2026-07-10 loop-audit root cause). LESSONS_DIR is overridable so the
 # below-threshold branch can be exercised against a fixture directory.
 report_lessons_count() {
     local dir="${LESSONS_DIR:-$REPO_ROOT/tasks/lessons}"
-    local threshold=15
+    local threshold=20
     local count=0
     if [ -d "$dir" ]; then
         count=$(grep -l '^status: active' "$dir"/*.md 2>/dev/null | grep -cv '_README' || true)

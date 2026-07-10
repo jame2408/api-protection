@@ -25,6 +25,7 @@
 - **scenario「未提供撤銷原因 — 拒絕」Red→Green，18/46** — guard 2 啟用：新 When 以空 JSON 物件 POST（faithful 於「未提供」；executor 主動查證 `Program.cs` 無 `RespectNullableAnnotations`，STJ 缺欄位綁 null 命中 `IsNullOrWhiteSpace`），Given/Then 全既存（對照表條目 `abbb415` 預鎖直接兌現）。自然紅→綠 23/28→故意紅（payload 補原因，400 斷言收 200）→回綠；`RevokeKeyHandler` coverage 92%→**96%** — `5c9ebd4`。executor 零 blocker（88.4K tokens／43 calls／5.0 分）
 - **ADR-023 跨 harness hook 與 skill 單一來源落地（2026-07-10）** — 第一層防線集中 `scripts/agent/hook.py`（五 action），`.claude/hooks/` 五檔退役；`.claude/settings.json`＋新 `.codex/hooks.json` 薄 wiring；9 個 project skills 以 `.agents/skills/` symlink 曝光（Tessl 項依 §9.3 D-2 維持 untracked）；驗證矩陣 12–15a／15b／16／23–23b 改登記共用核心。驗收：adr-lint 23 檔／fast gate／舊路徑 grep 0 命中全綠，另以模擬雙 harness payload 黑箱複驗 20 項（block=exit 2／allow=exit 0／secret scrub／marker 去重）全過，且本 session 活體驗證 session-context 注入＋去重 — `1a8e315`（lesson 先行 `22c9752`）
 - **Loop engineering 巡檢＋lessons triage 第四輪（2026-07-10，使用者裁決 D1 立即觸發）**：四迴圈三閉一半開，防線活性實跑全綠（六 lint＋hooksPath＋同 commit 紀律抽查 12 commits）。根因確立：常設觸發條款（active ≥ 15）無機械訊號 — hook.py 只顯示計數不比對門檻、phase 收尾儀式只指向 failure-triage；條款 07-10 12:14 越線後歷經四次 checkpoint 更新無一觸發，第三輪 triage 亦非條款自燃（搭載入瘦身便車）。修復：failure-triage 報表補 `report_lessons_count` 門檻判定（落點避開 session-context 注入——ADR-008 Rule 6 需新 ADR；三分支＋ADR-018 Rule 2 鎖定行為複驗）— `51a9157`。triage 第四輪：16 條全盤點；唯一可機械化條目 generated_code 落地 source-lint `bad_generated` 段（矩陣 9h，綠＋故意紅）後防線代記歸檔 — `ba0106c`；兩條缺「落地:」欄補齊 — `e3c8a78`；餘 15 條依 ADR-019 Alternatives 既有裁決（範本／憲章承載非 gate）維持 active。巡檢報告（untracked 工作檔）：`tasks/loop-audit-report-2026-07-10.md`
+- **巡檢裁決收束（2026-07-10 使用者裁決 D2–D4 依建議）**：D2 落地欄不加 lint（手工補欄已結案，同類缺欄再現才機械化）；D3 ADR-002 Status 補 Erratum 註記＋todo #38 結案 — `d3cc221`；D4 觸發門檻 15→20（習慣型地板 15 條使原門檻永久到期），四落點同 commit（todo 條款／failure-triage `threshold`／checkpoint 儀式句／矩陣 19e），兩分支複驗（真實 15<20 未觸發、fixture 20 條到期）
 - **scenario「Secret Scanner 批次自動撤銷」真 Red→Green，19/46 — Wave 2（02_RevokeKey 全 7 場景）收官** — 兩契約缺口先經使用者裁決（api-spec 新 §3.2.9 內部批次端點，無 tenantId 全域 prefix 掃描／通知走 outbox 事件 `KeyLeakNotificationRequested` 含 audiences）；orchestrator 設計裁決＝批次 handler 組合復用 `IRevokeKeyHandler`（逐鍵委派白拿 guard／successor 清理／KeyRevoked，identity map 保證通知事件疊加在同一 tracked instance）。自然紅 A（undefined steps）＋自然紅 B（endpoint 未 Map，404）→ 綠 24/27；Architecture.Tests 14/14；`RevokeLeakedKeysHandler` coverage gate 自動納管 94.4% — `0072337`。executor 137.2K tokens／76 calls／8.5 分，申報兩處背離：(1) 編譯依賴使紅 B 改以「暫緩 Map 註冊」取得（紅仍為真跑）；(2) **spec 瑕疵**：orchestrator 漏查「觸發主動快取失效」Then 也讀 root `keyId`，executor 以 fallback（無 `keyId` 時取唯一 seeded key）擴修並留註解——spec 累積注意新增一條：復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在
 
 ## 待驗證
@@ -38,7 +39,6 @@
 
 ## 待裁決
 
-- **D4（2026-07-10 巡檢結構性發現）**：不可歸檔的習慣型 lesson 地板已達 15 條 = 觸發門檻 15，條款將永久到期。選項：(a) 門檻調高（如 ≥ 20）；(b) 拿掉數字門檻，條款改為 phase 收尾例行盤點；(c) 重提歸檔判準擴充——原拒絕理由：ADR-019 Alternatives「二階制度修訂＋稀釋防線代記語意」；新事證：地板＝門檻使條款失去鑑別度。依 lesson 20260706，(c) 須明列原拒理由與新事證知情裁決。另 D2（落地欄 lint，建議不加）／D3（todo #38 erratum vs new ADR）見 `tasks/loop-audit-report-2026-07-10.md` §6。
 - 跨全檔僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
@@ -58,4 +58,4 @@
 
 ## 如何接上
 
-新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章，`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（非必讀）。Claude Code／Codex 由各自 config 呼叫 `scripts/agent/hook.py` `session-context`，自動注入 must-read 與 `tasks/lessons/` active 教訓；Codex hook hash 變更後先在 `/hooks` trust。每條新檢驗記得「綠＋故意紅」；phase 收尾更新本檔前先跑 `scripts/failure-triage.sh` 並處置 REPEAT；報表末行同時判定 lessons triage 門檻（active ≥ 15 即依 `tasks/todo.md` 常設觸發條款執行 lessons triage）。
+新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章，`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（非必讀）。Claude Code／Codex 由各自 config 呼叫 `scripts/agent/hook.py` `session-context`，自動注入 must-read 與 `tasks/lessons/` active 教訓；Codex hook hash 變更後先在 `/hooks` trust。每條新檢驗記得「綠＋故意紅」；phase 收尾更新本檔前先跑 `scripts/failure-triage.sh` 並處置 REPEAT；報表末行同時判定 lessons triage 門檻（active ≥ 20 即依 `tasks/todo.md` 常設觸發條款執行 lessons triage）。

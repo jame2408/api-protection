@@ -21,7 +21,7 @@
   - AWS secret access keys require a separate design decision because they lack a stable prefix and may cause false positives.
 - `scripts/agent/hook.py` `observe-tool-failure` writes `tool_use_id`, `duration_ms`, and `is_interrupt` to `failures.jsonl`, but lessons do not include those trace fields. Consider adding them only if failure-to-lesson traceability becomes useful.
 - `scripts/agent/hook.py` `session-context` malformed JSON fallback：payload 無法解析時 `session_id` 為空，仍會保守注入 lessons；這是既有語意，只有需要更嚴格 hook failure semantics 時才重議。
-- Lessons triage 常設觸發：`tasks/lessons/` 內 `status: active` 檔案數 ≥ 15、或 phase 收尾時，盤點 active 條目可否機械化（腳本/lint/gate），可機械化者落地後改該檔 frontmatter 為 `status: archived`（判準：`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b)；載體見 `docs/adr/adr-021-shared-state-files-team-scale.md`）。
+- Lessons triage 常設觸發：`tasks/lessons/` 內 `status: active` 檔案數 ≥ 20、或 phase 收尾時，盤點 active 條目可否機械化（腳本/lint/gate），可機械化者落地後改該檔 frontmatter 為 `status: archived`（判準：`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b)；載體見 `docs/adr/adr-021-shared-state-files-team-scale.md`）。門檻 2026-07-10 使用者裁決（D4）自 15 調升 20：triage 第四輪後不可歸檔的習慣型地板為 15 條，原門檻永久到期、失去鑑別度；機械判定見 `scripts/failure-triage.sh` `report_lessons_count` 段（矩陣 19e）。
 - ADR-004 允許 ILogger 邊界清單第 6 類（Infrastructure ApiClient，`LoggerBoundaryTests` 與 `exceptions.rule.md` §B 已實質採用）待正名——掛到下一份錯誤處理相關 ADR，不單開。
 - `requirements-analysis-design` skill 觸發詞與 `.feature` 凍結相撞——根治在 upstream `jame2408/agent-skills` repo 加凍結 gate，本地已在 `tasks/bdd-backlog.md` 檔頭布防；2026-07-10 起本地 SKILL.md description 已移除相撞觸發詞並明示改道 ADR-022。
 
