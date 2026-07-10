@@ -291,14 +291,22 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         var body = JsonSerializer.Deserialize<CreateApiKeyResponse>(_ctx.ResponseBody!, JsonOptions);
         body.Should().NotBeNull();
 
-        body!.KeyId.Should().NotBe(Guid.Empty);
-        body.ConsumerId.Should().NotBeNullOrEmpty();
-        body.TenantId.Should().NotBeNullOrEmpty();
-        body.Environment.Should().NotBeNullOrEmpty();
-        body.Scopes.Should().NotBeEmpty();
-        body.KeyPrefix.Should().NotBeNullOrEmpty();
-        body.ExpiresAt.Should().BeAfter(DateTimeOffset.UtcNow);
-        body.PolicyId.Should().NotBe(Guid.Empty);
+        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
+            m.EventType == "KeyCreated" && m.AggregateId == body!.KeyId.ToString());
+
+        outboxRow.Should().NotBeNull("a KeyCreated domain event must be harvested into the outbox (ADR-020)");
+
+        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        var root = payload.RootElement;
+        root.GetProperty("keyId").GetGuid().Should().Be(body!.KeyId);
+        root.GetProperty("consumerId").GetString().Should().Be(body.ConsumerId);
+        root.GetProperty("tenantId").GetString().Should().Be(body.TenantId);
+        root.GetProperty("environment").GetString().Should().Be(body.Environment);
+        root.GetProperty("scopes").EnumerateArray().Select(scope => scope.GetString())
+            .Should().Equal(body.Scopes);
+        root.GetProperty("keyPrefix").GetString().Should().Be(body.KeyPrefix);
+        root.GetProperty("expiresAt").GetDateTimeOffset().Should().Be(body.ExpiresAt);
+        root.GetProperty("policyId").GetGuid().Should().Be(body.PolicyId);
     }
 
     [Then(@"系統回傳金鑰明文（Display Once）")]

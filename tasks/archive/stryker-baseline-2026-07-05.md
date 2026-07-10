@@ -55,3 +55,31 @@
 
 - CompileError ×2（`CreateApiKeyFailureCodes.cs`）：const 字串無法參與 Stryker 的 mutant switching，屬工具限制、無資訊量；錯誤碼字串的防線實際在 Then 映射表的 wire-format 逐字斷言（ADR-006）。
 - 成本結論：兩 BC 全量合計 < 3 分鐘 — 遠低於預估，未來可考慮納入 CI 週期 job（另行裁決，維持非 gate）。
+
+## 2026-07-10 A2 正式閉環
+
+`ThenKeyCreatedEventIsPublished()` 已從 response-body 代理改為 ADR-020 outbox 真實斷言：先以本次 response 的 `keyId` 精確過濾 `EventType == "KeyCreated"` 與 `AggregateId == keyId.ToString()`，再逐一驗證 payload 的 `keyId`、`consumerId`、`tenantId`、`environment`、`scopes`（完整內容）、`keyPrefix`、`expiresAt`、`policyId` 八個欄位。
+
+本輪指令：`bash scripts/mutation-test.sh KeyLifecycle --reporter json`。Stryker 4.16.0 終態原始 metrics：
+
+| BC | Mutation score | 總 mutants | Killed | Survived | NoCoverage | Ignored | CompileError | 耗時 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| KeyLifecycle | **70.45%** | 112 | 62 | 12 | 14 | 20 | 4 | 1m52.3546182s |
+
+最新 JSON report：`backend/tests/FunctionalTests/StrykerOutput/2026-07-10.20-54-46/reports/mutation-report.json`（gitignored，未入版控）。`ApiKey.cs` 的 `key.AddDomainEvent(new KeyCreated(...))` statement-removal mutant 唯一識別結果：
+
+```json
+{
+  "id": "32",
+  "location": {
+    "start": { "line": 66, "column": 9 },
+    "end": { "line": 76, "column": 34 }
+  },
+  "mutatorName": "Statement mutation",
+  "replacement": ";",
+  "status": "Killed",
+  "killedBy": ["e3024e89-05c1-29e7-4caa-a4bf20491cf9"]
+}
+```
+
+A2 因此由先前的 Survived 正式轉為 Killed。此 mutation test 仍是 on-demand 驗證，不是 CI gate。Production 無改動；Test 無額外重構，理由為單一斷言缺口閉環。
