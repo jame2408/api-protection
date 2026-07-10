@@ -94,11 +94,39 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         _ctx.SeededKeys[successorAlias] = successor.Id;
     }
 
+    [Given(@"金鑰 ""(.*)"" 狀態為 Locked")]
+    public async Task GivenKeyIsLocked(string keyAlias)
+    {
+        // Revoke handler validates neither tenant nor consumer existence (RevokeKeyHandler.cs),
+        // so no Tenant/Consumer row is seeded here — CurrentTenantId is only needed for the URL.
+        _ctx.CurrentTenantId = "tenant-A";
+
+        var (key, _) = ApiKey.Create(
+            consumerId: "any-consumer",
+            tenantId: _ctx.CurrentTenantId,
+            name: keyAlias,
+            environment: "Production",
+            scopes: ["seed:read"],
+            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
+
+        Db.ApiKeys.Add(key);
+
+        // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
+        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Locked;
+
+        await Db.SaveChangesAsync();
+
+        _ctx.SeededKeys[keyAlias] = key.Id;
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
 
     [When(@"操作者撤銷 ""(.*)""，原因為「(.*)」")]
+    [When(@"Security Admin 撤銷 ""(.*)""，原因為「(.*)」")]
     public async Task WhenOperatorRevokesKey(string keyAlias, string reason)
     {
         var keyId = _ctx.SeededKeys[keyAlias];

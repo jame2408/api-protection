@@ -15,7 +15,6 @@ Feature: 撤銷金鑰
     And   系統產生 KeyRevoked 事件，previousStatus 為 Rotating
     And   觸發主動快取失效
 
-  @ignore
   Scenario: 從 Locked 狀態撤銷
     Given 金鑰 "key-A" 狀態為 Locked
     When  Security Admin 撤銷 "key-A"，原因為「確認遭入侵」

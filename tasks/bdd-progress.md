@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 14 / 46  
-**下一個：** `02_RevokeKey.feature` — 從 Locked 狀態撤銷
+**已通過：** 15 / 46  
+**下一個：** `02_RevokeKey.feature` — 從 Suspended 狀態撤銷
 
 ---
 
