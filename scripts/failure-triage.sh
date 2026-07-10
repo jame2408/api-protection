@@ -29,8 +29,29 @@ fi
 
 JSONL_PATH="${1:-$REPO_ROOT/.claude/failures.jsonl}"
 
+# Standing lessons-triage trigger (tasks/todo.md「Lessons triage 常設觸發」): active
+# lessons >= 15 means a lessons triage is due. The threshold evaluation lives here
+# because this report is already mandatory before every phase-close checkpoint update
+# (ADR-018 decision §3) — the clause previously existed only as prose and was crossed
+# without firing (2026-07-10 loop-audit root cause). LESSONS_DIR is overridable so the
+# below-threshold branch can be exercised against a fixture directory.
+report_lessons_count() {
+    local dir="${LESSONS_DIR:-$REPO_ROOT/tasks/lessons}"
+    local threshold=15
+    local count=0
+    if [ -d "$dir" ]; then
+        count=$(grep -l '^status: active' "$dir"/*.md 2>/dev/null | grep -cv '_README' || true)
+    fi
+    if [ "$count" -ge "$threshold" ]; then
+        echo "[failure-triage] lessons: active=$count ≥ $threshold — lessons triage 到期（tasks/todo.md 常設觸發條款）"
+    else
+        echo "[failure-triage] lessons: active=${count}（< ${threshold}，未觸發）"
+    fi
+}
+
 if [ ! -f "$JSONL_PATH" ] || [ ! -s "$JSONL_PATH" ]; then
     echo "[failure-triage] no records to triage: $JSONL_PATH (missing or empty)"
+    report_lessons_count
     exit 0
 fi
 
@@ -113,4 +134,5 @@ PYEOF
 )
 
 FAILURE_TRIAGE_PATH="$JSONL_PATH" python3 -c "$PY"
+report_lessons_count
 exit 0
