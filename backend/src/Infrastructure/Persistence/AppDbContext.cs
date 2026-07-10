@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ApiKeyManagement.AccessPolicy.Domain;
 using ApiKeyManagement.KeyLifecycle.Domain;
 using ApiKeyManagement.SharedKernel.Domain;
@@ -10,7 +11,14 @@ namespace ApiKeyManagement.Infrastructure.Persistence;
 public class AppDbContext(DbContextOptions<AppDbContext> options)
     : DbContext(options), ITenantQueryContext
 {
-    private static readonly JsonSerializerOptions OutboxPayloadOptions = new(JsonSerializerDefaults.Web);
+    // JsonStringEnumConverter: keeps outbox payload enum fields ("type": "User") aligned with
+    // the HTTP wire format (Program.cs), so a value like Actor.Type isn't silently serialized
+    // as a numeric index (Actor schema, api-spec.md §3). No existing event record has an enum
+    // field, so this is additive — existing outbox payload assertions are unaffected.
+    private static readonly JsonSerializerOptions OutboxPayloadOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<AccessPolicy.Domain.AccessPolicy> AccessPolicies => Set<AccessPolicy.Domain.AccessPolicy>();

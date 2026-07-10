@@ -98,6 +98,22 @@ public class ApiKey : AggregateRoot<Guid>
     }
 
     /// <summary>
+    /// Suspends the key. Guards (not-found / non-Active status) are the handler's
+    /// responsibility; mirrors <see cref="Revoke"/>.
+    /// </summary>
+    public void Suspend(string reason, Actor suspendedBy)
+    {
+        Status = ApiKeyStatus.Suspended;
+
+        AddDomainEvent(new KeySuspended(
+            EventId: Guid.NewGuid(),
+            OccurredAt: DateTimeOffset.UtcNow,
+            KeyId: Id,
+            SuspendedBy: suspendedBy,
+            Reason: reason));
+    }
+
+    /// <summary>
     /// Clears the predecessor link on a rotation successor (used when the predecessor is
     /// revoked while Rotating — design-doc.md T6).
     /// </summary>

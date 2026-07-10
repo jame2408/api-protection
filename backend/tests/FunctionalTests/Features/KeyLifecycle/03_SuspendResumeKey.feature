@@ -2,7 +2,6 @@ Feature: 暫停與恢復金鑰
 
   # === C5: SuspendKey ===
 
-  @ignore
   Scenario: 成功暫停金鑰
     Given 金鑰 "key-A" 狀態為 Active
     And   操作者為 Security Admin（人為操作者）

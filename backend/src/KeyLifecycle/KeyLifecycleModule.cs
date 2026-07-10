@@ -1,6 +1,7 @@
 using ApiKeyManagement.KeyLifecycle.CreateApiKey;
 using ApiKeyManagement.KeyLifecycle.RevokeKey;
 using ApiKeyManagement.KeyLifecycle.RevokeLeakedKeys;
+using ApiKeyManagement.KeyLifecycle.SuspendKey;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ public static class KeyLifecycleModule
         services.AddScoped<ICreateApiKeyHandler, CreateApiKeyHandler>();
         services.AddScoped<IRevokeKeyHandler, RevokeKeyHandler>();
         services.AddScoped<IRevokeLeakedKeysHandler, RevokeLeakedKeysHandler>();
+        services.AddScoped<ISuspendKeyHandler, SuspendKeyHandler>();
         return services;
     }
 
@@ -22,6 +24,7 @@ public static class KeyLifecycleModule
         CreateApiKeyEndpoint.Map(app);
         RevokeKeyEndpoint.Map(app);
         RevokeLeakedKeysEndpoint.Map(app);
+        SuspendKeyEndpoint.Map(app);
         return app;
     }
 }
