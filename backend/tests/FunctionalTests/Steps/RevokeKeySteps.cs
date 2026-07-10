@@ -5,6 +5,7 @@ using ApiKeyManagement.FunctionalTests.Infrastructure;
 using ApiKeyManagement.Infrastructure.Persistence;
 using ApiKeyManagement.KeyLifecycle.Domain;
 using ApiKeyManagement.KeyLifecycle.RevokeKey;
+using ApiKeyManagement.KeyLifecycle.RevokeLeakedKeys;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,10 @@ namespace ApiKeyManagement.FunctionalTests.Steps;
 public class RevokeKeySteps(FunctionalTestContext ctx)
 {
     private readonly FunctionalTestContext _ctx = ctx;
+
+    // Secret Scanner leak-detection scenario (feature line 44-51): the prefix reported by the
+    // scanner doesn't map to any keyAlias, so it's held here between the Given and When steps.
+    private string? _leakedPrefix;
 
     private AppDbContext Db =>
         _ctx.ServiceScope!.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -119,9 +124,41 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         await Db.SaveChangesAsync();
     }
 
+    [Given(@"金鑰 ""(.*)""（prefix ""(.*)""）狀態為 Active")]
+    public async Task GivenKeyIsActiveWithPrefix(string keyAlias, string prefix)
+    {
+        _ctx.CurrentTenantId = "tenant-A";
+
+        var key = CreateSeedKey(keyAlias);
+
+        // KeyPrefix is `private set` — bypass via CurrentValue as in the other Given steps
+        // above; Create() derives its own prefix from tenantId/environment, which doesn't
+        // match the scanner-reported literal this scenario needs.
+        Db.Entry(key).Property(k => k.KeyPrefix).CurrentValue = prefix;
+
+        await Db.SaveChangesAsync();
+    }
+
+    [Given(@"Secret Scanner 在公開儲存庫偵測到 prefix ""(.*)""")]
+    public Task GivenSecretScannerDetectsPrefix(string prefix)
+    {
+        _leakedPrefix = prefix;
+        return Task.CompletedTask;
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
+
+    [When(@"Secret Scanner 對所有符合該 prefix 的非終態金鑰發出撤銷命令")]
+    public async Task WhenSecretScannerRevokesLeakedKeys()
+    {
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            RevokeLeakedKeysEndpoint.Route,
+            new RevokeLeakedKeysEndpoint.Request(_leakedPrefix!));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
 
     [When(@"操作者撤銷 ""(.*)""，原因為「(.*)」")]
     [When(@"Security Admin 撤銷 ""(.*)""，原因為「(.*)」")]
@@ -164,16 +201,66 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         // ADR-006: assert raw JSON literal to lock the wire-format string,
         // not just the round-tripped enum value.
         using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
-        doc.RootElement.GetProperty("lifecycleStatus").GetString().Should().Be("Revoked");
+        var root = doc.RootElement;
 
-        var keyId = _ctx.SeededKeys[keyAlias];
+        // Dual wire-shape: single-key revoke (api-spec.md §3.2.8) returns `lifecycleStatus` at
+        // root; batch leaked-key revoke (api-spec.md §3.2.9) returns a `revokedKeys` array —
+        // locate the element for this alias's keyId instead.
+        if (root.TryGetProperty("lifecycleStatus", out var singleStatus))
+        {
+            singleStatus.GetString().Should().Be("Revoked");
+        }
+        else
+        {
+            var keyId = _ctx.SeededKeys[keyAlias];
+            var matching = root.GetProperty("revokedKeys").EnumerateArray()
+                .Single(e => e.GetProperty("keyId").GetGuid() == keyId);
+            matching.GetProperty("lifecycleStatus").GetString().Should().Be("Revoked");
+        }
+
+        var reloadedKeyId = _ctx.SeededKeys[keyAlias];
 
         // AsNoTracking: the Given step above added and saved this same entity on this same
         // scenario-scoped DbContext, so a tracked re-query would return the stale in-memory
         // instance (EF Core identity resolution) instead of reflecting the update made by the
         // HTTP request's own (separate) DbContext instance.
-        var reloaded = Db.ApiKeys.AsNoTracking().Single(k => k.Id == keyId);
+        var reloaded = Db.ApiKeys.AsNoTracking().Single(k => k.Id == reloadedKeyId);
         reloaded.Status.Should().Be(ApiKeyStatus.Revoked, "the transition must be persisted, not just returned on the wire");
+    }
+
+    [Then(@"系統產生 KeyRevoked 事件，reason 為 ""(.*)""")]
+    public void ThenKeyRevokedEventHasLeakReason(string reason)
+    {
+        // This scenario (feature line 44) seeds exactly one key and this step's Gherkin text
+        // carries no alias, so the scenario's sole seeded keyId is looked up directly.
+        var keyId = _ctx.SeededKeys.Values.Single();
+
+        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
+            m.EventType == "KeyRevoked" && m.AggregateId == keyId.ToString());
+
+        outboxRow.Should().NotBeNull("a KeyRevoked domain event must be harvested into the outbox (ADR-020)");
+
+        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        payload.RootElement.GetProperty("reason").GetString().Should().Be(reason);
+    }
+
+    [Then(@"系統通知 Security Admin 和 Consumer")]
+    public void ThenSystemNotifiesSecurityAdminAndConsumer()
+    {
+        var keyId = _ctx.SeededKeys.Values.Single();
+
+        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
+            m.EventType == "KeyLeakNotificationRequested" && m.AggregateId == keyId.ToString());
+
+        outboxRow.Should().NotBeNull(
+            "a KeyLeakNotificationRequested domain event must be harvested into the outbox (ADR-020)");
+
+        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        var audiences = payload.RootElement.GetProperty("audiences")
+            .EnumerateArray().Select(a => a.GetString()).ToList();
+
+        audiences.Should().Contain("SecurityAdmin");
+        audiences.Should().Contain("Consumer");
     }
 
     [Then(@"清除 ""(.*)"" 與 ""(.*)"" 之間的 successorKeyId / predecessorKeyId 關聯")]
@@ -223,7 +310,13 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         // KeyRevoked domain event itself, so the event's presence in the outbox *is* the
         // trigger being asserted here — not a response-body proxy for it.
         using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
-        var keyId = doc.RootElement.GetProperty("keyId").GetGuid();
+        var root = doc.RootElement;
+
+        // Dual wire-shape (see ThenKeyStatusBecomesRevoked above): batch leaked-key revoke has
+        // no root `keyId`, so fall back to the scenario's sole seeded key.
+        var keyId = root.TryGetProperty("keyId", out var keyIdProp)
+            ? keyIdProp.GetGuid()
+            : _ctx.SeededKeys.Values.Single();
 
         Db.OutboxMessages.Any(m => m.EventType == "KeyRevoked" && m.AggregateId == keyId.ToString())
             .Should().BeTrue("KeyRevoked must reach the outbox to trigger active cache invalidation");

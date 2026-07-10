@@ -42,4 +42,15 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
 
     public Task UpdateAsync(ApiKey apiKey, CancellationToken cancel = default)
         => db.SaveChangesAsync(cancel);
+
+    // Tracked (no AsNoTracking) — caller (RevokeLeakedKeysHandler) mutates and persists each
+    // match via UpdateAsync, same reasoning as GetByIdAsync above.
+    public async Task<IReadOnlyList<ApiKey>> GetNonTerminalByPrefixAsync(
+        string keyPrefix, CancellationToken cancel = default)
+    {
+        return await db.ApiKeys.Where(k =>
+            k.KeyPrefix == keyPrefix &&
+            k.Status != ApiKeyStatus.Revoked &&
+            k.Status != ApiKeyStatus.Expired).ToListAsync(cancel);
+    }
 }

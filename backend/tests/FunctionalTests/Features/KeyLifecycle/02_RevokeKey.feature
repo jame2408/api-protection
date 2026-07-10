@@ -39,7 +39,6 @@ Feature: 撤銷金鑰
     When  操作者撤銷 "key-A"，未提供原因
     Then  撤銷失敗，錯誤原因為「必須提供撤銷原因」
 
-  @ignore
   Scenario: Secret Scanner 偵測到金鑰洩漏 — 批次自動撤銷
     Given 金鑰 "key-A"（prefix "pk_live_abc"）狀態為 Active
     And   Secret Scanner 在公開儲存庫偵測到 prefix "pk_live_abc"

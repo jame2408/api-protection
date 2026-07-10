@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 18 / 46  
-**下一個：** `02_RevokeKey.feature` — Secret Scanner 偵測到金鑰洩漏 — 批次自動撤銷
+**已通過：** 19 / 46  
+**下一個：** `03_SuspendResumeKey.feature` — 成功暫停金鑰
 
 ---
 

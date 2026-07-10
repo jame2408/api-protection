@@ -9,6 +9,8 @@ public class ApiKey : AggregateRoot<Guid>
     private const int MaxActiveKeysPerConsumerEnv = 10;
     private const int MaxKeyValidityDays = 365;
 
+    public const string LeakedInPublicRepositoryReason = "Key leaked in public repository";
+
     public string ConsumerId { get; private set; } = string.Empty;
     public string TenantId { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
@@ -99,6 +101,18 @@ public class ApiKey : AggregateRoot<Guid>
     /// revoked while Rotating — design-doc.md T6).
     /// </summary>
     public void ClearPredecessorLink() => PredecessorKeyId = null;
+
+    /// <summary>
+    /// Records that this key must be flagged to Security Admin and Consumer following a
+    /// Secret Scanner leak detection (RevokeLeakedKeys slice) — separate from the KeyRevoked
+    /// event so the revoke path itself stays reason-agnostic.
+    /// </summary>
+    public void NotifyLeakDetected() =>
+        AddDomainEvent(new KeyLeakNotificationRequested(
+            EventId: Guid.NewGuid(),
+            OccurredAt: DateTimeOffset.UtcNow,
+            KeyId: Id,
+            Audiences: ["SecurityAdmin", "Consumer"]));
 
     private static (string prefix, string rawKey, string keyHash) GenerateKeyMaterial(
         string tenantId, string environment, IApiKeyHasher hasher)

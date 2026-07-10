@@ -779,6 +779,50 @@ JWT Claims：
 | VALIDATION_ERROR | 400 | `reason` 為空（INV-7） |
 | KEY_IN_TERMINAL_STATE | 409 | 金鑰已為 Expired 或 Revoked |
 
+---
+
+#### 3.2.9 POST /internal/security/leaked-keys — Secret Scanner 批次撤銷洩漏金鑰
+
+| 項目 | 值 |
+|:-----|:---|
+| Authorization | 內部端點（Secret Scanner 服務對服務呼叫，不對外暴露） |
+| Command | C7: RevokeKey（逐鍵語意相同，批次觸發） |
+
+**Request Body：**
+
+```json
+{
+  "prefix": "pk_live_abc"
+}
+```
+
+| 欄位 | 類型 | 必填 | 說明 |
+|:-----|:-----|:-----|:-----|
+| `prefix` | String | 是 | Secret Scanner 於公開儲存庫偵測到的金鑰 prefix；不帶 `tenantId`（全域掃描，Scanner 通報時不知租戶） |
+
+**Response `200 OK`：**
+
+```json
+{
+  "revokedKeys": [
+    {
+      "keyId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "lifecycleStatus": "Revoked"
+    }
+  ]
+}
+```
+
+> 對所有符合該 prefix 的非終態金鑰（design-doc.md §6.4.2）逐鍵套用與 §3.2.8 相同的撤銷語意（reason 固定為 `"Key leaked in public repository"`），並追發 `KeyLeakNotificationRequested` 通知事件（受眾：Security Admin、Consumer）。無匹配金鑰時回傳空陣列，非錯誤。
+
+**Errors：**
+
+| errorCode | HTTP | 條件 |
+|:----------|:-----|:-----|
+| （無） | — | 無業務錯誤碼；prefix 無匹配時回空清單而非失敗 |
+
+---
+
 ### 3.3 Access Policy
 
 > **BC 對照**：[Access Policy Detailed Design](../detailed-design/access-policy.md)
