@@ -93,6 +93,19 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         await Db.SaveChangesAsync();
     }
 
+    [Given(@"金鑰 ""(.*)"" 狀態為 Suspended")]
+    public async Task GivenKeyIsSuspended(string keyAlias)
+    {
+        _ctx.CurrentTenantId = "tenant-A";
+
+        var key = CreateSeedKey(keyAlias);
+
+        // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
+        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Suspended;
+
+        await Db.SaveChangesAsync();
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
