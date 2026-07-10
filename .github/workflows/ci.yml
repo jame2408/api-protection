@@ -1,9 +1,10 @@
 name: CI
 
-# Remote enforcement backstop for the defence loop. Local pre-commit (scripts/git-hooks/pre-commit)
-# and `dotnet format` can be bypassed with --no-verify or simply not installed; CI is the layer that
-# does not depend on anyone's memory. Set this workflow as a required status check on main so a red
-# build blocks merge.
+# Post-push verification signal for the defence loop (docs/adr/adr-012-charter-amendments-external-adoption.md
+# decision (e)): trunk-based direct push to main; the primary gate is the local pre-push full run of
+# scripts/ci-checks.sh, and CI re-runs the same script as the layer that does not depend on anyone's
+# memory. main's required status check was deliberately removed (ADR-012, Alternative E rejected);
+# a red CI run on main means fix-forward immediately, not a blocked merge.
 
 on:
   push:
