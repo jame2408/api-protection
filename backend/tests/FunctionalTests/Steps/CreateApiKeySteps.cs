@@ -285,7 +285,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         _ctx.Response.Headers.Location!.ToString().Should().EndWith($"/keys/{keyId}");
     }
 
-    [Then(@"系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、environment、scopes、keyPrefix、expiresAt、policyId")]
+    [Then(@"系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、name、environment、scopes、keyPrefix、expiresAt、policyId")]
     public void ThenKeyCreatedEventIsPublished()
     {
         var body = JsonSerializer.Deserialize<CreateApiKeyResponse>(_ctx.ResponseBody!, JsonOptions);
@@ -301,6 +301,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         root.GetProperty("keyId").GetGuid().Should().Be(body!.KeyId);
         root.GetProperty("consumerId").GetString().Should().Be(body.ConsumerId);
         root.GetProperty("tenantId").GetString().Should().Be(body.TenantId);
+        root.GetProperty("name").GetString().Should().Be(body.Name);
         root.GetProperty("environment").GetString().Should().Be(body.Environment);
         root.GetProperty("scopes").EnumerateArray().Select(scope => scope.GetString())
             .Should().Equal(body.Scopes);

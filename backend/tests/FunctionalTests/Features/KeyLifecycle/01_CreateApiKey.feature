@@ -11,7 +11,7 @@ Feature: 建立 API 金鑰
     And   指定到期時間為 180 天後，未超過最大允許有效期
     When  "consumer-1" 在 Production 環境建立金鑰，名稱 "order-service-key"，scopes ["orders:read", "orders:write"]，到期 180 天後
     Then  金鑰狀態為 Active
-    And   系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、environment、scopes、keyPrefix、expiresAt、policyId
+    And   系統產生 KeyCreated 事件，包含 keyId、consumerId、tenantId、name、environment、scopes、keyPrefix、expiresAt、policyId
     And   系統回傳金鑰明文（Display Once）
     And   同一交易內建立預設 AccessPolicy
 

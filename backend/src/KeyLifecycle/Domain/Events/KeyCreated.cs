@@ -8,6 +8,7 @@ public record KeyCreated(
     Guid KeyId,
     string ConsumerId,
     string TenantId,
+    string Name,
     string Environment,
     IReadOnlyList<string> Scopes,
     string KeyPrefix,

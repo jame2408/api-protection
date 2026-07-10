@@ -69,6 +69,7 @@ public class ApiKey : AggregateRoot<Guid>
             KeyId: keyId,
             ConsumerId: consumerId,
             TenantId: tenantId,
+            Name: name,
             Environment: environment,
             Scopes: scopes,
             KeyPrefix: prefix,

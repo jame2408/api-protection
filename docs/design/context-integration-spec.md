@@ -502,8 +502,8 @@ ValidationAttempt {
 ```
 {
   keyId:        UUID
-  consumerId:   UUID
-  tenantId:     UUID
+  consumerId:   String
+  tenantId:     String
   name:         String            — 金鑰名稱
   environment:  Environment       — Sandbox / Production
   scopes:       Set<Scope>        — 授權的操作權限集合
