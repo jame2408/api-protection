@@ -1,5 +1,9 @@
 # Todo — 開放項登記簿
 
+## Secret Scanner 批次自動撤銷 — 已結案（2026-07-10）
+
+兩契約缺口經使用者裁決（內部批次端點 `POST /internal/security/leaked-keys`／outbox 通知事件 `KeyLeakNotificationRequested`），完整垂直切片落地 `0072337`（19/46，api-spec §3.2.9 同步）。過程紀錄見 `tasks/checkpoint.md` 已完成欄。
+
 > 2026-07-10 歸檔 pass（GPT-5.6 回饋處置）：本檔原名「`.claude/` Hardening — Outstanding Work」，已結案內容（hardening 七 commit、ADR-004 acceptance、coverage gate 計畫、ADR-021/022 規劃段、multi-agent review 已結案項）移至 `tasks/archive/todo-closed-2026-07-10.md`。開放項沿用 2026-04-30 multi-agent review 原編號（checkpoint 與多份 ADR 以該編號引用，不重編）。
 
 ## Non-blocking follow-ups（已登記，未排程）
