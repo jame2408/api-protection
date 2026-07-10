@@ -102,7 +102,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     }
 
     [Given(@"""(.*)"" 在 Production 環境沒有名為 ""(.*)"" 的金鑰")]
-    public void GivenKeyNameNotExists(string consumerId, string keyName)
+    public static void GivenKeyNameNotExists(string consumerId, string keyName)
     {
         // no-op: key absent from DB by default
     }
@@ -136,7 +136,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
     }
 
     [Given(@"Scope ""(.*)"" 未在 Scope Registry 註冊")]
-    public void GivenScopeNotRegistered(string scope)
+    public static void GivenScopeNotRegistered(string scope)
     {
         // no-op: scope absent from DB by default
     }
@@ -338,18 +338,18 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
             // API wire contract — keep literals here to lock external HTTP error codes.
             // Production code uses *FailureCodes.* constants; this map intentionally
             // re-states the strings so a constant value drift would surface as a test failure.
-            ["租戶不存在"]            = (HttpStatusCode.NotFound,            "TENANT_NOT_FOUND"),
-            ["租戶未啟用"]            = (HttpStatusCode.Forbidden,           "TENANT_SUSPENDED"),
-            ["Consumer 不屬於該租戶"] = (HttpStatusCode.NotFound,            "CONSUMER_NOT_FOUND"),
-            ["超過金鑰數量上限"]      = (HttpStatusCode.Conflict,            "KEY_LIMIT_EXCEEDED"),
-            ["金鑰名稱重複"]          = (HttpStatusCode.Conflict,            "KEY_NAME_DUPLICATE"),
-            ["Scope 不存在"]          = (HttpStatusCode.UnprocessableEntity, "SCOPE_NOT_FOUND"),
-            ["至少需要一個 Scope"]    = (HttpStatusCode.BadRequest,          "VALIDATION_ERROR:scopes_empty"),
-            ["到期時間必須在未來"]    = (HttpStatusCode.BadRequest,          "VALIDATION_ERROR:expires_at_past"),
-            ["超過最大允許有效期"]    = (HttpStatusCode.UnprocessableEntity, "EXPIRES_AT_EXCEEDS_MAX"),
+            ["租戶不存在"] = (HttpStatusCode.NotFound, "TENANT_NOT_FOUND"),
+            ["租戶未啟用"] = (HttpStatusCode.Forbidden, "TENANT_SUSPENDED"),
+            ["Consumer 不屬於該租戶"] = (HttpStatusCode.NotFound, "CONSUMER_NOT_FOUND"),
+            ["超過金鑰數量上限"] = (HttpStatusCode.Conflict, "KEY_LIMIT_EXCEEDED"),
+            ["金鑰名稱重複"] = (HttpStatusCode.Conflict, "KEY_NAME_DUPLICATE"),
+            ["Scope 不存在"] = (HttpStatusCode.UnprocessableEntity, "SCOPE_NOT_FOUND"),
+            ["至少需要一個 Scope"] = (HttpStatusCode.BadRequest, "VALIDATION_ERROR:scopes_empty"),
+            ["到期時間必須在未來"] = (HttpStatusCode.BadRequest, "VALIDATION_ERROR:expires_at_past"),
+            ["超過最大允許有效期"] = (HttpStatusCode.UnprocessableEntity, "EXPIRES_AT_EXCEEDS_MAX"),
         };
 
-        var entry = map.First(kv => reason.StartsWith(kv.Key));
+        var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
         var (expectedStatus, expectedErrorCode) = entry.Value;
 
         _ctx.Response!.StatusCode.Should().Be(expectedStatus);
