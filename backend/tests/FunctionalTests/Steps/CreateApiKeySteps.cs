@@ -291,12 +291,7 @@ public class CreateApiKeySteps(FunctionalTestContext ctx)
         var body = JsonSerializer.Deserialize<CreateApiKeyResponse>(_ctx.ResponseBody!, JsonOptions);
         body.Should().NotBeNull();
 
-        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
-            m.EventType == "KeyCreated" && m.AggregateId == body!.KeyId.ToString());
-
-        outboxRow.Should().NotBeNull("a KeyCreated domain event must be harvested into the outbox (ADR-020)");
-
-        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        using var payload = Db.RequireOutboxEvent("KeyCreated", body!.KeyId);
         var root = payload.RootElement;
         root.GetProperty("keyId").GetGuid().Should().Be(body!.KeyId);
         root.GetProperty("consumerId").GetString().Should().Be(body.ConsumerId);

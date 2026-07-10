@@ -235,12 +235,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         // carries no alias, so the scenario's sole seeded keyId is looked up directly.
         var keyId = _ctx.SeededKeys.Values.Single();
 
-        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
-            m.EventType == "KeyRevoked" && m.AggregateId == keyId.ToString());
-
-        outboxRow.Should().NotBeNull("a KeyRevoked domain event must be harvested into the outbox (ADR-020)");
-
-        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        using var payload = Db.RequireOutboxEvent("KeyRevoked", keyId);
         payload.RootElement.GetProperty("reason").GetString().Should().Be(reason);
     }
 
@@ -249,13 +244,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         var keyId = _ctx.SeededKeys.Values.Single();
 
-        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
-            m.EventType == "KeyLeakNotificationRequested" && m.AggregateId == keyId.ToString());
-
-        outboxRow.Should().NotBeNull(
-            "a KeyLeakNotificationRequested domain event must be harvested into the outbox (ADR-020)");
-
-        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        using var payload = Db.RequireOutboxEvent("KeyLeakNotificationRequested", keyId);
         var audiences = payload.RootElement.GetProperty("audiences")
             .EnumerateArray().Select(a => a.GetString()).ToList();
 
@@ -288,16 +277,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
         var keyId = doc.RootElement.GetProperty("keyId").GetGuid();
 
-        // Seeding via ApiKey.Create() also emits a KeyCreated event into the same outbox
-        // (Given step above), so this scenario's outbox is never expected to hold exactly
-        // one row — filter by EventType to isolate the KeyRevoked row under test
-        // (ADR-020 §4 assertion contract).
-        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
-            m.EventType == "KeyRevoked" && m.AggregateId == keyId.ToString());
-
-        outboxRow.Should().NotBeNull("a KeyRevoked domain event must be harvested into the outbox (ADR-020)");
-
-        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        using var payload = Db.RequireOutboxEvent("KeyRevoked", keyId);
         payload.RootElement.GetProperty("previousStatus").GetString().Should().Be(previousStatus);
         payload.RootElement.GetProperty("reason").GetString().Should().NotBeNullOrEmpty();
     }

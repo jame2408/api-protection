@@ -83,16 +83,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
         var keyId = doc.RootElement.GetProperty("keyId").GetGuid();
 
-        // Seeding via ApiKey.Create() also emits a KeyCreated event into the same outbox
-        // (Given step above), so this scenario's outbox is never expected to hold exactly
-        // one row — filter by EventType + AggregateId to isolate the KeySuspended row under
-        // test (ADR-020 §4 assertion contract).
-        var outboxRow = Db.OutboxMessages.SingleOrDefault(m =>
-            m.EventType == "KeySuspended" && m.AggregateId == keyId.ToString());
-
-        outboxRow.Should().NotBeNull("a KeySuspended domain event must be harvested into the outbox (ADR-020)");
-
-        using var payload = JsonDocument.Parse(outboxRow!.Payload);
+        using var payload = Db.RequireOutboxEvent("KeySuspended", keyId);
         var root = payload.RootElement;
 
         root.GetProperty("keyId").GetGuid().Should().Be(keyId);
