@@ -8,6 +8,8 @@
 
 Accepted (2026-04-03)
 
+Erratum（2026-07-10，使用者裁決走註記不開新 ADR，關閉 todo #38）：§3 的 `tests/` 示意樹漏列 `SharedKernel.Tests/`（`ApiKeyManagement.slnx` 實有）。樹為示意性質、非決策本體，原文不改，以本註記勘誤。
+
 ---
 
 ## Context

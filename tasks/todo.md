@@ -80,5 +80,4 @@ A 4-agent parallel review (security / architecture / tests / `.claude` consisten
 
 ## Cross-doc consistency sweep (2026-05-31) — 開放項
 
-- [ ] **38. (P3, doc erratum — needs mechanism decision)** ADR-002 §3 `tests/` tree omits `SharedKernel.Tests` (present in `.slnx`). Illustrative tree, low impact, but doc trails reality.
-  - ⚠️ #38 touches an Accepted ADR body → governance clause "任何提案修改 1–N 必須先開新 ADR" applies. Decide **erratum note vs new ADR** before editing; do **not** silently edit ADR bodies.
+- [x] **38. ✅ 已結案（2026-07-10 使用者裁決：erratum note，不開新 ADR）** ADR-002 Status 段補 Erratum 註記 — 示意樹漏列 `SharedKernel.Tests`，樹為示意非決策本體，原文不改。
