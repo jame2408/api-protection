@@ -30,6 +30,7 @@
 - **ADR-024 Phase 2 基礎建設落地** — JwtBearer 10.0.9＋`Actor`/`FromClaims`＋`TestTokenFactory`（四角色）＋Create/Revoke `RequireAuthorization()`、internal 端點顯式 `AllowAnonymous`＋債務註解、TestHooks 預設 SecurityAdmin token；綠 24/27 不變、故意紅剝 token 18 場景清一色 401、驗收 grep 兩條歸零 — `c461319`；executor 零 blocker（140.9K tokens／85 calls／10.4 分）。orchestrator review 抓到 latent bug：`MapInboundClaims` 預設 true 會改名 sub/role（Microsoft Learn 核實），`FromClaims` 本波無消費者故測試抓不到，補 `options.MapInboundClaims = false` — `3ef9d23`，full gate 綠後放行 push（lesson：`tasks/lessons/20260710-jwtbearer-mapinboundclaims-default.md`）
 - **scenario「Secret Scanner 批次自動撤銷」真 Red→Green，19/46 — Wave 2（02_RevokeKey 全 7 場景）收官** — 兩契約缺口先經使用者裁決（api-spec 新 §3.2.9 內部批次端點，無 tenantId 全域 prefix 掃描／通知走 outbox 事件 `KeyLeakNotificationRequested` 含 audiences）；orchestrator 設計裁決＝批次 handler 組合復用 `IRevokeKeyHandler`（逐鍵委派白拿 guard／successor 清理／KeyRevoked，identity map 保證通知事件疊加在同一 tracked instance）。自然紅 A（undefined steps）＋自然紅 B（endpoint 未 Map，404）→ 綠 24/27；Architecture.Tests 14/14；`RevokeLeakedKeysHandler` coverage gate 自動納管 94.4% — `0072337`。executor 137.2K tokens／76 calls／8.5 分，申報兩處背離：(1) 編譯依賴使紅 B 改以「暫緩 Map 註冊」取得（紅仍為真跑）；(2) **spec 瑕疵**：orchestrator 漏查「觸發主動快取失效」Then 也讀 root `keyId`，executor 以 fallback（無 `keyId` 時取唯一 seeded key）擴修並留註解——spec 累積注意新增一條：復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在
 - **Stryker A2 正式閉環（test-only）** — CreateApiKey 的 `ThenKeyCreatedEventIsPublished()` 從 response-body 代理改為依 response `keyId` 精確過濾 `KeyCreated` outbox row，再逐一斷言 payload 八欄；成功場景既有 3 筆 seed 事件，以 `EventType + AggregateId` 隔離本次事件。KeyLifecycle mutation 重跑 112 mutants／70.45%，`ApiKey.cs` line 66–76 statement-removal mutant `id=32` 唯一命中且由 Survived 轉 Killed；orchestrator 親解析 JSON 並跑 full gate：SharedKernel 6/6、Architecture 14/14、Functional 24 passed/27 skipped，Handler coverage 100.0%／96.0%／94.4% — `ce4da06`
+- **KeyCreated `name` contract drift 修復（2026-07-10 使用者雙裁決：name 補實作、型別對齊）** — ADR-022 §2 既有行為變更路線：feature Then＋steps 綁定＋payload `name` 斷言先行 → 自然紅（`The given key was not present in the dictionary`）→ `KeyCreated` record＋`ApiKey.Create` 補 `Name` → 綠 24/27；integration spec §6.1 `consumerId`/`tenantId` 型別標記 `UUID`→`String` 對齊實作（場景語料 `"tenant-A"` 非 UUID，方向為 spec 就實作）；`Spec-change:` trailer 齊備，orchestrator 親跑 full gate 綠放行 — `3905357`。spec 其餘 4 處 `tenantId/consumerId: UUID`（EventEnvelope §3／ValidateConsumer／LockKey／ValidationAttempt）屬未實作契約未動，各 slice 落地時對齊。executor 零 blocker 零 friction（88.5K tokens／51 calls／3.5 分）
 
 ## 待驗證
 
@@ -45,7 +46,6 @@
 
 ## 待裁決
 
-- **KeyCreated payload 的 `name` contract drift（A2 巡檢發現，非本包阻塞）**：`docs/design/context-integration-spec.md` §6.1 列 `name`，但 `01_CreateApiKey.feature` 的事件 Then、`KeyCreated` record 與 A2 outbox 八欄斷言均未包含。需規格擁有者裁決是補 event／場景，或修 integration spec；在裁決前不得由下一個 BDD slice 順手擴修。
 - Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`）仍非阻塞。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
@@ -61,6 +61,7 @@
 - 2026-07-10 A2 push 的 GitHub CI run `29094908277` 成功（build-test 1m16s），但產生非阻塞 annotation：`actions/checkout@v4`、`actions/setup-dotnet@v4` target Node.js 20，runner 已強制使用 Node.js 24。A2 不擴 scope 升版；列為後續 housekeeping 訊號，若 action 警告持續或升為失敗再處置。
 - 2026-07-10 A2 收尾 failure triage：三個 REPEAT 計數仍為既有簽名（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），與前輪相同，維持既有處置；報表跑於本輪 lesson 新增前為 active=16，本輪新增後 active=17，仍 <20。executor 的 zsh `status` 失敗未進 root `.claude/failures.jsonl`，符合 ADR-023 已登記的跨 harness／tool observation 殘餘限制；由 executor friction 必填欄與 orchestrator 監控捕獲並轉 lesson。
 - 2026-07-10 ADR-024 Phase 收尾 failure triage：三 REPEAT 簽名計數與前輪完全相同（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），未新增，維持既有處置；triage 跑於本輪 lesson 新增前報 active=15，新增 jwtbearer 條後 active=16（口徑：`^status: active` 排除 `_README`），仍 <20 未觸發 lessons triage。
+- 2026-07-10 name-drift 包收尾 failure triage：無新 REPEAT（新增簽名皆 1x，含一筆 orchestrator sed quoting 一次性失誤），三既有 REPEAT 計數未增；active=17 < 20 未觸發 lessons triage。
 - 2026-07-10 Codex harness parity 收尾 failure triage：三個 REPEAT 仍為既有簽名（`== not found` ×4／`cd backend` ×2／`Exit code N` ×3）；前兩者維持既有處置，`Exit code N` 雖增一筆仍摺疊多個不同指令、無共同根因，不轉 lesson／todo。`== not found` 與 heredoc 現由矩陣 23/23a 的共用 Claude/Codex hook 接管。批次落地（`1a8e315`）後複跑：三簽名計數未增，維持處置。
 - 2026-07-05 首次 failure triage（ADR-018 決策 §3）處置紀錄：`(eval):N: == not found` ×4 → 已轉 lesson（zsh 等號展開）；`(eval):cd:N: no such file or directory: backend` ×2 → 不轉，探索性 cwd 誤試、無制度性根因；`Exit code N` ×2 → 不轉，簽名過泛（多個不同指令的非零退出被摺疊）、無共同根因。
 - `.agents/skills/tessl__*`、`.tessl/`、`tessl.json`、`.claude/parked/`：既有 Tessl 相關 untracked 項，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。2026-07-10 起 tessl MCP（原 `.mcp.json`）與 5 個 `tessl__*` skills 收納至 `.claude/parked/`（降低 session 初始載入）。
