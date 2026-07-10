@@ -106,6 +106,19 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         await Db.SaveChangesAsync();
     }
 
+    [Given(@"金鑰 ""(.*)"" 狀態為 Expired")]
+    public async Task GivenKeyIsExpired(string keyAlias)
+    {
+        _ctx.CurrentTenantId = "tenant-A";
+
+        var key = CreateSeedKey(keyAlias);
+
+        // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
+        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Expired;
+
+        await Db.SaveChangesAsync();
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
@@ -199,4 +212,39 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         Db.OutboxMessages.Any(m => m.EventType == "KeyRevoked" && m.AggregateId == keyId.ToString())
             .Should().BeTrue("KeyRevoked must reach the outbox to trigger active cache invalidation");
     }
+
+    [Then(@"撤銷失敗，錯誤原因為「(.*)」")]
+    public void ThenRevokeFailsWithReason(string reason)
+    {
+        var map = new Dictionary<string, (HttpStatusCode Status, string ErrorCode)>
+        {
+            // API wire contract — keep literals here to lock external HTTP error codes.
+            // Production code uses *FailureCodes.* constants; this map intentionally
+            // re-states the strings so a constant value drift would surface as a test failure.
+            ["金鑰已在終態，無法撤銷"] = (HttpStatusCode.Conflict, "KEY_IN_TERMINAL_STATE"),
+            ["必須提供撤銷原因"] = (HttpStatusCode.BadRequest, "VALIDATION_ERROR:reason_empty"),
+        };
+
+        var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
+        var (expectedStatus, expectedErrorCode) = entry.Value;
+
+        _ctx.Response!.StatusCode.Should().Be(expectedStatus);
+        _ctx.Response.Content.Headers.ContentType!.MediaType
+            .Should().Be("application/problem+json");
+
+        // RFC 9457 Problem Details wire contract (api-spec.md §2.2). Locks every failure scenario
+        // that uses this step — including the @ignore'd ones, as they come online.
+        using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+        var root = doc.RootElement;
+        root.GetProperty("status").GetInt32().Should().Be((int)expectedStatus);
+        root.GetProperty("errorCode").GetString().Should().Be(expectedErrorCode);
+        root.GetProperty("title").GetString().Should().NotBeNullOrEmpty();
+        root.GetProperty("type").GetString().Should().EndWith(Kebab(expectedErrorCode));
+        root.TryGetProperty("traceId", out var traceId).Should().BeTrue();
+        traceId.GetString().Should().NotBeNullOrEmpty();
+    }
+
+    // Mirror of ApiProblem.ToKebab — the wire `type` suffix derives from the error code.
+    private static string Kebab(string code)
+        => code.ToLowerInvariant().Replace('_', '-').Replace(':', '-');
 }

@@ -29,7 +29,6 @@ Feature: 撤銷金鑰
     And   系統產生 KeyRevoked 事件，previousStatus 為 Suspended
     And   觸發主動快取失效
 
-  @ignore
   Scenario: 金鑰已在終態 — 拒絕撤銷
     Given 金鑰 "key-A" 狀態為 Expired
     When  操作者撤銷 "key-A"，原因為「補撤銷」

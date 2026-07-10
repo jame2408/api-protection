@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 16 / 46  
-**下一個：** `02_RevokeKey.feature` — 金鑰已在終態 — 拒絕撤銷
+**已通過：** 17 / 46  
+**下一個：** `02_RevokeKey.feature` — 未提供撤銷原因 — 拒絕
 
 ---
 
