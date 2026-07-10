@@ -24,16 +24,13 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         _ctx.ServiceScope!.ServiceProvider.GetRequiredService<IApiKeyHasher>();
 
     // -------------------------------------------------------------------------
-    // Given
+    // Seed helpers
     // -------------------------------------------------------------------------
 
-    [Given(@"金鑰 ""(.*)"" 狀態為 Active")]
-    public async Task GivenKeyIsActive(string keyAlias)
+    // Revoke handler validates neither tenant nor consumer existence (RevokeKeyHandler.cs),
+    // so no Tenant/Consumer row is seeded here — CurrentTenantId is only needed for the URL.
+    private ApiKey CreateSeedKey(string keyAlias)
     {
-        // Revoke handler validates neither tenant nor consumer existence (RevokeKeyHandler.cs),
-        // so no Tenant/Consumer row is seeded here — CurrentTenantId is only needed for the URL.
-        _ctx.CurrentTenantId = "tenant-A";
-
         var (key, _) = ApiKey.Create(
             consumerId: "any-consumer",
             tenantId: _ctx.CurrentTenantId,
@@ -45,40 +42,32 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
             hasher: Hasher);
 
         Db.ApiKeys.Add(key);
-        await Db.SaveChangesAsync();
-
         _ctx.SeededKeys[keyAlias] = key.Id;
+
+        return key;
+    }
+
+    // -------------------------------------------------------------------------
+    // Given
+    // -------------------------------------------------------------------------
+
+    [Given(@"金鑰 ""(.*)"" 狀態為 Active")]
+    public async Task GivenKeyIsActive(string keyAlias)
+    {
+        _ctx.CurrentTenantId = "tenant-A";
+
+        CreateSeedKey(keyAlias);
+
+        await Db.SaveChangesAsync();
     }
 
     [Given(@"金鑰 ""(.*)"" 狀態為 Rotating，successorKeyId 為 ""(.*)""")]
     public async Task GivenKeyIsRotatingWithSuccessor(string predecessorAlias, string successorAlias)
     {
-        // Revoke handler validates neither tenant nor consumer existence (RevokeKeyHandler.cs),
-        // so no Tenant/Consumer row is seeded here — CurrentTenantId is only needed for the URL.
         _ctx.CurrentTenantId = "tenant-A";
 
-        var (predecessor, _) = ApiKey.Create(
-            consumerId: "any-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: predecessorAlias,
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        var (successor, _) = ApiKey.Create(
-            consumerId: "any-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: successorAlias,
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        Db.ApiKeys.Add(predecessor);
-        Db.ApiKeys.Add(successor);
+        var predecessor = CreateSeedKey(predecessorAlias);
+        var successor = CreateSeedKey(successorAlias);
 
         // ApiKey properties are all `private set`; the rotation itself (Wave 5 RotateKey) is
         // out of scope here, so seeding sets the Added entities' CurrentValue directly —
@@ -89,36 +78,19 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         Db.Entry(successor).Property(k => k.PredecessorKeyId).CurrentValue = predecessor.Id;
 
         await Db.SaveChangesAsync();
-
-        _ctx.SeededKeys[predecessorAlias] = predecessor.Id;
-        _ctx.SeededKeys[successorAlias] = successor.Id;
     }
 
     [Given(@"金鑰 ""(.*)"" 狀態為 Locked")]
     public async Task GivenKeyIsLocked(string keyAlias)
     {
-        // Revoke handler validates neither tenant nor consumer existence (RevokeKeyHandler.cs),
-        // so no Tenant/Consumer row is seeded here — CurrentTenantId is only needed for the URL.
         _ctx.CurrentTenantId = "tenant-A";
 
-        var (key, _) = ApiKey.Create(
-            consumerId: "any-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: keyAlias,
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        Db.ApiKeys.Add(key);
+        var key = CreateSeedKey(keyAlias);
 
         // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
         Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Locked;
 
         await Db.SaveChangesAsync();
-
-        _ctx.SeededKeys[keyAlias] = key.Id;
     }
 
     // -------------------------------------------------------------------------
