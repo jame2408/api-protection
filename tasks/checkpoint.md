@@ -58,6 +58,7 @@
 
 ## 工作區狀態警告
 
+- 2026-07-10 A2 push 的 GitHub CI run `29094908277` 成功（build-test 1m16s），但產生非阻塞 annotation：`actions/checkout@v4`、`actions/setup-dotnet@v4` target Node.js 20，runner 已強制使用 Node.js 24。A2 不擴 scope 升版；列為後續 housekeeping 訊號，若 action 警告持續或升為失敗再處置。
 - 2026-07-10 A2 收尾 failure triage：三個 REPEAT 計數仍為既有簽名（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），與前輪相同，維持既有處置；報表跑於本輪 lesson 新增前為 active=16，本輪新增後 active=17，仍 <20。executor 的 zsh `status` 失敗未進 root `.claude/failures.jsonl`，符合 ADR-023 已登記的跨 harness／tool observation 殘餘限制；由 executor friction 必填欄與 orchestrator 監控捕獲並轉 lesson。
 - 2026-07-10 ADR-024 Phase 收尾 failure triage：三 REPEAT 簽名計數與前輪完全相同（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），未新增，維持既有處置；triage 跑於本輪 lesson 新增前報 active=15，新增 jwtbearer 條後 active=16（口徑：`^status: active` 排除 `_README`），仍 <20 未觸發 lessons triage。
 - 2026-07-10 Codex harness parity 收尾 failure triage：三個 REPEAT 仍為既有簽名（`== not found` ×4／`cd backend` ×2／`Exit code N` ×3）；前兩者維持既有處置，`Exit code N` 雖增一筆仍摺疊多個不同指令、無共同根因，不轉 lesson／todo。`== not found` 與 heredoc 現由矩陣 23/23a 的共用 Claude/Codex hook 接管。批次落地（`1a8e315`）後複跑：三簽名計數未增，維持處置。
