@@ -50,6 +50,50 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         _ctx.SeededKeys[keyAlias] = key.Id;
     }
 
+    [Given(@"金鑰 ""(.*)"" 狀態為 Rotating，successorKeyId 為 ""(.*)""")]
+    public async Task GivenKeyIsRotatingWithSuccessor(string predecessorAlias, string successorAlias)
+    {
+        // Revoke handler validates neither tenant nor consumer existence (RevokeKeyHandler.cs),
+        // so no Tenant/Consumer row is seeded here — CurrentTenantId is only needed for the URL.
+        _ctx.CurrentTenantId = "tenant-A";
+
+        var (predecessor, _) = ApiKey.Create(
+            consumerId: "any-consumer",
+            tenantId: _ctx.CurrentTenantId,
+            name: predecessorAlias,
+            environment: "Production",
+            scopes: ["seed:read"],
+            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
+
+        var (successor, _) = ApiKey.Create(
+            consumerId: "any-consumer",
+            tenantId: _ctx.CurrentTenantId,
+            name: successorAlias,
+            environment: "Production",
+            scopes: ["seed:read"],
+            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
+
+        Db.ApiKeys.Add(predecessor);
+        Db.ApiKeys.Add(successor);
+
+        // ApiKey properties are all `private set`; the rotation itself (Wave 5 RotateKey) is
+        // out of scope here, so seeding sets the Added entities' CurrentValue directly —
+        // EF applies it at SaveChanges time, bypassing the private setters without adding a
+        // speculative production method just for test seeding.
+        Db.Entry(predecessor).Property(k => k.Status).CurrentValue = ApiKeyStatus.Rotating;
+        Db.Entry(predecessor).Property(k => k.SuccessorKeyId).CurrentValue = successor.Id;
+        Db.Entry(successor).Property(k => k.PredecessorKeyId).CurrentValue = predecessor.Id;
+
+        await Db.SaveChangesAsync();
+
+        _ctx.SeededKeys[predecessorAlias] = predecessor.Id;
+        _ctx.SeededKeys[successorAlias] = successor.Id;
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
@@ -88,6 +132,25 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         // HTTP request's own (separate) DbContext instance.
         var reloaded = Db.ApiKeys.AsNoTracking().Single(k => k.Id == keyId);
         reloaded.Status.Should().Be(ApiKeyStatus.Revoked, "the transition must be persisted, not just returned on the wire");
+    }
+
+    [Then(@"清除 ""(.*)"" 與 ""(.*)"" 之間的 successorKeyId / predecessorKeyId 關聯")]
+    public void ThenRotationLinkIsCleared(string predecessorAlias, string successorAlias)
+    {
+        // AsNoTracking: same identity-resolution reasoning as ThenKeyStatusBecomesRevoked above —
+        // the Given step added and saved these entities on this scenario-scoped DbContext, so a
+        // tracked re-query would return the stale in-memory instance instead of the update made
+        // by the HTTP request's own (separate) DbContext instance.
+        var predecessorId = _ctx.SeededKeys[predecessorAlias];
+        var successorId = _ctx.SeededKeys[successorAlias];
+
+        var predecessor = Db.ApiKeys.AsNoTracking().Single(k => k.Id == predecessorId);
+        var successor = Db.ApiKeys.AsNoTracking().Single(k => k.Id == successorId);
+
+        predecessor.SuccessorKeyId.Should().BeNull(
+            "design-doc.md T6 requires revoking a Rotating key to clear its own successorKeyId link");
+        successor.PredecessorKeyId.Should().BeNull(
+            "design-doc.md T6 requires revoking a Rotating key to clear the successor's predecessorKeyId link");
     }
 
     [Then(@"系統產生 KeyRevoked 事件，previousStatus 為 (.*)")]

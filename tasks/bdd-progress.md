@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 13 / 46  
-**下一個：** `02_RevokeKey.feature` — 從 Rotating 狀態撤銷 — 同時清除輪替關聯
+**已通過：** 14 / 46  
+**下一個：** `02_RevokeKey.feature` — 從 Locked 狀態撤銷
 
 ---
 

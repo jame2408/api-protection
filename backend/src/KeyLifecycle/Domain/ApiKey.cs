@@ -20,6 +20,8 @@ public class ApiKey : AggregateRoot<Guid>
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset ExpiresAt { get; private set; }
     public Guid PolicyId { get; private set; }
+    public Guid? SuccessorKeyId { get; private set; }
+    public Guid? PredecessorKeyId { get; private set; }
 
     // EF Core
     private ApiKey() { }
@@ -82,6 +84,7 @@ public class ApiKey : AggregateRoot<Guid>
     {
         var previousStatus = Status;
         Status = ApiKeyStatus.Revoked;
+        SuccessorKeyId = null;
 
         AddDomainEvent(new KeyRevoked(
             EventId: Guid.NewGuid(),
@@ -90,6 +93,12 @@ public class ApiKey : AggregateRoot<Guid>
             PreviousStatus: previousStatus.ToString(),
             Reason: reason));
     }
+
+    /// <summary>
+    /// Clears the predecessor link on a rotation successor (used when the predecessor is
+    /// revoked while Rotating — design-doc.md T6).
+    /// </summary>
+    public void ClearPredecessorLink() => PredecessorKeyId = null;
 
     private static (string prefix, string rawKey, string keyHash) GenerateKeyMaterial(
         string tenantId, string environment, IApiKeyHasher hasher)

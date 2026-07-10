@@ -20,6 +20,8 @@ public class ApiKeyConfiguration : IEntityTypeConfiguration<ApiKey>
         builder.Property(k => k.PolicyId).IsRequired();
         builder.Property(k => k.CreatedAt).IsRequired();
         builder.Property(k => k.ExpiresAt).IsRequired();
+        builder.Property(k => k.SuccessorKeyId);
+        builder.Property(k => k.PredecessorKeyId);
 
         // Scopes stored as JSON array
         builder.Property(k => k.Scopes)

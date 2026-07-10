@@ -7,7 +7,6 @@ Feature: 撤銷金鑰
     And   系統產生 KeyRevoked 事件，previousStatus 為 Active
     And   觸發主動快取失效
 
-  @ignore
   Scenario: 從 Rotating 狀態撤銷 — 同時清除輪替關聯
     Given 金鑰 "key-A" 狀態為 Rotating，successorKeyId 為 "key-B"
     When  操作者撤銷 "key-A"，原因為「安全疑慮」

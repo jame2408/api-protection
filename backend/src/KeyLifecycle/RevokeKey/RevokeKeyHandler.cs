@@ -23,10 +23,24 @@ public class RevokeKeyHandler(
         if (apiKey.Status is ApiKeyStatus.Revoked or ApiKeyStatus.Expired)
             return FailureProvider.CreateFailure(RevokeKeyFailureCodes.KeyInTerminalState);
 
-        // 4. Capture previous status, transition, persist
+        // 4. Capture previous status + successor link, transition, persist
         var previousStatus = apiKey.Status;
+        var successorId = apiKey.SuccessorKeyId;
         apiKey.Revoke(command.Reason);
         await keyRepository.UpdateAsync(apiKey, cancel);
+
+        // 5. Rotating → Revoked also clears the successor's predecessor link (design-doc.md T6).
+        //    A missing successor points at data corruption outside this scenario's scope, so we
+        //    skip silently rather than fail the revoke that already succeeded.
+        if (successorId is not null)
+        {
+            var successor = await keyRepository.GetByIdAsync(successorId.Value, command.TenantId, cancel);
+            if (successor is not null)
+            {
+                successor.ClearPredecessorLink();
+                await keyRepository.UpdateAsync(successor, cancel);
+            }
+        }
 
         return new RevokeKeyResponse(
             KeyId: apiKey.Id,
