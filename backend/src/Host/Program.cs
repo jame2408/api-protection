@@ -27,6 +27,9 @@ var jwtSigningKey = builder.Configuration["Jwt:SigningKey"]
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // MapInboundClaims defaults to true and would rename "sub"/"role" to XML-schema URIs,
+        // breaking Actor.FromClaims and the RoleClaimType below — keep raw JWT claim names.
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
