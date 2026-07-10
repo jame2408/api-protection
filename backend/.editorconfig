@@ -5,9 +5,6 @@ root = true
 # 本專案有兩個檔案以欄位對齊提升可讀性（HTTP status switch、BDD 期望表），
 # 對它們使用此設定，讓 dotnet format 視為 generated 而完整跳過。其餘檔案維持
 # 嚴格 whitespace 規則。
-[**/CreateApiKeyEndpoint.cs]
-generated_code = true
-
 [**/CreateApiKeySteps.cs]
 generated_code = true
 
