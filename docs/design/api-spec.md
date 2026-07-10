@@ -57,6 +57,7 @@ JWT Claims：
 - `tenantId` — 所屬租戶（PlatformAdmin 不含此欄位）
 - `role` — 角色
 - `consumerId` — 所屬 Consumer（僅 Consumer 角色）
+- `name` — 顯示名稱（選填；缺省以 `sub` 代，見 ADR-024）
 
 **角色與可存取範圍：**
 
@@ -68,6 +69,11 @@ JWT Claims：
 | Consumer | API 消費者 | `/tenants/{own-tenantId}/consumers/{own-consumerId}/keys`、`/tenants/{own-tenantId}/keys/{own-keys}/*` |
 
 > TenantId 取自 URL path 並與 JWT claims 交叉驗證，防止 IDOR。
+
+**System actor（內部自動化）：**
+
+- 非人為操作者（如 `monitoring-service`）以 `role=System` 的內部 JWT 呼叫 Control Plane；`sub` 為服務名稱（ADR-024）。
+- System token 僅解決「認證」；「僅限人為操作」類業務限制由 domain guard 以 Actor 型別拒絕（業務 Failure），不以 403 表達。
 
 **Data Plane（驗證 API）：**
 

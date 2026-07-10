@@ -10,8 +10,8 @@
 每次開始作業，依序執行：
 
 ```bash
-# 1. 找出下一個待實作場景
-grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1
+# 1. 找出下一個待實作場景（行號需數值排序：純字典序會把同檔的 13 行排在 5 行前）
+grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort -t: -k1,1 -k2,2n | head -1
 
 # 2. 確認整體進度
 grep -rc "@ignore" backend/tests/FunctionalTests/Features/
