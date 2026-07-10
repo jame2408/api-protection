@@ -1,14 +1,12 @@
 ---
 name: requirements-analysis-design
 description: >-
-  DDD-based requirements analysis and design workflow covering Context Integration Spec,
-  Per-BC Detailed Design (Command/Guard/State/Event), Example Mapping workshops, and
-  Specification by Example (BDD/Gherkin). Use when: (1) defining contracts between Bounded
-  Contexts for parallel development, (2) writing Aggregate behavior specs with strict
-  Command/Guard/State/Event format, (3) bridging design to BDD via Example Mapping,
-  (4) generating Gherkin scenarios from design specs, (5) expanding post-PRD design beyond
-  high-level architecture, or (6) user says "detail design", "BC integration", "aggregate spec",
-  "example mapping", "BDD scenario", or "specification by example".
+  DDD-based post-PRD design workflow: Context Integration Spec, Per-BC Detailed
+  Design (Command/Guard/State/Event), Example Mapping, Specification by Example.
+  Use when defining BC integration contracts, writing Aggregate behavior specs,
+  or when the user says "detail design", "BC integration", "aggregate spec", or
+  "example mapping". In this repo, new .feature scenario authoring is frozen —
+  existing-scenario changes route via ADR-022, not this skill.
 metadata:
   trigger: '"I need to design aggregate behavior", "/requirements-analysis-design", "/design", or "/bdd"'
 ---

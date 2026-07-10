@@ -43,6 +43,7 @@
 - Lessons triage 第二輪（Active 15 觸發常設門檻；兩項使用者裁決）：(1) 機械化 — Bash 寫時 hook `.claude/hooks/pre-tool-bash.py`（heredoc 攔截＋zsh 裸 `=` 參數攔截，遮蔽引號/算術防誤報，矩陣 23/23a，11 條合成 payload 綠＋故意紅全對）— `275e6ec`；(2) 歸檔判準爭議 — orchestrator 原建議「開 ADR 擴充判準」，經 grep 發現 ADR-019 Alternatives 已明文拒絕同案，使用者知情後改裁「瘦身不歸檔」：#Refactor-spec-管道與 #zsh-等號歸檔（防線代記）、5 條範本／憲章承載 lesson 的 Rule 行改一行指針、executor-spec 範本補 guard 鏈核對註記、新 lesson「制度修訂提案前反查既往 ADR Alternatives」；Active 14／Archived 12 — `52ada12`
 
 - **ADR-021 共享狀態檔團隊尺度**（使用者提出團隊需求、四項裁決全採建議案）：`tasks/lessons.md` 退役 → `tasks/lessons/` 一檔一教訓（26 條逐字遷移，frontmatter `date`/`type`/`status`；新增=新檔、歸檔=改單行 frontmatter，衝突面歸零）；`session-init.sh` 改 glob＋frontmatter 解析（缺 status fail-loud）、`hook-smoke.sh` 斷言同步、13 處引用者全修；注入輸出遷移前後逐字等價取證＋三面故意紅；checkpoint 分流與 bdd-progress 帳面生成化只定規格（觸發條件=第二常設寫者）— `1a7e5f3`
+- **Session 初始載入瘦身＋lessons triage 第三輪**（2026-07-10 使用者裁決）：claude.ai connectors 停用（使用者端）＋Context7 雙掛消除（留 plugin）；Tessl MCP 與 5 個 skills 收納 `.claude/parked/`；`settings.local.json` 專案層關閉 heptabase／frontend-design／warp plugins；兩個 skill description 瘦身（`requirements-analysis-design` 順帶移除與 `.feature` 凍結相撞的觸發詞）— 本 commit。Triage：`untracked-adr-draft` 防線代記歸檔（pre-commit 既有 guard，補矩陣 10a，故意紅重演取證）、`heredoc` 條 Rule 行瘦身（矩陣 23 代記段移除）、`restore-tactic` 維持 active；注入 Active 15→14 — `e08562e`
 - **ADR-022 BDD 需求類型分流**：六類需求（新功能／行為變更／缺陷再現／行為移除／重構／非功能）分流表定案；行為變更=使用者裁決逐字場景文字→executor 修訂→工作區自然紅→同 commit 落地（never-commit-red 不破例）；缺陷再現豁免凍結與晉升排隊；`Spec-change:` trailer gate 上線（commit-msg hook，非純 `@ignore` 增減的 `.feature` 改動必帶 trailer，逃生口 `ALLOW_FEATURE_MAINTENANCE=1`，矩陣 9g）；三面故意紅（executor）＋紅綠雙向重演（orchestrator 親驗）；CLAUDE.md 凍結句限縮為 Discovery 管道 — `71a193c`
 
 ## 待驗證
@@ -69,7 +70,7 @@
 
 - 2026-07-06 failure triage（ADR-021/022 收尾複跑）：無新 REPEAT；三個舊簽名（`== not found` ×4／`cd backend` ×2／`Exit code N` ×2）計數未增，維持 2026-07-05 處置結論，其中 `== not found` 現由矩陣 23a hook 接管。注意：Bash 工具的 heredoc 與裸 `=` 參數自 `275e6ec` 起會被寫時 hook 以 exit 2 阻擋——多行 commit message 改以 Write 寫訊息檔＋`git commit -F <file>`。
 - 2026-07-05 首次 failure triage（ADR-018 決策 §3）處置紀錄：`(eval):N: == not found` ×4 → 已轉 lesson（zsh 等號展開）；`(eval):cd:N: no such file or directory: backend` ×2 → 不轉，探索性 cwd 誤試、無制度性根因；`Exit code N` ×2 → 不轉，簽名過泛（多個不同指令的非零退出被摺疊）、無共同根因。
-- `.agents/`、`.claude/skills/tessl__*`、`.mcp.json`、`.tessl/`、`tessl.json`：Tessl 相關，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。
+- `.agents/`、`.tessl/`、`tessl.json`、`.claude/parked/`：Tessl 相關，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。2026-07-10 起 tessl MCP（原 `.mcp.json`）與 5 個 `tessl__*` skills 收納至 `.claude/parked/`（降低 session 初始載入）；skills 為指向 `.tessl/` 的相對 symlink，搬回 `.claude/skills/` 即恢復。
 - 目錄歸檔（Tessl 相關 skill 目錄、`docs/arch-flow.html` 等可重產產物）另包處理，不在本檔範圍內處理。
 
 ## 如何接上
