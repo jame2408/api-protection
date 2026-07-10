@@ -21,6 +21,7 @@
 - **scenario「從 Locked 狀態撤銷」Red→Green，15/46** — 純 test-only 啟用（production 側 guard 本就放行 Locked）：新 Given 循 Rotating 的 EF CurrentValue seed 先例＋既有 When 疊加第二個 `[When]` attribute（Security Admin 措辭；actor 區分留待 auth slice 債務）。自然紅（undefined steps）→ 綠 20 passed/31 skipped → 故意紅（seed 改 Suspended 使 previousStatus 斷言紅）→ 還原回綠；orchestrator 親跑 FunctionalTests＋pre-push full gate 放行。executor 零 blocker（79.0K tokens／28 calls／3.2 分，較上輪 -21% tokens／-40% calls）；上輪兩處 spec 精度注意（計數勿外推、tool restore）已修正生效；本輪新增一處 spec 步驟順序瑕疵（ci-checks fast 排在帳面更新前，造成一次預期性 bdd-lint 中間紅）記入下輪注意 — `ee25317`
 - **seed-helper 重構＋scenario「從 Suspended 狀態撤銷」Red→Green，16/46** — 兩 commit 串行：`CreateSeedKey` helper 消除 4 份 `ApiKey.Create` 樣板（SaveChanges 時機留在各 Given，Rotating 單次 SaveChanges 結構不變）— `ec49650`；Suspended 啟用（唯一新 step 為 Given，When/Then 全數既有匹配），自然紅→綠 21 passed/30 skipped→故意紅（seed 改 Active）→回綠 — `fba2072`。orchestrator 親跑 FunctionalTests＋pre-push full gate 放行。executor 零 blocker、零 friction（96.5K tokens／42 calls／4.0 分，含兩個 commit；單 commit 均攤較上輪再降）；spec 累積注意三條全數生效（計數命中、帳面先於 ci-checks、無 tool restore 誤列）
 - **scenario「金鑰已在終態 — 拒絕撤銷」Red→Green，17/46＋analyzer 盲區發現** — 首個 failure-path：新 Given Expired（helper＋CurrentValue）＋新 Then「撤銷失敗」（鏡像 CreateApiKey 先例：RFC 9457 斷言＋場景文字→(status, errorCode) 對照表，預鎖 reason_empty 條目）；自然紅（2 undefined steps）→ 綠 22/29 → 故意紅（seed 改 Active，409 斷言收到 200 如預期紅）→ 回綠；`RevokeKeyHandler` coverage 88%→92%（終態 guard 分支）— `abbb415`。executor friction 申報 CA1310「CreateApiKeySteps 增量編譯快取未爆」，orchestrator 依 unverified_success 親驗**證偽其機制**（`--no-incremental` 全量 build 0 錯誤）並追到真根因＝editorconfig `generated_code = true` 手寫檔標記（詳待裁決欄）；executor 93.9K tokens／54 calls／5.7 分
+- **analyzer 盲區修復（2026-07-10 使用者裁決）**：移除 `backend/.editorconfig` 兩個手寫檔的 `generated_code = true` 標記（`8922c47` 排版豁免的副作用＝整檔 analyzer 豁免）——production `CreateApiKeyEndpoint.cs` 經誘餌故意紅證明檢驗恢復、零既存違規 — `67c802e`；test `CreateApiKeySteps.cs` 自然紅 3 處（CA1310 ×1／CA1822 ×2 補 static）補修＋CS8669 ×2 歸零＋矩陣 19c 備註＋lesson 落地欄 — `63e6ee1`。editorconfig 僅剩 Migrations 工具產物段。executor 98.3K tokens／68 calls／6.0 分；friction 揭露「lesson 內寫自身 commit hash」自我指涉悖論，處置規範：改由後續 commit 引用（中繼 hash `f987efb` 已於 checkpoint commit 校正為 `63e6ee1`）
 
 ## 待驗證
 
@@ -32,8 +33,7 @@
 
 ## 待裁決
 
-- **analyzer 盲區處置（2026-07-10 發現，建議優先）**：`backend/.editorconfig` 把兩個手寫檔（`CreateApiKeyEndpoint.cs`＝production、`CreateApiKeySteps.cs`＝wire 契約鎖）標為 `generated_code = true`（`8922c47`，原意只為保留欄位對齊排版繞過 dotnet format），ADR-016 升 error 後副作用放大成**整檔 analyzer 豁免**（CA2016/CA1310 等全跳過，實證：`CreateApiKeySteps.cs:352` 裸 `StartsWith` 不爆、鏡像到 RevokeKeySteps 立即被 build 擋）。建議修法：移除兩檔標記＋放棄欄位對齊（交 `dotnet format` 重排）＋補修 build 暴露的 CA 違規（至少 :352 一處；`CreateApiKeyEndpoint.cs` 未知數由 build 揭露）＋同 commit 更新 `docs/verification-matrix.md` 19c 備註。涉及推翻 `8922c47` 的排版取捨，交使用者裁決。lesson 已落 `tasks/lessons/20260710-generated-code-marker-is-full-analyzer-exemption.md`。
-- 跨全檔另有 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞。
+- 跨全檔僅剩 Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`），兩者皆非阻塞。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
