@@ -32,7 +32,7 @@ adr_lint() {
 }
 
 hook_smoke() {
-    echo "[ci-checks] hook smoke test (session-init.sh injection)"
+    echo "[ci-checks] hook smoke test (shared Claude/Codex parity)"
     bash "$REPO_ROOT/scripts/hook-smoke.sh"
 }
 

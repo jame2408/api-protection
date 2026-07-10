@@ -1,5 +1,12 @@
 # Todo — 開放項登記簿
 
+## Codex harness parity — 已結案（2026-07-10）
+
+- `docs/adr/adr-023-cross-harness-hook-and-skill-parity.md` 定案：Claude Code／Codex 的第一層防線共用單一 `scripts/agent/hook.py`，兩份 harness config 只做薄 wiring。
+- Codex `apply_patch` 與 Claude Edit／Write／MultiEdit payload 已正規化；session context、四個 C# guard、兩個 Bash guard、四類 syntax validation、failure scrubbing 都由 `scripts/hook-smoke.sh` 鎖定 parity。
+- 9 個 tracked project skills 以 `.agents/skills` symlink 指回 `.claude/skills`；Codex `prompt-input` 實測全部可發現，內容仍只維護一份。
+- `scripts/machinery-check.sh` fail-loud 驗兩份 wiring、dispatcher executable／py_compile、skill links 與 pointers；`scripts/ci-checks.sh fast` 全綠。Codex 原生 hook coverage／failure event 差異已在驗證矩陣明文保留，不宣稱完整 enforcement parity。
+
 ## Secret Scanner 批次自動撤銷 — 已結案（2026-07-10）
 
 兩契約缺口經使用者裁決（內部批次端點 `POST /internal/security/leaked-keys`／outbox 通知事件 `KeyLeakNotificationRequested`），完整垂直切片落地 `0072337`（19/46，api-spec §3.2.9 同步）。過程紀錄見 `tasks/checkpoint.md` 已完成欄。
@@ -12,15 +19,15 @@
   - Slack tokens: `xoxb-` / `xoxp-`
   - GitLab personal access tokens: `glpat-`
   - AWS secret access keys require a separate design decision because they lack a stable prefix and may cause false positives.
-- `post-tool-failure.sh` writes `tool_use_id`, `duration_ms`, and `is_interrupt` to `failures.jsonl`, but pending lesson records do not include those trace fields. Consider adding them if pending-to-failure traceability becomes useful.
-- `session-init.sh` malformed hook JSON fallback: when payload parsing fails, `TRANSCRIPT_PATH` is empty and lessons may still be injected. This is existing behavior, not a regression; revisit only if stricter hook failure semantics are desired.
+- `scripts/agent/hook.py` `observe-tool-failure` writes `tool_use_id`, `duration_ms`, and `is_interrupt` to `failures.jsonl`, but lessons do not include those trace fields. Consider adding them only if failure-to-lesson traceability becomes useful.
+- `scripts/agent/hook.py` `session-context` malformed JSON fallback：payload 無法解析時 `session_id` 為空，仍會保守注入 lessons；這是既有語意，只有需要更嚴格 hook failure semantics 時才重議。
 - Lessons triage 常設觸發：`tasks/lessons/` 內 `status: active` 檔案數 ≥ 15、或 phase 收尾時，盤點 active 條目可否機械化（腳本/lint/gate），可機械化者落地後改該檔 frontmatter 為 `status: archived`（判準：`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b)；載體見 `docs/adr/adr-021-shared-state-files-team-scale.md`）。
 - ADR-004 允許 ILogger 邊界清單第 6 類（Infrastructure ApiClient，`LoggerBoundaryTests` 與 `exceptions.rule.md` §B 已實質採用）待正名——掛到下一份錯誤處理相關 ADR，不單開。
 - `requirements-analysis-design` skill 觸發詞與 `.feature` 凍結相撞——根治在 upstream `jame2408/agent-skills` repo 加凍結 gate，本地已在 `tasks/bdd-backlog.md` 檔頭布防；2026-07-10 起本地 SKILL.md description 已移除相撞觸發詞並明示改道 ADR-022。
 
 ## 觸發制擱置項（GPT-5.6 回饋處置 2026-07-10；觸發成立前勿動）
 
-- 跨 harness 共用規則 CLI：第一層 hook 邏輯（pre-tool-edit／pre-tool-bash／post-edit-validate）抽成 `scripts/agent/*` 共用執行核心，各 harness 只做 adapter——**觸發：第二個 harness 常態參與開發**。
+- ~~跨 harness 共用規則 CLI：第一層 hook 邏輯抽成共用執行核心，各 harness 只做 adapter——觸發：第二個 harness 常態參與開發。~~ ✅ **2026-07-10 已由 ADR-023 與 `scripts/agent/hook.py` 關閉**；Claude Code／Codex config 皆為薄 wiring，skill 以 symlink 共用。
 - commit trailer／staged 紀律的 CI 端覆核：CI 對 base..head 逐 commit 驗 `Refactor-assessment:`／`Spec-change:`／進度檔同 commit——**觸發：首次觀察到 `--no-verify` 或未裝 hook 的繞過事故**（矩陣 9d/9f/9g 殘餘風險現況為知情接受）。
 - Discovery 管道解凍：`requirements-analysis-design` skill 正式接回 BDD backlog（Example Mapping → 候選場景 → 使用者核准晉升）——**觸發：首個「repo 內無既有場景的真新需求」出現**；解除規格另開 ADR（ADR-022 明文排除範圍）。
 
@@ -68,8 +75,8 @@ A 4-agent parallel review (security / architecture / tests / `.claude` consisten
 ### G. Already logged elsewhere (kept here for cross-reference) ℹ️
 
 32. Slack `xoxb-`/`xoxp-`, GitLab `glpat-` token shapes not yet covered by hook redaction. (See Non-blocking follow-ups above.)
-33. `post-tool-failure.sh` trace fields (`tool_use_id`, `duration_ms`, `is_interrupt`) not mirrored in pending lesson records. (See Non-blocking follow-ups above.)
-34. `session-init.sh` malformed-payload fallback semantics. (See Non-blocking follow-ups above.)
+33. `observe-tool-failure` trace fields (`tool_use_id`, `duration_ms`, `is_interrupt`) not mirrored in lesson records. (See Non-blocking follow-ups above.)
+34. `session-context` malformed-payload fallback semantics. (See Non-blocking follow-ups above.)
 
 ## Cross-doc consistency sweep (2026-05-31) — 開放項
 

@@ -20,16 +20,13 @@ scripts/install-git-hooks.sh
 
 多任務 / 多模型協調（任務怎麼分級、executor 的義務、何時該停下、交接格式）見 **`docs/orchestration.md`**。修改該文件的任一章節，須先開新 ADR（見 `docs/adr/adr-007-process-governance.md`）。
 
-## 此 harness 拿不到的防線
+## Harness 第一層防線
 
-Claude Code 專屬的第 1 層防線（寫的當下即時攔截）在其他 harness 下不會生效：
+Claude Code（`.claude/settings.json`）與 Codex（`.codex/hooks.json`）共用 `scripts/agent/hook.py`：session must-read／active lessons 注入、PreToolUse edit／Bash guard、post-edit syntax validation 與 failure observation 都只維護一份實作（見 `docs/adr/adr-023-cross-harness-hook-and-skill-parity.md`）。Codex 首次使用或 hook definition 變更後，先在 `/hooks` 檢視並信任本 repo hooks；不得把 `--dangerously-bypass-hook-trust` 當日常操作。
 
-- **PreToolUse 攔截**（`.claude/hooks/pre-tool-edit.py`）— 編輯檔案當下即時擋下已知違規 pattern（如 `new Failure(`、bare-string code）。
-- **session-init must-read 注入**（`.claude/hooks/session-init.sh`）— session 開始時自動注入必讀規則，確保 agent 開工前已看過規範。
-
-**對策**：非 Claude Code harness 的 agent，動手寫 `backend/` 程式碼前，必須**主動**讀取：
+無論 harness 是否支援上述 lifecycle hooks，動手寫 `backend/` 程式碼前仍必須**主動**讀取：
 
 1. `.claude/references/**/*.rule.md`（依語言 / 主題分類的細則）
 2. 所有 `docs/adr/adr-*.md` 中狀態為 `Accepted` 的 ADR
 
-這兩類文件是第 1 層防線失效後的唯一補償手段；commit 前與 push 前的機械化 gate（`scripts/ci-checks.sh` fast / full）不受 harness 影響，會照樣擋下違規，但那已經是第 2、3 層，比在寫的當下就避免要昂貴。
+Codex hook 只涵蓋其原生可攔截的 shell／`apply_patch`／MCP tool path；其他 harness 也可能完全沒有 hook。完整 enforcement boundary 仍是 commit 前與 push 前的 `scripts/ci-checks.sh` fast / full，不得因第一層已啟用而省略。

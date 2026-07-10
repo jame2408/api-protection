@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-init.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/agent/hook.py\" session-context"
           }
         ]
       }
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-edit.py\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/agent/hook.py\" pre-tool-edit"
           }
         ]
       },
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-bash.py\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/agent/hook.py\" pre-tool-bash"
           }
         ]
       }
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-validate.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/agent/hook.py\" post-edit-validate"
           }
         ]
       }
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-failure.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/agent/hook.py\" observe-tool-failure"
           }
         ]
       }

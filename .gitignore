@@ -38,7 +38,7 @@ coverage/
 StrykerOutput/
 
 # Python bytecode cache (created by `py_compile` syntax checks in
-# post-edit-validate.sh / machinery-check.sh — PYTHONDONTWRITEBYTECODE has no
+# shared hook.py / machinery-check.sh — PYTHONDONTWRITEBYTECODE has no
 # effect on explicit py_compile invocation, only on import-time caching)
 __pycache__/
 

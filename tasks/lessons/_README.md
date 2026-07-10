@@ -4,7 +4,7 @@ Patterns and lessons captured during development. Updated automatically per Self
 
 一檔一教訓：`tasks/lessons/YYYYMMDD-kebab-slug.md`，frontmatter 三欄 `date` / `type` / `status`（`_README.md` 本身不是一條教訓，注入邏輯與計數皆排除它）。
 
-> 分區治理：`status: active` / `status: archived` 判準受 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b) 管轄——判準本身不變，只是載體從單檔雙區改為目錄 + frontmatter（`docs/adr/adr-021-shared-state-files-team-scale.md`）。歸檔判準：落地已成為機械化 gate（測試 / lint / hook）者歸檔——把該檔 frontmatter 改為 `status: archived` 並補「**落地:**」欄，不搬移或刪除檔案。`.claude/hooks/session-init.sh` 只注入 `status: active` 條目的標題 + `**Rule:**` 行。修改分區判準須先開新 ADR。
+> 分區治理：`status: active` / `status: archived` 判準受 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b) 管轄——判準本身不變，只是載體從單檔雙區改為目錄 + frontmatter（`docs/adr/adr-021-shared-state-files-team-scale.md`）。歸檔判準：落地已成為機械化 gate（測試 / lint / hook）者歸檔——把該檔 frontmatter 改為 `status: archived` 並補「**落地:**」欄，不搬移或刪除檔案。`scripts/agent/hook.py` 的 `session-context` action 只注入 `status: active` 條目的標題 + `**Rule:**` 行。修改分區判準須先開新 ADR。
 
 ## Trigger conditions
 - User correction or pushback

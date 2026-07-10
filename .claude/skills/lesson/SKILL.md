@@ -77,7 +77,7 @@ status: active          # active | archived — 新增教訓一律 active
 **落地:** 防線／檔案落點（若尚無機械化防線，填「本條 lesson」；歸檔時必填，指向接管的機械化 gate）
 ```
 
-> **注入機制提醒**：`.claude/hooks/session-init.sh` 每次 session 只注入
+> **注入機制提醒**：`scripts/agent/hook.py` 的 `session-context` action 每次 session 只注入
 > `status: active` 每條的「標題 + Rule 行」（Context、落地不注入）。Rule 必須自足、
 > 可執行，讀者不看 Context 也要能照做。
 

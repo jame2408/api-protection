@@ -62,7 +62,7 @@ fi
 # bash 3.2 compatible — `mapfile`/`readarray` are bash 4+ builtins, and `trap ... RETURN`
 # does not fire when a function aborts under `set -e`. Excludes this file itself, whose
 # rule text below is a literal self-match, not a violation.
-bash_compat=$(grep -rnE '\bmapfile\b|\breadarray\b|trap .* RETURN' "$REPO_ROOT/scripts" "$REPO_ROOT/.claude/hooks" --include='*.sh' \
+bash_compat=$(grep -rnE '\bmapfile\b|\breadarray\b|trap .* RETURN' "$REPO_ROOT/scripts" --include='*.sh' \
     | grep -v '/source-lint\.sh:' || true)
 if [[ -n "$bash_compat" ]]; then
     echo "[source-lint] bash 3.2 incompatible construct (mapfile / readarray / trap ... RETURN):" >&2

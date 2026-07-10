@@ -24,7 +24,7 @@
 | 8 | Failure code 不得為裸字串，須用 `*FailureCodes` 常數 — `.claude/references/dotnet/exceptions.rule.md` §E | `scripts/source-lint.sh`（`bare_code` 檢查段） | commit 前 / push 前 / CI | 腳本 |
 | 9 | `CancellationToken` 參數必須命名 `cancel`，不得是 `cancellationToken` / `ct` — `CLAUDE.md` §4「CancellationToken cancel」propagated to every I/O call + `.claude/references/dotnet/naming.guide.md` §B | `scripts/source-lint.sh`（`bad_cancel` 檢查段） | commit 前 / push 前 / CI | 腳本 |
 | 9a | MSBuild `.props`/`.targets` 檔須為合法 XML（XML 註解含 `--` 會使整檔被 MSBuild 靜默跳過，NU1015） — `tasks/lessons/20260704-msbuild-xml-comment-double-dash-nu1015.md` | `scripts/source-lint.sh`（`bad_xml` 檢查段，對 `git ls-files '*.props' '*.targets'` 逐檔跑 `xml.dom.minidom.parse`） | commit 前 / push 前 / CI | 腳本 |
-| 9b | repo 腳本（`scripts/*.sh`、`.claude/hooks/*.sh`）須維持 bash 3.2 相容，禁 `mapfile`/`readarray`/`trap ... RETURN` — `tasks/lessons/20260705-bash-3-2-compat.md` | `scripts/source-lint.sh`（`bash_compat` 檢查段，自身排除） | commit 前 / push 前 / CI | 腳本 |
+| 9b | repo shell 腳本（`scripts/**/*.sh`）須維持 bash 3.2 相容，禁 `mapfile`/`readarray`/`trap ... RETURN` — `tasks/lessons/20260705-bash-3-2-compat.md` | `scripts/source-lint.sh`（`bash_compat` 檢查段，自身排除） | commit 前 / push 前 / CI | 腳本 |
 | 9c | `backend/src/` 內禁止 `IServiceScopeFactory` / `.CreateScope(`，唯 `*Middleware.cs` 與 `Program.cs` 豁免（Scoped 服務須直接注入依賴，CreateScope 僅限 Singleton Middleware 避免 captive dependency） — `.claude/references/dotnet/di.rule.md` §C + `tasks/lessons/20260403-load-references-before-writing-code.md` | `scripts/source-lint.sh`（`bad_scope` 檢查段） | commit 前 / push 前 / CI | 腳本 |
 | **`scripts/bdd-lint.sh` + pre-commit staged 檢查（BDD 佇列紀律，`CLAUDE.md` §Non-Negotiable + §BDD Constraints）** ||||
 | 9d | 一次只移除一個 `@ignore`；「identical new step definitions」例外以 `ALLOW_MULTI_IGNORE=1` 豁免 — `CLAUDE.md` §Non-Negotiable Constraints | `scripts/git-hooks/pre-commit`（staged diff 計數 guard） | commit 前（僅本機 hook；`--no-verify` 可繞過，CI 不覆蓋——誠實標注，殘餘風險由 9e 帳面檢查部分回補） | 腳本 |
@@ -36,17 +36,17 @@
 | 10a | `docs/adr/` 有 staged 變更時，該目錄不得存在 untracked `adr-*.md`（未輪到的 ADR 草稿留 scratchpad；adr-lint 讀工作區，untracked 檔會被 lint 卻不入 commit，遮蔽編號缺口）— `tasks/lessons/20260706-untracked-adr-draft-blocks-commit.md`（已歸檔，防線代記） | `scripts/git-hooks/pre-commit`（`git ls-files --others` 檢查段） | commit 前（僅本機 hook；`--no-verify` 可繞過，CI 不覆蓋——誠實標注，殘餘風險比照 9d） | 腳本 |
 | **`dotnet format`** ||||
 | 11 | C# 原始碼格式一致性（縮排、`using` 排序等 .NET 預設 whitespace 規則，權威來源仍為工具預設）+ 命名慣例（方法/屬性/型別/事件 PascalCase、私有欄位 `_camelCase`、介面 `I` 前綴、async 方法 `Async` 後綴——`backend/tests` 依 ADR-011 §3 排除 Async 後綴 carve-out）— `docs/adr/adr-011-naming-rules-editorconfig-enforcement.md` + `.claude/references/dotnet/naming.guide.md`（規則細節權威來源） | `backend/.editorconfig`（`dotnet_naming_*` + `dotnet_diagnostic.IDE1006.severity=error`）+ `backend/Directory.Build.props`（`EnforceCodeStyleInBuild=true`）；命名違規在 `dotnet build backend/ApiKeyManagement.slnx` 與 `scripts/ci-checks.sh` `format_check()`（`dotnet format --verify-no-changes`）皆會擋下 | commit 前 / push 前 / CI | 腳本 |
-| **`.claude/hooks/pre-tool-edit.py` — 寫時攔截，4 個 pattern（僅 Claude Code harness 有效；其他 harness 對策見 `AGENTS.md`「此 harness 拿不到的防線」段）** ||||
-| 12 | 同第 7 項（`new Failure(` 攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`new\s+Failure\s*\(` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
-| 13 | 同第 8 項（bare-string `CreateFailure("..."` 攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`CreateFailure\("` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
-| 14 | 同第 9 項（`CancellationToken` 命名攔截，寫的當下） | `.claude/hooks/pre-tool-edit.py`（`cancellationToken\|ct` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
-| 15 | 同第 4 項（`Domain`/`Application`/`*Handler` 注入 `ILogger` 攔截，寫的當下；刻意不攔 `throw`——合法 guard throw 會誤報，見 `tasks/lessons/20260613-pretooluse-hook-high-confidence-only.md`） | `.claude/hooks/pre-tool-edit.py`（`ILogger\s*<` regex 段，限 `in_logger_zone`） | 寫的當下（**限 Claude Code harness**） | 腳本 |
-| **`.claude/hooks/post-edit-validate.sh`（`docs/adr/adr-012-charter-amendments-external-adoption.md`，P1，僅 Claude Code harness 有效）** ||||
-| 15a | 寫後語法驗證：`.sh`→`bash -n`、`.json`→JSON parse、`.py`→`py_compile`、`.props`/`.csproj`/`.targets`/`.xml`→拒絕 `<!DOCTYPE`/`<!ENTITY` 後以 `xml.etree.ElementTree.parse` 驗 well-formed；直接對應本專案 NU1015 事故（XML 註解 `--` 靜默破壞 `.props`） | `.claude/hooks/post-edit-validate.sh`（PostToolUse，matcher `Edit\|Write`） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
+| **`scripts/agent/hook.py` `pre-tool-edit` — Claude Code／Codex 共用寫時攔截，4 個 pattern（`docs/adr/adr-023-cross-harness-hook-and-skill-parity.md`）** ||||
+| 12 | 同第 7 項（`new Failure(` 攔截，寫的當下） | `scripts/agent/hook.py` `pre-tool-edit`（`new\s+Failure\s*\(` regex；Claude Edit/Write/MultiEdit 與 Codex apply_patch payload 正規化） | 寫的當下（Claude Code／Codex 原生可攔截 tool path） | 腳本（hook，exit 2 阻擋） |
+| 13 | 同第 8 項（bare-string `CreateFailure("..."` 攔截，寫的當下） | `scripts/agent/hook.py` `pre-tool-edit`（`CreateFailure\("` regex） | 寫的當下（Claude Code／Codex 原生可攔截 tool path） | 腳本 |
+| 14 | 同第 9 項（`CancellationToken` 命名攔截，寫的當下） | `scripts/agent/hook.py` `pre-tool-edit`（`cancellationToken\|ct` regex） | 寫的當下（Claude Code／Codex 原生可攔截 tool path） | 腳本 |
+| 15 | 同第 4 項（`Domain`/`Application`/`*Handler` 注入 `ILogger` 攔截，寫的當下；刻意不攔 `throw`——合法 guard throw 會誤報，見 `tasks/lessons/20260613-pretooluse-hook-high-confidence-only.md`） | `scripts/agent/hook.py` `pre-tool-edit`（`ILogger\s*<` regex，限 `in_logger_zone`） | 寫的當下（Claude Code／Codex 原生可攔截 tool path） | 腳本 |
+| **`scripts/agent/hook.py` `post-edit-validate`（ADR-012 P1 行為；ADR-023 跨 harness 共用）** ||||
+| 15a | 寫後語法驗證：`.sh`→`bash -n`、`.json`→JSON parse、`.py`→`py_compile`、`.props`/`.csproj`/`.targets`/`.xml`→拒絕 `<!DOCTYPE`/`<!ENTITY` 後以 `xml.etree.ElementTree.parse` 驗 well-formed；直接對應本專案 NU1015 事故（XML 註解 `--` 靜默破壞 `.props`） | `scripts/agent/hook.py` `post-edit-validate`（PostToolUse；Claude 單檔 path，Codex apply_patch 全目標檔） | 寫的當下（Claude Code／Codex 原生可攔截 tool path） | 腳本（hook，exit 2 回饋） |
 | **`scripts/machinery-check.sh`（`docs/adr/adr-012-charter-amendments-external-adoption.md`，P2，治理機械本身的自體健檢）** ||||
-| 15b | settings.json / `.mcp.json` JSON 合法性、settings.json hooks 段引用腳本存在＋可執行＋語法通過、`.claude/hooks/*.sh` 與 `scripts/*.sh` 全數 `bash -n`、`CLAUDE.md`/`docs/orchestration.md`/`docs/verification-matrix.md` 反引號路徑指針完整性（fail-loud，無 `if [ -f ]` 靜默跳過；豁免限三類：`machinery-check:ignore` 行內標記、含 `*` 的 glob、gitignored 路徑——機器本地檔如 settings.local.json 在 CI checkout 本來就不存在，非 drift 訊號） | `scripts/machinery-check.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫） | commit 前 / push 前 / CI | 腳本 |
+| 15b | `.claude/settings.json`／`.codex/hooks.json` JSON 合法性、兩 harness 五個 action wiring 完整且只指向可執行／py_compile-clean 的 `scripts/agent/hook.py`、`scripts/**/*.sh` 全數 `bash -n`、`CLAUDE.md`/`AGENTS.md`/`docs/orchestration.md`/`docs/verification-matrix.md` 反引號路徑完整性、每個 tracked `.claude/skills/*/SKILL.md` 皆有正確 `.agents/skills` symlink（fail-loud；pointer 豁免限 `machinery-check:ignore`、glob、gitignored path） | `scripts/machinery-check.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫） | commit 前 / push 前 / CI | 腳本 |
 | **`scripts/hook-smoke.sh`（`docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md`，與本表同批落地）** ||||
-| 16 | `session-init.sh` 注入邏輯必須可測：(a) 新 `session_id` → 注入 must-read + `tasks/lessons/` 內每個 `status: active` 檔案的標題 + `**Rule:**` 行（Archived 不注入，判準見 ADR-013 決策 (b)，載體見 `docs/adr/adr-021-shared-state-files-team-scale.md`）；(b) 同 `session_id` 二次呼叫 → 不重複注入；(c) 缺 `session_id` → 保守仍注入，不誤判為已注入 — `docs/adr/adr-008-learning-loop-injection-and-pending-lessons.md` Implementation Rules 1 / 2 / 4 | `scripts/hook-smoke.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫，維持「fast ⊂ full」不變式） | commit 前 / push 前 / CI | 腳本 |
+| 16 | `session-context` 注入與跨 harness hooks 必須可測：ADR-008 的新 session／同 session 去重／缺 session fallback + active lesson title/Rule 注入；ADR-023 的 Claude/Codex edit guard、Bash guard、post-edit syntax validation、failure scrubber parity | `scripts/hook-smoke.sh`（`scripts/ci-checks.sh` fast 與 full 皆呼叫，維持「fast ⊂ full」不變式） | commit 前 / push 前 / CI | 腳本 |
 | **`scripts/zh-lint.sh`（`docs/adr/adr-009-traditional-chinese-and-zh-lint.md`）** ||||
 | 16a | repo 內 tracked 檔案的中文一律正體；簡體字元攔截（OpenCC 字表 vendored + variant 白名單 + `zh-lint:allow` 行內豁免） — `docs/adr/adr-009-traditional-chinese-and-zh-lint.md` | `scripts/zh-lint.sh` + `scripts/data/opencc-STCharacters.txt`（`scripts/ci-checks.sh` fast 與 full 皆呼叫） | commit 前 / push 前 / CI | 腳本 |
 | **BDD FunctionalTests（wire contract 鎖定）** ||||
@@ -69,17 +69,20 @@
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons/` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
 | **人工類** ||||
 | 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 由 CLAUDE.md 遷移） | 無腳本；本體見 `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 遷移） | review 時 | 人 |
-| **`.claude/hooks/pre-tool-bash.py` — Bash 指令寫時攔截，2 個 pattern（僅 Claude Code harness 有效）** ||||
-| 23 | heredoc（`<<`／`<<-`，排除 herestring `<<<`）攔截——heredoc 寫檔曾致本 harness 背景卡死 3.5 小時，見 `tasks/lessons/20260705-heredoc-write-tool.md` | `.claude/hooks/pre-tool-bash.py`（`_HEREDOC` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本（hook，exit 2 阻擋） |
-| 23a | zsh 對裸 `=` 開頭參數（`=word` 展開）攔截——對應 `(eval):N: == not found` 事故，見 `tasks/lessons/20260705-zsh-bare-equals-expansion.md` | `.claude/hooks/pre-tool-bash.py`（`_ZSH_EQUALS_TOKEN` regex 段） | 寫的當下（**限 Claude Code harness**） | 腳本 |
+| **`scripts/agent/hook.py` `pre-tool-bash` — Claude Code／Codex 共用 Bash 指令寫時攔截，2 個 pattern** ||||
+| 23 | heredoc（`<<`／`<<-`，排除 herestring `<<<`）攔截——heredoc 寫檔曾致本 harness 背景卡死 3.5 小時，見 `tasks/lessons/20260705-heredoc-write-tool.md` | `scripts/agent/hook.py` `pre-tool-bash`（`_HEREDOC` regex） | 寫的當下（Claude Code／Codex Bash hook） | 腳本（hook，exit 2 阻擋） |
+| 23a | zsh 對裸 `=` 開頭參數（`=word` 展開）攔截——對應 `(eval):N: == not found` 事故，見 `tasks/lessons/20260705-zsh-bare-equals-expansion.md` | `scripts/agent/hook.py` `pre-tool-bash`（`_ZSH_EQUALS_TOKEN` regex） | 寫的當下（Claude Code／Codex Bash hook） | 腳本 |
+| 23b | tool failure observation 必須先做 key-based＋value-based secret scrubbing 再寫入 `.claude/failures.jsonl`，供 ADR-018 phase-close triage 使用 | `scripts/agent/hook.py` `observe-tool-failure`；Claude Code 由 `PostToolUseFailure` 送任意 tool failure，Codex 由 `PostToolUse` 在 response 明確含失敗旗標／非零 exit code 時送入 | tool failure 後（coverage 依 harness event 能力） | 腳本 |
 
 不列 Tessl（`tasks/process-improvement-plan.md` §9.3 D-2 裁決：擱置，不入制度）。
+
+**第一層 coverage 邊界**：Codex 的 PreToolUse／PostToolUse 只攔其原生支援的 shell、`apply_patch` 與 MCP 等 tool path，且沒有 Claude Code `PostToolUseFailure` 的完整等價事件；第 12–15a、23–23b 項是提早回饋層，不是完整 enforcement boundary。規則完整性仍由 commit／push／CI gates 承擔（ADR-023 Decision §5／§7）。
 
 ---
 
 ## 無防線區塊（規則存在但查無機械化檢驗，⚠️）
 
-以下規則在 `CLAUDE.md` / ADR 中明文存在，但實查 `scripts/`、`.claude/hooks/`、`backend/tests/Architecture.Tests/` 後找不到對應機械化檢驗；照實標注，不假裝有防線。
+以下規則在 `CLAUDE.md` / ADR 中明文存在，但實查 `scripts/`、`scripts/agent/hook.py`、`backend/tests/Architecture.Tests/` 後找不到對應機械化檢驗；照實標注，不假裝有防線。
 
 | 規則 | 權威來源 | 追蹤狀態 |
 |---|---|---|
@@ -120,7 +123,9 @@ OK   backend/tests/Architecture.Tests/RepositoryReturnTypeTests.cs
 OK   scripts/source-lint.sh
 OK   scripts/adr-lint.sh
 OK   scripts/ci-checks.sh
-OK   .claude/hooks/pre-tool-edit.py
+OK   scripts/agent/hook.py
+OK   .codex/hooks.json
+OK   .agents/skills/lesson
 OK   backend/tests/FunctionalTests/Steps/CreateApiKeySteps.cs
 OK   backend/tests/SharedKernel.Tests/Domain/FailureProviderTests.cs
 OK   .claude/skills/code-review/SKILL.md

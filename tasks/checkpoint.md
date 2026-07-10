@@ -13,7 +13,7 @@
 > 本欄依「如何接上」條文只保留最近數項；更早紀錄（TBD 轉換、Phase I–K、Wave 1 全 10 場景、ADR-012～020 落地、防線機械化各包、lessons triage 一二輪）見 git log 與 `tasks/archive/`。
 
 - **Wave 2 首場景「從 Active 狀態撤銷」Red→Green，13/46** — 首個完整垂直切片：ADR-020 Transactional Outbox 最小落地（`7c248bb`）→ RevokeKey slice（Domain/Handler 三 guard/endpoint）→ steps＋outbox row 斷言 — `02514f3`；revokedBy 債務（api-spec §3.2.8＋integration spec §6.1，待 auth slice）
-- **ADR-021 共享狀態檔團隊尺度**：`tasks/lessons/` 一檔一教訓（新增=新檔、歸檔=改單行 frontmatter）＋`session-init.sh` glob 注入；checkpoint 分流與 bdd-progress 帳面生成化只定規格（觸發=第二常設寫者）— `1a7e5f3`
+- **ADR-021 共享狀態檔團隊尺度**：`tasks/lessons/` 一檔一教訓（新增=新檔、歸檔=改單行 frontmatter）＋session context glob 注入；checkpoint 分流與 bdd-progress 帳面生成化只定規格（觸發=第二常設寫者）— `1a7e5f3`
 - **ADR-022 BDD 需求類型分流**：六類分流表定案；`Spec-change:` trailer gate 上線（矩陣 9g，逃生口 `ALLOW_FEATURE_MAINTENANCE=1`）；CLAUDE.md 凍結句限縮為 Discovery 管道 — `71a193c`
 - Session 初始載入瘦身＋lessons triage 第三輪（2026-07-10）：claude.ai connectors 停用（使用者端）＋Context7 雙掛消除；Tessl 收納 `.claude/parked/`；plugins 專案層關閉；skill description 瘦身；triage：`untracked-adr-draft` 防線代記歸檔（矩陣 10a 補登、故意紅重演）＋`heredoc` 條瘦身，注入 Active 15→14 — `e08562e` `f9aba4f`
 - GPT-5.6 外部回饋處置（2026-07-10 使用者裁決）：問題約六成認同；解方多數依制度凍結啟發式與既往裁決拒絕（分支模型=ADR-012 Alt E 已拒、流程量測=ADR-018 已裁同域）；落地三小項 — ci.yml required-check 註解勘誤對齊 ADR-012 (e)、本欄裁切至最近數項、todo.md 歸檔 pass（結案內容→`tasks/archive/todo-closed-2026-07-10.md`）；三個觸發制擱置項記入 todo「觸發制擱置項」段 — `c1fcaaa`
@@ -27,11 +27,12 @@
 
 ## 待驗證
 
-- 無排定事項。
+- 本次 Codex harness parity diff 已通過 `scripts/ci-checks.sh fast` 與唯讀 ephemeral Codex discovery smoke，但尚未 commit；一般互動式 Codex session 首次載入或 hook hash 變更後仍須由使用者在 `/hooks` 檢視並 trust。
 
 ## 已嘗試且失敗的方法
 
-- 無（本檔案為遷移產物，非任務執行紀錄；後續 session 使用本欄位記錄自己任務的失敗嘗試）。
+- sandbox 內首次 `scripts/ci-checks.sh fast` — `dotnet format` 的 restore operation failed；同指令在核可的可連線環境重跑後全綠，屬 sandbox network 限制，非程式失敗。
+- machinery 故意紅首次以 zsh 唯讀變數 `status` 接 exit code，後續 restore trap 又拿到空 mode；已 `chmod 755 scripts/agent/hook.py` 恢復並重跑 machinery／fast gate 綠，教訓記於 `tasks/lessons/20260710-zsh-status-readonly-and-restore-trap.md`。
 
 ## 待裁決
 
@@ -39,19 +40,21 @@
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
-1. **A2 正式閉環（小項，test-only；使用者 2026-07-05 指示優先）**：CreateApiKey「系統產生 KeyCreated 事件」Then 依 ADR-020 §4 補 outbox row 斷言（取代 response-body 代理）＋重跑 `bash scripts/mutation-test.sh KeyLifecycle` 驗證 `ApiKey.cs` AddDomainEvent(KeyCreated) mutant 轉 killed、更新 stryker 歸檔。
-2. **產品主線 Wave 3 起點**：27 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`03_SuspendResumeKey.feature`「成功暫停金鑰」——**Wave 3 前置：基礎設施解鎖點「AuthToken 機制」尚未建立**（`tasks/bdd-progress.md` 解鎖表：Security Admin／Consumer／System 的 JWT）。開工前先勘查 03 檔場景是否真的依賴 actor 身分（若首場景不辨識 actor，可能先行；若需 AuthToken，屬新基礎設施＝架構決策，依 Working Agreement 進 Plan-first 求使用者核可）。派工一律用 `tasks/_templates/executor-spec.md`；spec 精度注意（累積）：測試計數勿外推（FunctionalTests dll = 46 場景＋5 hasher）、migration 需 `dotnet tool restore` 前置、帳面更新排在 ci-checks 之前、scratchpad 訊息檔名帶場景代號、**復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在**。
-3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
-4. **小項**：todo #14–#18、#21–#24 housekeeping。
-5. **觸發制（勿提前實作）**：checkpoint 分流（`tasks/checkpoints/<workstream>.md`）與 bdd-progress 帳面生成化，規格已定於 ADR-021 §2／§3，觸發條件「第二個常設寫者出現」成立時依規格執行，不需新開 ADR；另三項觸發制擱置（跨 harness CLI／CI 端 trailer 覆核／Discovery 解凍）見 `tasks/todo.md`「觸發制擱置項」段。
+1. **收納本次未 commit 的 Codex harness parity diff**：review 後同 commit 納入 ADR-023、`scripts/agent/hook.py`、兩 harness wiring、文件／tests，以及 `.agents/skills/` 下 9 個非 Tessl symlink；不可整個 `git add .agents/`。
+2. **A2 正式閉環（小項，test-only；使用者 2026-07-05 指示優先）**：CreateApiKey「系統產生 KeyCreated 事件」Then 依 ADR-020 §4 補 outbox row 斷言（取代 response-body 代理）＋重跑 `bash scripts/mutation-test.sh KeyLifecycle` 驗證 `ApiKey.cs` AddDomainEvent(KeyCreated) mutant 轉 killed、更新 stryker 歸檔。
+3. **產品主線 Wave 3 起點**：27 個 `@ignore` 等待實作（backlog→progress 只能由使用者晉升）。下一個：`03_SuspendResumeKey.feature`「成功暫停金鑰」——**Wave 3 前置：基礎設施解鎖點「AuthToken 機制」尚未建立**（`tasks/bdd-progress.md` 解鎖表：Security Admin／Consumer／System 的 JWT）。開工前先勘查 03 檔場景是否真的依賴 actor 身分（若首場景不辨識 actor，可能先行；若需 AuthToken，屬新基礎設施＝架構決策，依 Working Agreement 進 Plan-first 求使用者核可）。派工一律用 `tasks/_templates/executor-spec.md`；spec 精度注意（累積）：測試計數勿外推（FunctionalTests dll = 46 場景＋5 hasher）、migration 需 `dotnet tool restore` 前置、帳面更新排在 ci-checks 之前、scratchpad 訊息檔名帶場景代號、**復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在**。
+4. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
+5. **小項**：todo #14–#18、#21–#24 housekeeping。
+6. **觸發制（勿提前實作）**：checkpoint 分流（`tasks/checkpoints/<workstream>.md`）與 bdd-progress 帳面生成化，規格已定於 ADR-021 §2／§3，觸發條件「第二個常設寫者出現」成立時依規格執行，不需新開 ADR；其餘 CI 端 trailer 覆核／Discovery 解凍見 `tasks/todo.md`「觸發制擱置項」段。
 
 ## 工作區狀態警告
 
-- 2026-07-06 failure triage（ADR-021/022 收尾複跑）：無新 REPEAT；三個舊簽名（`== not found` ×4／`cd backend` ×2／`Exit code N` ×2）計數未增，維持 2026-07-05 處置結論，其中 `== not found` 現由矩陣 23a hook 接管。注意：Bash 工具的 heredoc 與裸 `=` 參數自 `275e6ec` 起會被寫時 hook 以 exit 2 阻擋——多行 commit message 改以 Write 寫訊息檔＋`git commit -F <file>`。
+- 2026-07-10 Codex harness parity 收尾 failure triage：三個 REPEAT 仍為既有簽名（`== not found` ×4／`cd backend` ×2／`Exit code N` ×3）；前兩者維持既有處置，`Exit code N` 雖增一筆仍摺疊多個不同指令、無共同根因，不轉 lesson／todo。`== not found` 與 heredoc 現由矩陣 23/23a 的共用 Claude/Codex hook 接管。
 - 2026-07-05 首次 failure triage（ADR-018 決策 §3）處置紀錄：`(eval):N: == not found` ×4 → 已轉 lesson（zsh 等號展開）；`(eval):cd:N: no such file or directory: backend` ×2 → 不轉，探索性 cwd 誤試、無制度性根因；`Exit code N` ×2 → 不轉，簽名過泛（多個不同指令的非零退出被摺疊）、無共同根因。
-- `.agents/`、`.tessl/`、`tessl.json`、`.claude/parked/`：Tessl 相關，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。2026-07-10 起 tessl MCP（原 `.mcp.json`）與 5 個 `tessl__*` skills 收納至 `.claude/parked/`（降低 session 初始載入）；skills 為指向 `.tessl/` 的相對 symlink，搬回 `.claude/skills/` 即恢復。
+- 本次 Codex parity 全批仍未 commit：tracked modifications／deletions、`docs/adr/adr-023-cross-harness-hook-and-skill-parity.md`、`.codex/hooks.json`、`scripts/agent/hook.py`、新 lesson，以及 `.agents/skills/` 下 9 個非 `tessl__*` symlink 均屬本批；驗證見「待驗證」。
+- `.agents/skills/tessl__*`、`.tessl/`、`tessl.json`、`.claude/parked/`：既有 Tessl 相關 untracked 項，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決不要加入本批。2026-07-10 起 tessl MCP（原 `.mcp.json`）與 5 個 `tessl__*` skills 收納至 `.claude/parked/`（降低 session 初始載入）。
 - 目錄歸檔（Tessl 相關 skill 目錄、`docs/arch-flow.html` 等可重產產物）另包處理，不在本檔範圍內處理。
 
 ## 如何接上
 
-新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章（模型分級、executor 義務、全域停止條件），`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（背景資料，非必讀）。`.claude/hooks/session-init.sh` 會自動注入 must-read 規則與 `tasks/lessons/` 內 `status: active` 教訓（一檔一教訓，`docs/adr/adr-021-shared-state-files-team-scale.md`）。每條新檢驗記得「綠＋故意紅」驗證；phase 收尾更新本檔前，先跑 `scripts/failure-triage.sh` 並處置 `REPEAT` 簽名（`docs/adr/adr-018-failure-triage-and-observations-retirement.md` 決策 §3）；任務完成後回來更新本檔（覆寫「已完成」「下一步」等欄位為當下實況，不需保留歷史版本——歷史紀錄在 git log）。
+新 session 直接在 `main` 上工作：先 review 本批 uncommitted diff，勿誤納 Tessl 項；`docs/orchestration.md` 是協調憲章，`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（非必讀）。Claude Code／Codex 由各自 config 呼叫 `scripts/agent/hook.py` `session-context`，自動注入 must-read 與 `tasks/lessons/` active 教訓；Codex hook hash 變更後先在 `/hooks` trust。每條新檢驗記得「綠＋故意紅」；phase 收尾更新本檔前先跑 `scripts/failure-triage.sh` 並處置 REPEAT。
