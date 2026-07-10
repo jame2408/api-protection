@@ -34,7 +34,6 @@ Feature: 撤銷金鑰
     When  操作者撤銷 "key-A"，原因為「補撤銷」
     Then  撤銷失敗，錯誤原因為「金鑰已在終態，無法撤銷」
 
-  @ignore
   Scenario: 未提供撤銷原因 — 拒絕
     Given 金鑰 "key-A" 狀態為 Active
     When  操作者撤銷 "key-A"，未提供原因

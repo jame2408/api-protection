@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 17 / 46  
-**下一個：** `02_RevokeKey.feature` — 未提供撤銷原因 — 拒絕
+**已通過：** 18 / 46  
+**下一個：** `02_RevokeKey.feature` — Secret Scanner 偵測到金鑰洩漏 — 批次自動撤銷
 
 ---
 

@@ -136,6 +136,22 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"操作者撤銷 ""(.*)""，未提供原因")]
+    public async Task WhenOperatorRevokesKeyWithoutReason(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        // Faithful to "未提供原因": POST an empty JSON object rather than an explicit empty
+        // string. RevokeKeyEndpoint.Request has no `required` modifier on Reason, so STJ binds
+        // the missing property to null, and RevokeKeyHandler guard 2 (IsNullOrWhiteSpace) treats
+        // null the same as empty/whitespace.
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/revoke",
+            new { });
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
