@@ -30,6 +30,7 @@
 - ~~跨 harness 共用規則 CLI：第一層 hook 邏輯抽成共用執行核心，各 harness 只做 adapter——觸發：第二個 harness 常態參與開發。~~ ✅ **2026-07-10 已由 ADR-023 與 `scripts/agent/hook.py` 關閉**；Claude Code／Codex config 皆為薄 wiring，skill 以 symlink 共用。
 - commit trailer／staged 紀律的 CI 端覆核：CI 對 base..head 逐 commit 驗 `Refactor-assessment:`／`Spec-change:`／進度檔同 commit——**觸發：首次觀察到 `--no-verify` 或未裝 hook 的繞過事故**（矩陣 9d/9f/9g 殘餘風險現況為知情接受）。
 - Discovery 管道解凍：`requirements-analysis-design` skill 正式接回 BDD backlog（Example Mapping → 候選場景 → 使用者核准晉升）——**觸發：首個「repo 內無既有場景的真新需求」出現**；解除規格另開 ADR（ADR-022 明文排除範圍）。
+- ci-checks scope 分級（docs-only 降級，2026-07-10 登記）：`scripts/ci-checks.sh` 內建 diff 分類器——push range 變更檔案全部命中保守 allowlist（`docs/**`、`tasks/**`、根層 `*.md`；`backend/**` 與 `.feature` 一律排除）才以 fast 取代 full，任何存疑一律 full。落點必須在 ci-checks.sh 本體而非 ci.yml（維持「本機 pre-push 與 CI 同一支腳本」不變式）；上線需矩陣同步＋綠與故意紅驗證（誤分類靜默跳過 build＝自製死防線，比慢更糟）——**觸發：純文件 push 頻率有痛感（如連續數日每日多次）**；先行更高 ROI 替代：#23 Testcontainers `.WithReuse(true)`。
 
 ## Multi-agent review (2026-04-30) — 開放項（原編號保留）
 
