@@ -17,6 +17,8 @@
   -->
   <ItemGroup>
     <!-- Production -->
+    <!-- ADR-024 §1: JwtBearer versioned on the 10.0.x line to match Microsoft.AspNetCore.OpenApi below. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5" />
@@ -35,6 +37,8 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <!-- FluentAssertions >= 8.0.0 is source-available (non-OSS license); testing.guide.md mandates < 8.0.0. -->
     <PackageVersion Include="FluentAssertions" Version="7.2.0" />
+    <!-- ADR-024 §5: TestTokenFactory signs test JWTs via JsonWebTokenHandler. -->
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.19.1" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />

@@ -32,6 +32,10 @@ public static class RevokeLeakedKeysEndpoint
                 }
 
                 return Results.Ok(result.Value);
-            });
+            })
+            // ADR-024 §4: internal batch endpoint — belongs to Internal Service Token / mTLS
+            // scope per api-spec.md §2.1, not yet implemented. Explicit AllowAnonymous is the
+            // debt marker until that lands (ADR-024 easily-confused-concepts table).
+            .AllowAnonymous();
     }
 }

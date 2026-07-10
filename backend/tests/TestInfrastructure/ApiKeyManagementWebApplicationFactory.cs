@@ -33,6 +33,8 @@ public class ApiKeyManagementWebApplicationFactory : WebApplicationFactory<Progr
         Environment.SetEnvironmentVariable(
             "ApiKeyHashing__Pepper",
             Convert.ToBase64String("functional-test-pepper-32bytes!!"u8));
+        // ADR-024 §5: test JWT signing key — same constant TestTokenFactory signs tokens with.
+        Environment.SetEnvironmentVariable("Jwt__SigningKey", TestTokenFactory.SigningKeyBase64);
 
         builder.ConfigureServices(services =>
         {

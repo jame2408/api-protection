@@ -37,6 +37,7 @@ public static class RevokeKeyEndpoint
                 }
 
                 return Results.Ok(result.Value);
-            });
+            })
+            .RequireAuthorization(); // ADR-024 §4: control-plane endpoint, must be authenticated.
     }
 }

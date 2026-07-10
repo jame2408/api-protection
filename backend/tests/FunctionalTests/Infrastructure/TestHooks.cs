@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using ApiKeyManagement.Infrastructure.Persistence;
 using ApiKeyManagement.TestInfrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -92,6 +93,14 @@ public class TestHooks
     {
         _context.Client = _factory.CreateClient();
         _context.ServiceScope = _factory.Services.CreateScope();
+
+        // ADR-024 §5: default actor is SecurityAdmin so existing scenarios stay green under
+        // enforced auth without change; scenarios that need a different actor (Consumer,
+        // TenantAdmin, System) override this via an explicit Given step that re-issues the
+        // token from TestTokenFactory and re-sets this header.
+        _context.AuthToken = TestTokenFactory.CreateSecurityAdminToken();
+        _context.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _context.AuthToken);
     }
 
     [AfterScenario]

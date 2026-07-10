@@ -45,6 +45,7 @@ public static class CreateApiKeyEndpoint
                 return Results.Created(
                     $"/api/v1/tenants/{tenantId}/consumers/{consumerId}/keys/{result.Value.KeyId}",
                     result.Value);
-            });
+            })
+            .RequireAuthorization(); // ADR-024 §4: control-plane endpoint, must be authenticated.
     }
 }

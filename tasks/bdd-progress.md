@@ -46,5 +46,5 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 | 時機 | 需要的基礎設施 |
 |------|--------------|
 | Wave 1 開始前 | EF Core Migration、Respawn 初始化 |
-| Wave 3 開始前 | AuthToken 機制（Security Admin / Consumer / System 的 JWT） |
+| Wave 3 開始前 | AuthToken 機制（Security Admin / Consumer / System 的 JWT）— **已建立**（ADR-024 Phase 2） |
 | Wave 5 寬限期場景前 | FakeClock 實作（`ISystemClock`）並注入 WebApplicationFactory |

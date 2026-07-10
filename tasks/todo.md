@@ -62,7 +62,7 @@ A 4-agent parallel review (security / architecture / tests / `.claude` consisten
 
 ### E. Scaffolding — already in spec / BDD plan, no separate action 🏗️
 
-25. **No auth on `CreateApiKeyEndpoint`** — `api-spec.md` §2.1 fully defines JWT roles (`PlatformAdmin`, `TenantAdmin`, `Consumer`, `SecurityAdmin`) and IDOR cross-validation rules. Implementation will land with the auth middleware slice; flagged here so reviewers don't re-raise.
+25. ~~**No auth on `CreateApiKeyEndpoint`**~~ — **結案（ADR-024 Phase 2）**：JwtBearer 認證＋`RequireAuthorization()` 已同步套用至全部 control-plane endpoints（`CreateApiKeyEndpoint`、`RevokeKeyEndpoint`）；`RevokeLeakedKeysEndpoint`（內部端點）明文 `AllowAnonymous()`＋債務註解。IDOR（URL tenantId ↔ claims 交叉驗證）與角色授權（403）仍後置，見 ADR-024 易混淆概念表。
 26. **No FluentValidation / `Request` charset & length checks.** `api-spec.md` §3.2.1 lists all validation rules; partial Handler guards exist (`scopes_empty`, `expires_at_past`, `expires_at_exceeds_max`). Will be replaced by FluentValidation when input-validation slice lands.
 27. **`Audit` and `Monitoring` BC projects are empty shells.** `design-doc.md` §3.2 defines both as Supporting Domain. BDD scenarios in `02_RevokeKey.feature` ... `06_ExpireKey.feature` are mostly `@ignore`d. They land per BDD wave.
 28. **`Features/02–06/*.feature` step definitions don't exist yet.** Will be added one scenario at a time per the `@ignore`-driven BDD cycle.
