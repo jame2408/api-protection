@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 21 / 46  
-**下一個：** `03_SuspendResumeKey.feature` — System 嘗試暫停 — 拒絕
+**已通過：** 22 / 46  
+**下一個：** `03_SuspendResumeKey.feature` — 操作者無暫停權限 — 拒絕
 
 ---
 

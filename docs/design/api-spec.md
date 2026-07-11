@@ -687,6 +687,7 @@ JWT Claims：
 |:----------|:-----|:-----|
 | NOT_FOUND | 404 | 金鑰不存在 |
 | INVALID_STATE_TRANSITION | 409 | 金鑰狀態非 Active（INV-6） |
+| HUMAN_ACTOR_REQUIRED | 422 | System actor 嘗試暫停（僅限人為操作） |
 
 ---
 

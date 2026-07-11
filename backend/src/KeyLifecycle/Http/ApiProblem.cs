@@ -32,6 +32,7 @@ public static class ApiProblem
             [RevokeKeyFailureCodes.KeyNotFound] = (StatusCodes.Status404NotFound, "Key Not Found"),
             [RevokeKeyFailureCodes.KeyInTerminalState] = (StatusCodes.Status409Conflict, "Key In Terminal State"),
             [SuspendKeyFailureCodes.InvalidStateTransition] = (StatusCodes.Status409Conflict, "Invalid State Transition"),
+            [SuspendKeyFailureCodes.HumanActorRequired] = (StatusCodes.Status422UnprocessableEntity, "Human Actor Required"),
         };
 
     /// <summary>Builds the RFC 9457 response for a failure. <c>errorCode</c> carries the stable

@@ -10,20 +10,25 @@ public class SuspendKeyHandler(
     public async Task<Result<SuspendKeyResponse, Failure>> HandleAsync(
         SuspendKeyCommand command, CancellationToken cancel = default)
     {
-        // 1. Guard: key exists (tenantId + keyId)
+        // 1. Guard: suspend is human-actor-only (ADR-024 §2) — zero-I/O check, fail-fast before
+        // any repository access.
+        if (command.SuspendedBy.Type == ActorType.System)
+            return FailureProvider.CreateFailure(SuspendKeyFailureCodes.HumanActorRequired);
+
+        // 2. Guard: key exists (tenantId + keyId)
         var apiKey = await keyRepository.GetByIdAsync(command.KeyId, command.TenantId, cancel);
         if (apiKey is null)
             return FailureProvider.CreateFailure(SuspendKeyFailureCodes.KeyNotFound);
 
-        // 2. Guard: reason required
+        // 3. Guard: reason required
         if (string.IsNullOrWhiteSpace(command.Reason))
             return FailureProvider.CreateFailure(SuspendKeyFailureCodes.ValidationErrorReasonEmpty);
 
-        // 3. Guard: must be Active (INV-6)
+        // 4. Guard: must be Active (INV-6)
         if (apiKey.Status != ApiKeyStatus.Active)
             return FailureProvider.CreateFailure(SuspendKeyFailureCodes.InvalidStateTransition);
 
-        // 4. Transition, persist
+        // 5. Transition, persist
         apiKey.Suspend(command.Reason, command.SuspendedBy);
         await keyRepository.UpdateAsync(apiKey, cancel);
 

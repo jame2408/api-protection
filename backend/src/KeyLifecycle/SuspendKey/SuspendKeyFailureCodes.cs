@@ -8,4 +8,5 @@ public static class SuspendKeyFailureCodes
     public const string InvalidStateTransition = "INVALID_STATE_TRANSITION";
     public const string ValidationErrorReasonEmpty = "VALIDATION_ERROR:reason_empty";
     public const string ValidationErrorPrefix = "VALIDATION_ERROR";
+    public const string HumanActorRequired = "HUMAN_ACTOR_REQUIRED";
 }

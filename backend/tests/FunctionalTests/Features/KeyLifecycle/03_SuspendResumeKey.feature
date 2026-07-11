@@ -14,7 +14,6 @@ Feature: 暫停與恢復金鑰
     When  Security Admin 暫停 "key-A"，原因為「維護排程」
     Then  暫停失敗，錯誤原因為「金鑰狀態非 Active」
 
-  @ignore
   Scenario: System 嘗試暫停 — 拒絕
     Given 金鑰 "key-A" 狀態為 Active
     When  System（非人為操作者）對 "key-A" 發出暫停命令

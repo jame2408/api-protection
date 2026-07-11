@@ -53,6 +53,24 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"System（非人為操作者）對 ""(.*)"" 發出暫停命令")]
+    public async Task WhenSystemSuspendsKey(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        // Legitimate reason + Active seed on purpose: proves the rejection comes from the
+        // actor-type guard, not the reason-required or state-transition guards.
+        _ctx.AuthToken = TestTokenFactory.CreateSystemToken();
+        _ctx.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/suspend",
+            new SuspendKeyEndpoint.Request("維護排程"));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
@@ -107,6 +125,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
             // Production code uses *FailureCodes.* constants; this map intentionally
             // re-states the strings so a constant value drift would surface as a test failure.
             ["金鑰狀態非 Active"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
+            ["暫停操作僅限人為操作"] = (HttpStatusCode.UnprocessableEntity, "HUMAN_ACTOR_REQUIRED"),
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
