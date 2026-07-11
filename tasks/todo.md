@@ -13,6 +13,12 @@
 
 > 2026-07-10 歸檔 pass（GPT-5.6 回饋處置）：本檔原名「`.claude/` Hardening — Outstanding Work」，已結案內容（hardening 七 commit、ADR-004 acceptance、coverage gate 計畫、ADR-021/022 規劃段、multi-agent review 已結案項）移至 `tasks/archive/todo-closed-2026-07-10.md`。開放項沿用 2026-04-30 multi-agent review 原編號（checkpoint 與多份 ADR 以該編號引用，不重編）。
 
+## 上游管線 charting — 開放（2026-07-11 使用者裁決：Fable 5 視窗轉向）
+
+- 地圖：`tasks/upstream-map.md`（destination／缺口盤點／fog／out-of-scope，單一入口）。
+- 兩份 skill spec 已備至 executor 可實作精度：`tasks/specs/skill-backlog-decomposition.md`（全 AFK 可驗證，**建議首個實作**）、`tasks/specs/skill-domain-discovery.md`（HITL 驗證，排第二）。
+- 後續動作（後任協調者）：依 spec 派 executor 實作＋驗證（綠＋故意紅設計已內建於各 spec）；既有兩 skill（doc-coauthoring／requirements-analysis-design）的驗證設計留在地圖 fog 欄，待缺口 skill 驗證方法被證明後升格。
+
 ## Non-blocking follow-ups（已登記，未排程）
 
 - Value-level secret redaction coverage could be extended for additional token shapes:
