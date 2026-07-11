@@ -25,7 +25,6 @@ Feature: 暫停與恢復金鑰
     When  操作者暫停 "key-A"，原因為「維護排程」
     Then  暫停失敗，錯誤原因為「權限不足」
 
-  @ignore
   Scenario: 未提供暫停原因 — 拒絕
     Given 金鑰 "key-A" 狀態為 Active
     And   操作者為 Security Admin

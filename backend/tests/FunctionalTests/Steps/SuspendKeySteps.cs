@@ -27,6 +27,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
     // -------------------------------------------------------------------------
 
     [Given(@"操作者為 Security Admin（人為操作者）")]
+    [Given(@"操作者為 Security Admin")]
     public void GivenOperatorIsSecurityAdmin()
     {
         // Same default TestHooks already wires up (TestHooks.cs:101-103) — declared explicitly
@@ -71,6 +72,22 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         _ctx.Response = await _ctx.Client.PostAsJsonAsync(
             $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/suspend",
             new SuspendKeyEndpoint.Request(reason));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
+    [When(@"Security Admin 暫停 ""(.*)""，未提供原因")]
+    public async Task WhenSecurityAdminSuspendsKeyWithoutReason(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        // Faithful to "未提供原因": POST an empty JSON object rather than an explicit empty
+        // string. SuspendKeyEndpoint.Request has no `required` modifier on Reason, so STJ binds
+        // the missing property to null, and SuspendKeyHandler guard 3 (IsNullOrWhiteSpace) treats
+        // null the same as empty/whitespace. Mirrors RevokeKeySteps.WhenOperatorRevokesKeyWithoutReason.
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/suspend",
+            new { });
 
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
@@ -149,6 +166,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
             ["金鑰狀態非 Active"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
             ["暫停操作僅限人為操作"] = (HttpStatusCode.UnprocessableEntity, "HUMAN_ACTOR_REQUIRED"),
             ["權限不足"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
+            ["必須提供暫停原因"] = (HttpStatusCode.BadRequest, "VALIDATION_ERROR:reason_empty"),
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
