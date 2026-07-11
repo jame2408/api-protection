@@ -175,9 +175,12 @@ graph LR
 | **Access Policy** | 🟢 Supporting | Scope 定義、IP 白名單、速率限制策略管理 | AccessPolicy |
 | **Audit & Compliance** | 🟢 Supporting | 不可篡改的操作記錄、合規查詢 | AuditEntry |
 | **Monitoring & Detection** | 🟢 Supporting | 流量基線、異常偵測、自動化防禦規則 | DetectionRule, SecurityAlert, UsageBaseline |
+| **Team Access** | 🟢 Supporting | 團隊識別與管理者、跨隊授權關係（申請→核准→修改→收回） | Team, AccessGrant |
 | **Tenant Management** | ⚪ Generic | 組織與專案身份管理、多租戶隔離 | Tenant, Consumer |
 
 **Validation Model**（金鑰驗證模型）不是獨立的 Bounded Context，而是 Key Lifecycle + Access Policy 的專用 Read Model。它不擁有業務邏輯，只組合兩個 Context 的資料，為高頻驗證路徑提供低延遲的查詢能力。
+
+**Team Access** 為 2026-07-11 role-management discovery 新增（定案脈絡見 `docs/design/discovery/role-management/` 與 `docs/adr/adr-027-team-access-bc-and-sharedkernel-contract.md`）；§3.2 Context Map 圖於該 BC 首個 slice 落地時同步。
 
 ### 3.2 Context Map
 
