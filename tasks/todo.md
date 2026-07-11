@@ -3,7 +3,7 @@
 ## 角色型模型路由與 Codex Subagent Adapter — 開放（ADR-026）
 
 - 決策：`docs/adr/adr-026-role-based-model-routing-and-codex-subagents.md`。
-- Phase 0 capability audit：未排程；先確認各 Codex surface 是 model-routed／role-only／single-agent。
+- Phase 0 capability audit：✅ 2026-07-11 完成 — `docs/agent-capability-matrix.md`。判定：Claude Code CLI＝model-routed（本 session 機械證據）；Codex CLI／app／IDE＝能力 model-routed、repo 無 `.codex/agents/` 前運行為 role-only（官方手冊證據）；managed `spawn_agent` surface＝role-only；Gemini CLI 不可用不列級。
 - Phase 1 Core charter 角色化：未排程，須同步 `docs/orchestration.md`、`AGENTS.md`、逐字引用者與驗證矩陣。
 - Phase 2 Codex custom agents：未排程；新增 explorer／executor／reviewer，模型綁定須有 eval，無 runtime 證據則標示 role-only。
 - Phase 3 routing replay／故意紅：未排程，須證明角色責任、read-only 邊界與 `unverified_success` 未弱化。
