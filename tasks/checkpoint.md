@@ -40,6 +40,7 @@
 - **RevokeKey `revokedBy` 契約債回補** — ADR-024 的獨立小包落地：單鍵 endpoint 以 `Actor.FromClaims` 傳 User actor，Secret Scanner 批次端點在 internal auth 後置期間顯式傳固定 System actor（`secret-scanner`），沿 Command→Handler→Domain→`KeyRevoked` outbox payload 傳遞；response `revokedBy` 維持 api-spec §3.2.8 的 actor id 字串。既有 Then 新增 response／巢狀 actor 斷言，自然紅 20/5/26→綠 25/26；orchestrator 親跑 full gate：SharedKernel 6/6、Architecture 14/14、Functional 25/26，RevokeKey 96.2%、RevokeLeakedKeys 95.5% coverage — `e94bbbd`
 - **ADR-025 Agent Engineering Kit 跨專案可攜化** — 使用者確認 installer 為正式目標、但須先以第二個真實專案人工 pilot 驗證邊界；決策固化 Core／Stack Profile／Project Overlay 三層、獨立 kit repo、manifest＋immutable baseline／lock、install／check／upgrade 與五階段 rollout。Phase 1 設「共用性不足即停止」閘門，避免違反制度機制事故驅動原則；todo 已登記 Phase 0–4，全部未排程 — `3fe2c91`
 - **ADR-026 角色型模型路由與 Codex Subagent Adapter** — 現況診斷：Codex 有 subagent／custom agents，但本 repo 無 `.codex/agents`，當前 callable surface 也無 role／model 參數，因此現制只證明同模型委派、未證明成本分級。決策將 Core 改為 Script→Explorer→Executor→Reviewer→Orchestrator 能力路由，Codex adapter 再綁 model／reasoning／sandbox；surface 必須明示 model-routed／role-only／single-agent，無 runtime 證據預設 role-only。todo 已登記 capability audit→charter 角色化→custom agents→routing replay→Claude／kit 對齊五 Phase，全部未排程 — `5f899a6`
+- **ADR-026 Phase 0＋1 落地（2026-07-11 使用者指示「先執行 ADR-026」）** — Phase 0 capability audit：`docs/agent-capability-matrix.md` 產出，每個使用中 surface 附證據歸類（Claude Code CLI=model-routed，本 session Agent tool schema 機械觀察；Codex CLI/app/IDE=能力 model-routed／repo 無 `.codex/agents/` 前運行 role-only，官方手冊 2026-07-11 fetch：TOML 必填 name/description/developer_instructions、選填 model/model_reasoning_effort/sandbox_mode 省略繼承 parent、max_threads 預設 6/max_depth 預設 1；managed `spawn_agent` surface=role-only；Gemini CLI 不可用不列級）— `8428414`。Phase 1 charter 角色化：`docs/orchestration.md` §1 改 Script→Explorer→Executor→Reviewer→Orchestrator 角色路由表（含委派邊界＋capability mode 條目）、§5.4 改派 Explorer、§6 用語同步（治理註記記載出處）；AGENTS.md 補委派指針；逐字引用者同 commit 同步（CLAUDE.md ×2、user-guide、verification-matrix 執行者欄 ×3、upstream-map），歷史紀錄保留原文；exit gate 反查：舊用語與 model slug 於 core 文件 0 命中 — `3f6164a`。**Phase 2 明確未做**：exit gate 需 Codex session 活體驗證，見下一步
 - **KeyCreated `name` contract drift 修復（2026-07-10 使用者雙裁決：name 補實作、型別對齊）** — ADR-022 §2 既有行為變更路線：feature Then＋steps 綁定＋payload `name` 斷言先行 → 自然紅（`The given key was not present in the dictionary`）→ `KeyCreated` record＋`ApiKey.Create` 補 `Name` → 綠 24/27；integration spec §6.1 `consumerId`/`tenantId` 型別標記 `UUID`→`String` 對齊實作（場景語料 `"tenant-A"` 非 UUID，方向為 spec 就實作）；`Spec-change:` trailer 齊備，orchestrator 親跑 full gate 綠放行 — `3905357`。spec 其餘 4 處 `tenantId/consumerId: UUID`（EventEnvelope §3／ValidateConsumer／LockKey／ValidationAttempt）屬未實作契約未動，各 slice 落地時對齊。executor 零 blocker 零 friction（88.5K tokens／51 calls／3.5 分）
 
 ## 待驗證
@@ -63,7 +64,7 @@
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
 1. ~~上游 skill 實作~~ ✅ **2026-07-11 全數完成**：backlog-decomposition（`5b7bf60`）＋domain-discovery（`4edb8ad`）皆落地並通過綠＋故意紅；地圖兩缺口銷案，剩餘 fog（既有兩 skill 驗證設計、Discovery 解凍、方法論整併）見 `tasks/upstream-map.md`，維持觸發制。首次活體使用已於同日發生（hash 題目開場，skill 事實蒐集階段即發現 ADR-017 已裁決而正確終止——見已完成欄）；下一個真新設計任務開場時直接 `/domain-discovery`。
-2. **ADR-026 Phase 0 capability audit（未排程，須使用者指示後開始）**：盤點 Codex app／CLI／IDE／當前 managed collaboration surface 是否能選 role、model、reasoning、sandbox，逐一歸類 model-routed／role-only／single-agent；只產 capability matrix，不改 charter、不建 agent files。
+2. **ADR-026 Phase 2 Codex custom agents（Phase 0＋1 已於 2026-07-11 完成，見已完成欄）**：在 **Codex session** 新增 `.codex/agents/{explorer,executor,reviewer}.toml`（必填三欄；Explorer／Reviewer 綁 read-only `sandbox_mode`）；model／reasoning 綁定須先過 capability-class eval（ADR-026 Rule 6），eval 前省略即繼承 parent＝誠實 role-only。exit gate 活體驗證：三角色 discovery、錯誤 role name fail-loud、read-only 角色故意寫入被拒、capability mode 明確輸出——此驗證只能在 Codex surface 執行，Claude Code session 勿代跑勿宣稱。Phase 3 routing replay 須等 Phase 2。
 3. **Agent Engineering Kit Phase 0（未排程，須使用者指示後開始）**：依 ADR-025 Decision §5 盤點現有 hooks／skills／rules／templates／gates，逐項分類 Core／Stack Profile／Project Overlay，並以反向搜尋列出 domain coupling；只產 inventory 與排除清單，不搬檔、不建 kit repo、不實作 installer。Codex adapter 部分須引用 ADR-026 capability audit，不重複判定。
 4. **產品主線 Wave 3 續**：`03_SuspendResumeKey.feature`「金鑰非 Active 狀態 — 拒絕暫停」＝guard 負場景：production guard 已在（`SuspendKeyHandler` guard 3，INVALID_STATE_TRANSITION 409），預期 test-only 啟用＋故意紅義務；「暫停失敗」Then 需鏡射「撤銷失敗」的 (status, errorCode) 對照表先例。基線：FunctionalTests 25 passed/26 skipped。spec 精度注意（累積）：測試計數勿外推（46 場景＋5 hasher）、migration 需 `dotnet tool restore` 前置（本場景無 migration）、帳面更新排在 ci-checks 之前、scratchpad 訊息檔名帶場景代號、復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在、When step 需依場景措辭選 token（`TestTokenFactory`，預設 SecurityAdmin）、spec 明列 active lessons 讀取義務。
 5. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
@@ -72,6 +73,7 @@
 
 ## 工作區狀態警告
 
+- 2026-07-11 ADR-026 Phase 0＋1 收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。
 - 2026-07-11 ADR-026 收尾 failure triage：三個 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新紀錄；active=18 < 20 未觸發 lessons triage。pre-commit zh-lint 的一次性紅未進 root failure log，已記於「已嘗試且失敗的方法」。
 - 2026-07-11 ADR-025 收尾 failure triage：三個 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新紀錄；active=18 < 20 未觸發 lessons triage。Gemini CLI 兩次失敗未進 root failure log，已記於「已嘗試且失敗的方法」。
 - 2026-07-11 revokedBy 回補包收尾 failure triage：三個 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。executor 唯一 friction 為 must-read 單次輸出截斷，改分批讀完，未形成新失敗簽名。
@@ -91,6 +93,6 @@
 
 ## 如何接上
 
-> 2026-07-12 起協調者由其他常設大型模型接任（Fable 5 退場）——憲章 §1 明文規則 (ii) 保證本節流程不因模型更替而變；使用者側的操作方式見 `docs/user-guide.md`（被問「怎麼用」時指過去，勿臨場重寫）。
+> 2026-07-12 起協調者由其他具備 Orchestrator 角色能力的常設模型接任（Fable 5 退場）——憲章 §1 明文規則 (ii) 保證本節流程不因模型更替而變；使用者側的操作方式見 `docs/user-guide.md`（被問「怎麼用」時指過去，勿臨場重寫）。
 
 新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章，`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（非必讀）。Claude Code／Codex 由各自 config 呼叫 `scripts/agent/hook.py` `session-context`，自動注入 must-read 與 `tasks/lessons/` active 教訓；Codex hook hash 變更後先在 `/hooks` trust。每條新檢驗記得「綠＋故意紅」；phase 收尾更新本檔前先跑 `scripts/failure-triage.sh` 並處置 REPEAT；報表末行同時判定 lessons triage 門檻（active ≥ 20 即依 `tasks/todo.md` 常設觸發條款執行 lessons triage）。
