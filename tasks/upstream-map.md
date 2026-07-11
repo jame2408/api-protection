@@ -4,7 +4,7 @@
 
 ## Destination（終點）
 
-上游管線與下游（`bdd-vertical-slice` 一段）同等成熟：每一階段有 skill 承載、有驗證設計（skill 等價物的「綠＋故意紅」）、任何常設大型模型僅依文件即可接手執行（`docs/orchestration.md` §1 明文規則 (ii)）。終點判定：兩個缺口 skill 依 spec 落地並通過驗證，既有兩 skill 的驗證設計自 fog 升格完成。
+上游管線與下游（`bdd-vertical-slice` 一段）同等成熟：每一階段有 skill 承載、有驗證設計（skill 等價物的「綠＋故意紅」）、任何具備 Orchestrator 角色能力的常設模型僅依文件即可接手執行（`docs/orchestration.md` §1 明文規則 (ii)）。終點判定：兩個缺口 skill 依 spec 落地並通過驗證，既有兩 skill 的驗證設計自 fog 升格完成。
 
 ## Notes
 

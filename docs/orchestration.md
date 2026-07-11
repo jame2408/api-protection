@@ -1,25 +1,32 @@
 # 協調憲章（Orchestration Charter）
 
-> 目的：讓「協調者」這個角色不依賴特定產品或特定人的臨場記憶就能運作 — 任何常設的中大型模型，讀完本文件即可接手調度。本文件使用 harness 中立用語（「模型」「執行者」「協調者」），不假設任何特定 CLI 或介面。
+> 目的：讓「協調者」這個角色不依賴特定產品或特定人的臨場記憶就能運作 — 任何具備 Orchestrator 角色能力的常設模型，讀完本文件即可接手調度。本文件使用 harness 中立用語（「角色」「執行者」「協調者」），不假設任何特定 CLI、介面或供應商 model taxonomy。
 >
 > 治理：本文件受 `docs/adr/adr-007-process-governance.md` 管轄。**修改本文件任一章節，必須先開新 ADR** — 比照 `CLAUDE.md` 的治理層級，不得直接編輯生效。規則本體不在此複寫第二份；本文件與 `CLAUDE.md` 的關係是「協調層補充」，不是「規範替代」。
 
 ---
 
-## 1. 模型分級路由表
+## 1. 角色路由表（Role Routing）
 
-任務先問「機械化能不能做」，機械化做不到的部分才問「該派給哪一級模型」。
+> 治理：本節角色化改寫依 `docs/adr/adr-026-role-based-model-routing-and-codex-subagents.md` Decision §1–2。Core 憲章只定義角色的能力與輸出契約，不綁定供應商 model slug 或「小／中／大型」分級；角色→模型的實際綁定屬各 harness adapter（Codex 為 `.codex/agents/`），各 surface 的能力分級與證據登記於 `docs/agent-capability-matrix.md`。
 
-| 任務類型 | 執行者 | 理由 |
-|---|---|---|
-| 格式檢查、lint、跑測試、跑腳本 | **腳本優先**（`scripts/ci-checks.sh`、`scripts/adr-lint.sh`、`scripts/source-lint.sh` 等） | 機械化檢驗不會漂移、不消耗模型 token、結果可重現 |
-| 大量讀取、掃 repo、摘要、read-back 覆核 | **小型模型 / 子代理**（廣度優先、可平行派發） | 這類任務吃 token 但不需要深度判斷；用小模型平行掃描比用大模型序列讀更省成本 |
-| 實作、code review、修 bug | **中型模型** | 需要對程式碼做語意判斷與局部設計決策，但範圍通常侷限在單一任務 |
-| 架構決策、規格裁決、跨規範衝突判斷 | **大型模型**（或人類） | 影響面跨檔案、跨規範，錯誤成本高，需要能寫出「為什麼選 X 不選 Y」的論證（見 `docs/adr/_template.md` 的 Rationale 要求） |
+任務先問「機械化能不能做」，機械化做不到的部分才問「該派給哪個角色」。
 
-**明文規則 (i)：驗證優先機械化。** 任何能寫成腳本 / 測試 / lint 的檢驗，一律用腳本；AI review（無論哪一級模型）只負責補機械化做不到的部分（語意正確性、設計取捨、規格是否被誤解）。不得用 AI review 取代本來就能機械化的檢查。
+| 優先序 | 角色 | 適用任務 | 必要能力／輸出契約 |
+|---:|---|---|---|
+| 0 | **Script** | 格式檢查、lint、build、跑測試、grep 可確定判定 | 原始輸出與 exit code；不啟動模型（`scripts/ci-checks.sh`、`scripts/adr-lint.sh`、`scripts/source-lint.sh` 等） |
+| 1 | **Explorer** | 大量讀取、掃 repo、事實取證、log 分類、read-back 覆核 | 回傳精確路徑／symbol／原文，不做最終綜合；預設 read-only；可平行派發 |
+| 2 | **Executor** | 依明確 spec 實作、修 bug、局部重構 | diff、Red→Green 證據、friction 申報、checkpoint（§2 契約全數適用） |
+| 3 | **Reviewer** | security、design、dependency impact、executor 產出語意 review | findings＋證據；不自行擴 scope 修復；預設 read-only |
+| 4 | **Orchestrator**（或人類） | 架構決策、規格裁決、跨規範衝突判斷、多 agent 結果綜合、最終 gate | 決策與論證（見 `docs/adr/_template.md` 的 Rationale 要求）、派工 spec、commit／push 放行 |
 
-**明文規則 (ii)：協調者角色不依賴短期顧問級模型。** 例行執行與 AI review 的分級路由，不得假設某個特定的、非常設的「顧問級」模型持續在場提供監督。協調者角色必須可以由任何常設的大型模型，僅依本文件（模型分級路由表 + executor contract + 全域停止條件）接手，不需要額外的臨場指導。若某項調度規則只有在特定模型在場時才說得通，代表這條規則沒有落地完整，應該修正規則本身而非依賴人力補位。
+**委派邊界**（ADR-026 Decision §2）：任務已有完整 spec、需大量讀檔取證、review 可獨立於主線且不改動相同檔案、或中間輸出會顯著污染主 thread 時，協調者應委派對應角色。需求與 business decision、架構／ADR 最終裁決、多 agent 結果綜合、`unverified_success` 升級為已驗證的確定性 gate、commit／push 放行與對使用者的最終承諾，不得因有 subagent 而下放。
+
+**Capability mode**（ADR-026 Decision §4）：每個 surface 依 runtime 證據標示 model-routed／role-only／single-agent；無 per-agent model 證據的 session 一律 role-only，只得宣稱工作委派與 context 隔離，不得宣稱模型成本分級，亦不得以 agent 自述當證據。
+
+**明文規則 (i)：驗證優先機械化。** 任何能寫成腳本 / 測試 / lint 的檢驗，一律用腳本；AI review（無論由哪個角色執行）只負責補機械化做不到的部分（語意正確性、設計取捨、規格是否被誤解）。不得用 AI review 取代本來就能機械化的檢查。
+
+**明文規則 (ii)：協調者角色不依賴短期顧問級模型。** 例行執行與 AI review 的角色路由，不得假設某個特定的、非常設的「顧問級」模型持續在場提供監督。協調者角色必須可以由任何具備 Orchestrator 角色能力的常設模型，僅依本文件（角色路由表 + executor contract + 全域停止條件）接手，不需要額外的臨場指導。若某項調度規則只有在特定模型在場時才說得通，代表這條規則沒有落地完整，應該修正規則本身而非依賴人力補位。
 
 ---
 
@@ -79,7 +86,7 @@
 1. **注入有上限**：session 啟動或任務交接時自動注入的規則內容（must-read、lessons 摘要等）應有明確上限（筆數或 token 數），不得隨規範或紀錄增長而無界擴張。
 2. **細節單一來源，其餘放指針**：同一條規則的完整內容只存在於一個檔案（通常是 Accepted ADR 或 `CLAUDE.md`）；其他文件（`docs/orchestration.md`、`AGENTS.md`、rule.md）只放「檔案 + 段落標題」形式的指針，不複製規則全文。
 3. **續接靠 checkpoint，不靠重讀全史**：任務交接時，下一個執行者應優先讀取 checkpoint（§4），僅在 checkpoint 指向特定歷史內容時才回頭讀取對應的原始紀錄；不應預設要重讀整個對話歷史或整份 plan 檔案才能接手。
-4. **大範圍掃描派小型模型**：需要讀取或摘要大量檔案、但不需要深度架構判斷的任務（見 §1 路由表），派給小型模型或子代理平行執行，協調者本身不消耗 token 做這類工作。
+4. **大範圍掃描派 Explorer**：需要讀取或摘要大量檔案、但不需要深度架構判斷的任務（見 §1 角色路由表），派給 Explorer 角色的子代理平行執行，協調者本身不消耗 token 做這類工作。
 5. **任務包單一階段**：executor 任務規格以單一階段為原則，預估超過約 50 次工具呼叫即拆包派發。
 6. **resume 只限小型追問**：續行長任務一律新開 executor、以 spec／checkpoint 銜接；不得 resume 大 transcript（整份 transcript 會以未快取輸入重讀計費）。
 7. **協調者 session 以一個 Phase 為壽命上限**：Phase 落地即結束 session，下個 Phase 冷啟動接 checkpoint。
@@ -89,12 +96,12 @@
 
 ## 6. 冷啟動標準 prompt
 
-> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (d) 管轄，修改文字須先開新 ADR。交接入口指針已由 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c) 修訂為 `tasks/checkpoint.md`（原指 `tasks/process-improvement-plan.md` §8.5）。
+> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (d) 管轄，修改文字須先開新 ADR。交接入口指針已由 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c) 修訂為 `tasks/checkpoint.md`（原指 `tasks/process-improvement-plan.md` §8.5）；「模型分級」用語由 `docs/adr/adr-026-role-based-model-routing-and-codex-subagents.md` Phase 1 修訂為「角色路由」。
 
 給使用者 / 協調者在開新 session 接手時使用的固定開場文字，取代每次臨場手寫指示。內容只放指針，不重複規範本體（比照 §5 原則 2）：
 
     讀 `tasks/checkpoint.md`（Resume Checkpoint）掌握現況，
-    再讀本文件（協調憲章）掌握模型分級、executor 義務、全域停止條件與
+    再讀本文件（協調憲章）掌握角色路由、executor 義務、全域停止條件與
     checkpoint 格式；依 `tasks/checkpoint.md` 記載的「下一步」清單接手，若
     清單已空則向規格擁有者確認下一個任務來源。
 

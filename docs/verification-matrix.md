@@ -64,10 +64,10 @@
 | **HMAC 金鑰雜湊（docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md）** ||||
 | 19d | KeyHash = Base64(HMACSHA256(pepper, rawKey)) 確定性／pepper 敏感性／輸出形狀；pepper 缺值或 < 32 bytes 啟動 fail-fast — docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md Implementation Rules 3/5 | backend/tests/FunctionalTests/Infrastructure/HmacApiKeyHasherTests.cs | push 前 / CI | 腳本 |
 | **學習迴圈 triage（`docs/adr/adr-018-failure-triage-and-observations-retirement.md`）** ||||
-| 19e | phase 收尾更新 `tasks/checkpoint.md` 前必跑 failure triage；`REPEAT` 簽名三選一處置（lesson / todo / checkpoint 記不轉理由）— `docs/adr/adr-018-failure-triage-and-observations-retirement.md` 決策 §3。報表末行同時機械判定 lessons triage 門檻（`tasks/lessons/` active ≥ 20 → 到期，`tasks/todo.md` 常設觸發條款的機械前哨；2026-07-10 巡檢根因補訊號，同日 D4 裁決門檻 15→20） | `scripts/failure-triage.sh`（報表，含 `report_lessons_count` 段）＋人工判讀 | phase 收尾 | 人／大型模型 |
+| 19e | phase 收尾更新 `tasks/checkpoint.md` 前必跑 failure triage；`REPEAT` 簽名三選一處置（lesson / todo / checkpoint 記不轉理由）— `docs/adr/adr-018-failure-triage-and-observations-retirement.md` 決策 §3。報表末行同時機械判定 lessons triage 門檻（`tasks/lessons/` active ≥ 20 → 到期，`tasks/todo.md` 常設觸發條款的機械前哨；2026-07-10 巡檢根因補訊號，同日 D4 裁決門檻 15→20） | `scripts/failure-triage.sh`（報表，含 `report_lessons_count` 段）＋人工判讀 | phase 收尾 | 人／Orchestrator |
 | **AI review 類** ||||
-| 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | 中型模型 |
-| 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/大型模型執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons/` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | 大型模型 |
+| 20 | Code review：bug 偵測、安全性稽核、依賴影響分析 | `.claude/skills/code-review/SKILL.md`（PR mode / Self mode） | review 時 | Reviewer |
+| 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/Orchestrator 執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons/` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | Orchestrator |
 | **人工類** ||||
 | 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 由 CLAUDE.md 遷移） | 無腳本；本體見 `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 遷移） | review 時 | 人 |
 | **`scripts/agent/hook.py` `pre-tool-bash` — Claude Code／Codex 共用 Bash 指令寫時攔截，2 個 pattern** ||||

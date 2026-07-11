@@ -18,7 +18,9 @@ scripts/install-git-hooks.sh
 
 ## 協調規則
 
-多任務 / 多模型協調（任務怎麼分級、executor 的義務、何時該停下、交接格式）見 **`docs/orchestration.md`**。修改該文件的任一章節，須先開新 ADR（見 `docs/adr/adr-007-process-governance.md`）。
+多任務 / 多模型協調（角色怎麼路由、executor 的義務、何時該停下、交接格式）見 **`docs/orchestration.md`**。修改該文件的任一章節，須先開新 ADR（見 `docs/adr/adr-007-process-governance.md`）。
+
+支援 subagent 的 harness（含 Codex）應依 `docs/orchestration.md` §1 角色路由表主動委派 Explorer／Executor／Reviewer；各 surface 能力分級與證據見 `docs/agent-capability-matrix.md`，無 per-agent model 證據一律視為 role-only，不得宣稱模型成本分級。
 
 ## Harness 第一層防線
 

@@ -23,7 +23,7 @@ _How Claude and the user collaborate — committed to the repo so it persists ac
 
 ### Orchestrator Brief
 
-本專案真正目的是建立「多模型統一開發 loop」，key 管理服務只是載體。接手本 repo 的模型即擔任**協調者** — 角色定義、模型分級、executor 義務、停止條件、token 紀律全在 `docs/orchestration.md`（唯一權威，此處不複寫）。開工第一動作：讀 `tasks/checkpoint.md` 接手，勿要求使用者重述背景。
+本專案真正目的是建立「多模型統一開發 loop」，key 管理服務只是載體。接手本 repo 的模型即擔任**協調者** — 角色路由、executor 義務、停止條件、token 紀律全在 `docs/orchestration.md`（唯一權威，此處不複寫）。開工第一動作：讀 `tasks/checkpoint.md` 接手，勿要求使用者重述背景。
 
 ### Autonomy Scope
 - **Bug reports**: Resolve autonomously — analyze logs, isolate root cause, fix, verify.
@@ -74,7 +74,7 @@ Silently ask "is there a more elegant way?" before presenting a solution — sur
 
 ### Orchestration & Verification
 多模型協調與驗證機制的權威來源不在本檔，只放指針（見 `docs/adr/adr-010-norm-doc-discovery-wiring.md`）：
-- `docs/orchestration.md` — 多模型協調憲章（模型分級、executor contract、全域停止條件）
+- `docs/orchestration.md` — 多模型協調憲章（角色路由、executor contract、全域停止條件）
 - `docs/verification-matrix.md` — 驗證登記表（哪條規則由什麼機制、在什麼時機、由誰驗證）
 - `tasks/checkpoint.md` — session 交接的唯一續接入口
 - `AGENTS.md` — 非 Claude Code harness 的薄入口
