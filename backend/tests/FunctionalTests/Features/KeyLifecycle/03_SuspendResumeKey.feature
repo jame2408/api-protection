@@ -9,7 +9,6 @@ Feature: 暫停與恢復金鑰
     Then  "key-A" 狀態變為 Suspended
     And   系統產生 KeySuspended 事件，包含 keyId、suspendedBy、reason
 
-  @ignore
   Scenario: 金鑰非 Active 狀態 — 拒絕暫停
     Given 金鑰 "key-A" 狀態為 Locked
     When  Security Admin 暫停 "key-A"，原因為「維護排程」
