@@ -1,5 +1,14 @@
 # Todo — 開放項登記簿
 
+## Agent Engineering Kit 跨專案可攜化 — 開放（ADR-025）
+
+- 決策：`docs/adr/adr-025-agent-engineering-kit-cross-project-portability.md`。
+- Phase 0 可攜性盤點：未排程。
+- Phase 1 第二個真實專案人工 pilot：未排程；目標專案由使用者另行指定。
+- Phase 2 Installer MVP（install／check）：未排程，須等 Phase 1 exit gate。
+- Phase 3 Upgrade／三方衝突保護：未排程，須等 Phase 2 exit gate。
+- Phase 4 雙專案驗收與 1.0 發版：未排程，須等 Phase 3 exit gate。
+
 ## Codex harness parity — 已結案（2026-07-10）
 
 - `docs/adr/adr-023-cross-harness-hook-and-skill-parity.md` 定案：Claude Code／Codex 的第一層防線共用單一 `scripts/agent/hook.py`，兩份 harness config 只做薄 wiring。
