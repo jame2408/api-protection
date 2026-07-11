@@ -243,4 +243,24 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         // that uses this step — including the @ignore'd ones, as they come online.
         ProblemAssertions.RequireProblem(_ctx.Response!, _ctx.ResponseBody!, expectedStatus, expectedErrorCode);
     }
+
+    [Then(@"恢復失敗，錯誤原因為「(.*)」")]
+    public void ThenResumeFailsWithReason(string reason)
+    {
+        var map = new Dictionary<string, (HttpStatusCode Status, string ErrorCode)>
+        {
+            // API wire contract — keep literals here to lock external HTTP error codes.
+            // Production code uses *FailureCodes.* constants; this map intentionally
+            // re-states the strings so a constant value drift would surface as a test failure.
+            ["金鑰狀態非 Suspended"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
+            ["權限不足"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
+        };
+
+        var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
+        var (expectedStatus, expectedErrorCode) = entry.Value;
+
+        // RFC 9457 Problem Details wire contract (api-spec.md §2.2). Locks every failure scenario
+        // that uses this step — including the @ignore'd ones, as they come online.
+        ProblemAssertions.RequireProblem(_ctx.Response!, _ctx.ResponseBody!, expectedStatus, expectedErrorCode);
+    }
 }

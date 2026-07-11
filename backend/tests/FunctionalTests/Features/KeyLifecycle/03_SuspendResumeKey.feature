@@ -40,7 +40,6 @@ Feature: 暫停與恢復金鑰
     Then  "key-A" 狀態變為 Active
     And   系統產生 KeyResumed 事件，包含 keyId、resumedBy
 
-  @ignore
   Scenario: 金鑰非 Suspended 狀態 — 拒絕恢復
     Given 金鑰 "key-A" 狀態為 Locked
     When  操作者恢復 "key-A"
