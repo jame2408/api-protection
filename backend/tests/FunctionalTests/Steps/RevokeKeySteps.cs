@@ -209,6 +209,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         if (root.TryGetProperty("lifecycleStatus", out var singleStatus))
         {
             singleStatus.GetString().Should().Be("Revoked");
+            root.GetProperty("revokedBy").GetString().Should().Be("security-admin-1");
         }
         else
         {
@@ -237,6 +238,11 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
 
         using var payload = Db.RequireOutboxEvent("KeyRevoked", keyId);
         payload.RootElement.GetProperty("reason").GetString().Should().Be(reason);
+
+        var revokedBy = payload.RootElement.GetProperty("revokedBy");
+        revokedBy.GetProperty("type").GetString().Should().Be("System");
+        revokedBy.GetProperty("id").GetString().Should().Be("secret-scanner");
+        revokedBy.GetProperty("name").GetString().Should().Be("Secret Scanner");
     }
 
     [Then(@"系統通知 Security Admin 和 Consumer")]
@@ -280,6 +286,11 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         using var payload = Db.RequireOutboxEvent("KeyRevoked", keyId);
         payload.RootElement.GetProperty("previousStatus").GetString().Should().Be(previousStatus);
         payload.RootElement.GetProperty("reason").GetString().Should().NotBeNullOrEmpty();
+
+        var revokedBy = payload.RootElement.GetProperty("revokedBy");
+        revokedBy.GetProperty("type").GetString().Should().Be("User");
+        revokedBy.GetProperty("id").GetString().Should().Be("security-admin-1");
+        revokedBy.GetProperty("name").GetString().Should().Be("security-admin-1");
     }
 
     [Then(@"觸發主動快取失效")]

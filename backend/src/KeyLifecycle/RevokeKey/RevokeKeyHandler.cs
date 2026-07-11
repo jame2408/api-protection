@@ -26,7 +26,7 @@ public class RevokeKeyHandler(
         // 4. Capture previous status + successor link, transition, persist
         var previousStatus = apiKey.Status;
         var successorId = apiKey.SuccessorKeyId;
-        apiKey.Revoke(command.Reason);
+        apiKey.Revoke(command.Reason, command.RevokedBy);
         await keyRepository.UpdateAsync(apiKey, cancel);
 
         // 5. Rotating → Revoked also clears the successor's predecessor link (design-doc.md T6).
@@ -46,6 +46,7 @@ public class RevokeKeyHandler(
             KeyId: apiKey.Id,
             PreviousStatus: previousStatus,
             LifecycleStatus: apiKey.Status,
+            RevokedBy: command.RevokedBy.Id,
             Reason: command.Reason);
     }
 }

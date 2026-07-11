@@ -1,4 +1,5 @@
 using ApiKeyManagement.KeyLifecycle.Http;
+using ApiKeyManagement.SharedKernel.Domain;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -21,7 +22,9 @@ public static class RevokeLeakedKeysEndpoint
                 HttpContext httpContext,
                 CancellationToken cancel) =>
             {
-                var command = new RevokeLeakedKeysCommand(KeyPrefix: request.Prefix);
+                var command = new RevokeLeakedKeysCommand(
+                    KeyPrefix: request.Prefix,
+                    RevokedBy: new Actor(ActorType.System, "secret-scanner", "Secret Scanner"));
 
                 var result = await handler.HandleAsync(command, cancel);
 

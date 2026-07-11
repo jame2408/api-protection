@@ -83,7 +83,7 @@ public class ApiKey : AggregateRoot<Guid>
     /// Revokes the key. Captures the previous status for the KeyRevoked event; guards
     /// (not-found / empty reason / terminal state) are the handler's responsibility.
     /// </summary>
-    public void Revoke(string reason)
+    public void Revoke(string reason, Actor revokedBy)
     {
         var previousStatus = Status;
         Status = ApiKeyStatus.Revoked;
@@ -94,7 +94,8 @@ public class ApiKey : AggregateRoot<Guid>
             OccurredAt: DateTimeOffset.UtcNow,
             KeyId: Id,
             PreviousStatus: previousStatus.ToString(),
-            Reason: reason));
+            Reason: reason,
+            RevokedBy: revokedBy));
     }
 
     /// <summary>

@@ -1,7 +1,10 @@
+using ApiKeyManagement.SharedKernel.Domain;
+
 namespace ApiKeyManagement.KeyLifecycle.RevokeKey;
 
 public record RevokeKeyCommand(
     string TenantId,
     Guid KeyId,
-    string Reason
+    string Reason,
+    Actor RevokedBy
 );

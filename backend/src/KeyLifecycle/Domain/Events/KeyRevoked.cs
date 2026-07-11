@@ -7,5 +7,6 @@ public record KeyRevoked(
     DateTimeOffset OccurredAt,
     Guid KeyId,
     string PreviousStatus,
-    string Reason
+    string Reason,
+    Actor RevokedBy
 ) : IDomainEvent;

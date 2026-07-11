@@ -1,4 +1,5 @@
 using ApiKeyManagement.KeyLifecycle.Http;
+using ApiKeyManagement.SharedKernel.Domain;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -26,7 +27,8 @@ public static class RevokeKeyEndpoint
                 var command = new RevokeKeyCommand(
                     TenantId: tenantId,
                     KeyId: keyId,
-                    Reason: request.Reason);
+                    Reason: request.Reason,
+                    RevokedBy: Actor.FromClaims(httpContext.User));
 
                 var result = await handler.HandleAsync(command, cancel);
 

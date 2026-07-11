@@ -25,7 +25,11 @@ public class RevokeLeakedKeysHandler(
         foreach (var key in matchingKeys)
         {
             var revokeResult = await revokeKeyHandler.HandleAsync(
-                new RevokeKeyCommand(key.TenantId, key.Id, ApiKey.LeakedInPublicRepositoryReason),
+                new RevokeKeyCommand(
+                    key.TenantId,
+                    key.Id,
+                    ApiKey.LeakedInPublicRepositoryReason,
+                    command.RevokedBy),
                 cancel);
 
             if (revokeResult.IsFailure)
