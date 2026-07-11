@@ -30,13 +30,12 @@
 | `deep-review` | reviewer → `opus`＋`effort: high` | 三個 seeded 違規（throw／`CancellationToken.None`／ILogger）全中＋一條合理加值 finding；零寫入（fixture 檔未變動） |
 | `deep-orchestration` | 主 session，不建 child role | ADR-026 Decision §3 角色預設 |
 
-補充明示（Rule 4 capability report 義務）：explorer／reviewer 的 Write／Edit 為 `tools` allowlist **機械阻斷**；Bash 保留供唯讀查詢（`git log`／`git grep`），其寫入禁令為 agent 檔內**指示層**防線。錯誤 role name fail-loud 已實測（spawn 未定義 `explorer` 得明確錯誤含可用 agent 清單）。
+補充明示（Rule 4 capability report 義務）：explorer／reviewer 的 Write／Edit 為 `tools` allowlist **機械阻斷**；Bash 保留供唯讀查詢（`git log`／`git grep`），其寫入禁令為 agent 檔內**指示層**防線。錯誤 role name fail-loud 已實測（spawn 未定義 `explorer` 得明確錯誤含可用 agent 清單）。2026-07-11 重啟後 session 活體複驗：三角色均出現在 Agent tool 可用清單（discovery 成立）；explorer 寫檔故意紅——Write 遭 allowlist 機械拒絕（`Write exists but is not enabled in this context`）、Edit 不在其工具定義、probe 檔以遞迴搜尋確認未落地。
 
 ## 缺口登記
 
 | 缺口 | 對應 Phase |
 |---|---|
 | `.codex/agents/` 三角色 TOML 未建立；Codex session 現況只能宣稱 role-only | ADR-026 Phase 2（exit gate 需 Codex session 活體驗證 discovery／fail-loud／read-only） |
-| `.claude/agents/` 三角色的 discovery 本 session 不可驗——官方文件明載 watcher 只涵蓋 session 啟動時已存在的目錄，首次建立 `agents/` 目錄需重啟 | 下個 Claude Code session：驗 discovery（spawn 三角色）＋read-only 故意紅（要求 explorer 寫檔應被拒） |
 | Phase 4 其餘項（跨 harness fixture role assignment 對齊、ADR-025 kit 收錄） | 須等 Phase 2–3 exit gate |
 | Codex app／IDE 無使用中機械證據 | 投入使用時 re-audit |
