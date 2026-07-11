@@ -2,6 +2,8 @@
 
 本專案採用 5 步驟設計方法論，從需求到可執行規格逐步展開。建議按以下順序閱讀。
 
+> **操作入口**：如何驅動整套多模型開發 loop（你要做什麼、說什麼、看什麼）見 [使用者操作手冊](./user-guide.md)；模型側協調規則見 [orchestration.md](./orchestration.md)。
+
 ## 設計方法論
 
 - [design-methodology.md](./design-methodology.md) — 5 步驟設計方法論說明，理解整套文件的結構與推導邏輯
