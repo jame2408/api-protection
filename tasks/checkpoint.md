@@ -41,10 +41,12 @@
 - **ADR-025 Agent Engineering Kit 跨專案可攜化** — 使用者確認 installer 為正式目標、但須先以第二個真實專案人工 pilot 驗證邊界；決策固化 Core／Stack Profile／Project Overlay 三層、獨立 kit repo、manifest＋immutable baseline／lock、install／check／upgrade 與五階段 rollout。Phase 1 設「共用性不足即停止」閘門，避免違反制度機制事故驅動原則；todo 已登記 Phase 0–4，全部未排程 — `3fe2c91`
 - **ADR-026 角色型模型路由與 Codex Subagent Adapter** — 現況診斷：Codex 有 subagent／custom agents，但本 repo 無 `.codex/agents`，當前 callable surface 也無 role／model 參數，因此現制只證明同模型委派、未證明成本分級。決策將 Core 改為 Script→Explorer→Executor→Reviewer→Orchestrator 能力路由，Codex adapter 再綁 model／reasoning／sandbox；surface 必須明示 model-routed／role-only／single-agent，無 runtime 證據預設 role-only。todo 已登記 capability audit→charter 角色化→custom agents→routing replay→Claude／kit 對齊五 Phase，全部未排程 — `5f899a6`
 - **ADR-026 Phase 0＋1 落地（2026-07-11 使用者指示「先執行 ADR-026」）** — Phase 0 capability audit：`docs/agent-capability-matrix.md` 產出，每個使用中 surface 附證據歸類（Claude Code CLI=model-routed，本 session Agent tool schema 機械觀察；Codex CLI/app/IDE=能力 model-routed／repo 無 `.codex/agents/` 前運行 role-only，官方手冊 2026-07-11 fetch：TOML 必填 name/description/developer_instructions、選填 model/model_reasoning_effort/sandbox_mode 省略繼承 parent、max_threads 預設 6/max_depth 預設 1；managed `spawn_agent` surface=role-only；Gemini CLI 不可用不列級）— `8428414`。Phase 1 charter 角色化：`docs/orchestration.md` §1 改 Script→Explorer→Executor→Reviewer→Orchestrator 角色路由表（含委派邊界＋capability mode 條目）、§5.4 改派 Explorer、§6 用語同步（治理註記記載出處）；AGENTS.md 補委派指針；逐字引用者同 commit 同步（CLAUDE.md ×2、user-guide、verification-matrix 執行者欄 ×3、upstream-map），歷史紀錄保留原文；exit gate 反查：舊用語與 model slug 於 core 文件 0 命中 — `3f6164a`。**Phase 2 明確未做**：exit gate 需 Codex session 活體驗證，見下一步
+- **ADR-026 Phase 4 部分提前：`.claude/agents/` 三角色落地（2026-07-11 使用者裁決提前）** — 官方文件先行核實（project-scoped `.claude/agents/` 進版控＝官方推薦；frontmatter `model` 支援 alias／`inherit`，解析序 env→逐次參數→frontmatter→主模型；官方明文建議以 project agent 覆寫內建 Explore 綁 haiku 控成本）。三檔：explorer（haiku、`tools: Read,Glob,Grep,Bash`）、executor（sonnet、`disallowedTools: Agent`、body 內建 active lessons／spec 必讀義務＝機械化 fork-none lesson 的載體）、reviewer（opus＋`effort: high`、read-only、findings-only）。綁定依 Rule 6 過最小 capability-class eval（內建型＋逐次 model 參數，orchestrator 全數親驗）：haiku 取證逐字吻合、sonnet 真 Red→Green 親跑 3/3 OK、opus 三 seeded 違規全中零寫入；錯誤 role name fail-loud 實測（含可用清單）。eval 紀錄與 Rule 4 capability report（Write/Edit 機械阻斷、Bash 唯讀屬指示層）登記於 `docs/agent-capability-matrix.md`
 - **KeyCreated `name` contract drift 修復（2026-07-10 使用者雙裁決：name 補實作、型別對齊）** — ADR-022 §2 既有行為變更路線：feature Then＋steps 綁定＋payload `name` 斷言先行 → 自然紅（`The given key was not present in the dictionary`）→ `KeyCreated` record＋`ApiKey.Create` 補 `Name` → 綠 24/27；integration spec §6.1 `consumerId`/`tenantId` 型別標記 `UUID`→`String` 對齊實作（場景語料 `"tenant-A"` 非 UUID，方向為 spec 就實作）；`Spec-change:` trailer 齊備，orchestrator 親跑 full gate 綠放行 — `3905357`。spec 其餘 4 處 `tenantId/consumerId: UUID`（EventEnvelope §3／ValidateConsumer／LockKey／ValidationAttempt）屬未實作契約未動，各 slice 落地時對齊。executor 零 blocker 零 friction（88.5K tokens／51 calls／3.5 分）
 
 ## 待驗證
 
+- **`.claude/agents/` 三角色 discovery＋故意紅**：官方文件明載 watcher 只涵蓋 session 啟動時已存在的目錄，首次建立 `agents/` 目錄需重啟才可被發現。下個 Claude Code session 開場即驗：(1) spawn `explorer`／`executor`／`reviewer` 三角色可被發現；(2) 故意紅——要求 explorer 寫檔，Write／Edit 應因 `tools` allowlist 被機械拒絕。通過後在 `docs/agent-capability-matrix.md` 缺口登記表銷該列。
 - 一般互動式 Codex session 首次載入或 hook definition 變更後，仍須由使用者在 Codex `/hooks` 檢視並 trust（harness 安全邊界，repo 側無法代辦）。
 
 ## 已嘗試且失敗的方法
@@ -73,6 +75,7 @@
 
 ## 工作區狀態警告
 
+- 2026-07-11 `.claude/agents/` 落地收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。
 - 2026-07-11 ADR-026 Phase 0＋1 收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。
 - 2026-07-11 ADR-026 收尾 failure triage：三個 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新紀錄；active=18 < 20 未觸發 lessons triage。pre-commit zh-lint 的一次性紅未進 root failure log，已記於「已嘗試且失敗的方法」。
 - 2026-07-11 ADR-025 收尾 failure triage：三個 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新紀錄；active=18 < 20 未觸發 lessons triage。Gemini CLI 兩次失敗未進 root failure log，已記於「已嘗試且失敗的方法」。

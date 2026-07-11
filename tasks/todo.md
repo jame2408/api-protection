@@ -7,7 +7,7 @@
 - Phase 1 Core charter 角色化：✅ 2026-07-11 完成 — `docs/orchestration.md` §1 改為 Script→Explorer→Executor→Reviewer→Orchestrator 角色路由表（含委派邊界＋capability mode）、§5.4 改派 Explorer、§6 冷啟動 prompt 用語同步；`AGENTS.md` 補角色路由委派指針；逐字引用者同步（CLAUDE.md ×2、user-guide、verification-matrix 執行者欄 ×3、upstream-map）；歷史紀錄（lessons／process-improvement-plan／archive／既有 ADR）依 ADR-026 保留原文。
 - Phase 2 Codex custom agents：未排程；新增 explorer／executor／reviewer，模型綁定須有 eval，無 runtime 證據則標示 role-only。
 - Phase 3 routing replay／故意紅：未排程，須證明角色責任、read-only 邊界與 `unverified_success` 未弱化。
-- Phase 4 Claude adapter／ADR-025 kit 對齊：未排程，須等 Phase 0–3 exit gate。
+- Phase 4 Claude adapter／ADR-025 kit 對齊：**部分提前**（2026-07-11 使用者裁決）——`.claude/agents/{explorer,executor,reviewer}.md` 已建（haiku／sonnet／opus 綁定，各過最小 capability-class eval，紀錄見 `docs/agent-capability-matrix.md`）；discovery＋read-only 故意紅待下個 Claude Code session（新目錄需重啟）；跨 harness fixture 對齊與 kit 收錄仍須等 Phase 2–3。
 
 ## Agent Engineering Kit 跨專案可攜化 — 開放（ADR-025）
 
