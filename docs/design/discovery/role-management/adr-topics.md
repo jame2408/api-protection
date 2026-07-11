@@ -4,6 +4,8 @@
 
 ## 1. Team Access BC 的落地形態與 SharedKernel 契約
 
+> ✅ 已兌現：`docs/adr/adr-027-team-access-bc-and-sharedkernel-contract.md`（Accepted 2026-07-11）。
+
 **張力**：金鑰建立 guard 需要跨 BC 查詢 grant（Active？scope ⊆ grant？），但架構鐵律禁止 BC 直接互引（`BoundedContextIsolationTests`）。介面形狀（同步查詢如 `IAccessPolicyService` 先例 vs 投影複本）、失敗語意（grant 不存在／已收回時的 Failure code）、與既有 `AccessPolicy` BC 的職責切線（scope 快照存哪邊）都需裁決。
 
 ## 2. 團隊管理者的授權模型 vs ADR-024 封閉角色集
