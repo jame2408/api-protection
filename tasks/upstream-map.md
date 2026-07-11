@@ -30,7 +30,7 @@ Golden trace（回放驗證的對照基準）：`docs/design/prd.md` → `design
 - **wayfinder 不整包引入**（2026-07-11 分析裁決）— 階段錯配／制度凍結／依賴鏈缺失三理由；留用 map-as-index 與 fog-of-war 兩思路。
 - [domain-discovery spec](specs/skill-domain-discovery.md) — 缺口 0 的 skill 規格；DoD 錨定 `requirements-analysis-design` 的 Prerequisite Guardrail 三項。
 - [backlog-decomposition spec](specs/skill-backlog-decomposition.md) — 缺口 6 的 skill 規格；回放 46 場景 golden trace 驗證，可全 AFK，建議首個實作。
-- **domain-discovery skill 落地**（2026-07-11，`4edb8ad`）— 兩缺口全數銷案：故意紅（無人可答輸入停在首問、輸出已知／未知邊界、零腦補）＋HITL 回放（六輪 grilling → 五 BC 邊界 5/5 等價；分類差異兩處可解釋且顯式留痕：Access Policy Core/Supporting 裁決變異、租戶粒度列 adr-topics 待決；旁證＝adr-topics #1 獨立重推導出 pending 的 hash 演算法 ADR 題目）。比對報告見 scratchpad `discovery-replay/comparison.md`（session 工件，結論已錄於此）。
+- **domain-discovery skill 落地**（2026-07-11，`4edb8ad`）— 兩缺口全數銷案：故意紅（無人可答輸入停在首問、輸出已知／未知邊界、零腦補）＋HITL 回放（六輪 grilling → 五 BC 邊界 5/5 等價；分類差異兩處可解釋且顯式留痕：Access Policy Core/Supporting 裁決變異、租戶粒度列 adr-topics 待決；旁證＝adr-topics #1 獨立重推導出 ADR-017 已裁決的 hash 題目，對齊真實決策）。比對報告見 scratchpad `discovery-replay/comparison.md`（session 工件，結論已錄於此）。
 - **backlog-decomposition skill 落地**（2026-07-11，`5b7bf60`）— 首個「spec→skill→回放驗證」全程走通的先例：回放 wave 表與 golden trace 逐列吻合、三解鎖點時點相同、故意紅（只餵 05_RotateKey 藏時鐘線索）一次命中；executor 加值兩處（準則 2 展開四類信號掃描表＋反向核對、準則 1 補 seed 例外）。
 
 ## Not yet specified（fog — 「能精確陳述問題」才升格為工作項，勿預切）

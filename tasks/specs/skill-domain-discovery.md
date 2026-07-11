@@ -32,7 +32,7 @@
 ## 5. 驗證設計
 
 - **綠（回放，HITL、一次性）**：輸入「API key 管理服務」一句話想法＋使用者臨場作答，跑完四 Phase，產出與 `docs/design/design-doc.md` 既有 Context Map／五 BC（KeyLifecycle、AccessPolicy、TenantManagement、AuditCompliance、MonitoringDetection）**結構等價**（BC 邊界與分類一致；命名與細節允許差異，差異需逐條可解釋）。
-- **綠（活體，替代路徑）**：下一個真實設計任務（如 hash 演算法 ADR 的前置探索）以本 skill 開場，產出能直接餵進協調者的 ADR 起草。
+- **綠（活體，替代路徑）**：下一個真實設計任務以本 skill 開場，產出能直接餵進協調者的 ADR 起草。（原例「hash 演算法 ADR」為過期斷言——ADR-017 已於 2026-07-05 裁決，2026-07-11 勘誤。）
 - **故意紅**：餵入一段刻意含未決裁決的想法（如「金鑰要支援某種輪替，但輪替策略還沒想清楚」），skill 必須停在 Phase A 提問或把該點列入 hotspot／未決清單；若它自行生成完整 Context Map 並替使用者決定輪替策略＝紅。
 
 ## 6. 落點與機械化慣例
