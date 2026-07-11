@@ -38,6 +38,7 @@
 - **`/domain-discovery` 首次活體使用＋stale-directive 勘誤（2026-07-11 使用者指示 hash 題目開場）** — skill 執行程序步驟 2 的 AFK 事實蒐集即發現 **ADR-017 已於 2026-07-05 Accepted 且實作落地**，探索於 Phase A 開問前正確終止（未浪費使用者任何一輪問答）＝skill「事實先於提問」紀律的活體驗證。連帶揭露過期斷言鏈：governance-freeze lesson 的「下一份 ADR 應是 hash」指示兌現後未修訂、滯留 6 天、被 orchestrator 未驗證轉抄四處。根因修復：lesson 原文移除過期指示＋新 lesson `20260711-stale-directive-propagation.md`（前瞻指示引用前先機械化驗證兌現狀態；兌現當輪即修訂原 lesson）＋四處污染點勘誤（checkpoint ×2、upstream-map、domain-discovery spec）。lessons active 17→18
 - **Fable 5 退場交接包（2026-07-11 使用者指示）** — 新增 `docs/user-guide.md`（使用者操作手冊：權力義務清單／日常驅動語彙／抽查三點／文件地圖，全指針化不複寫權威文件）＋`docs/README.md` 操作入口指針；checkpoint 全檔覆核為交接態。交接依憲章 §1 明文規則 (ii)：任何常設大型模型以 §6 冷啟動 prompt 接手，無 Fable 5 專屬依賴——本 session 產出的上游 skill、spec、地圖即為其判斷力的凝結
 - **RevokeKey `revokedBy` 契約債回補** — ADR-024 的獨立小包落地：單鍵 endpoint 以 `Actor.FromClaims` 傳 User actor，Secret Scanner 批次端點在 internal auth 後置期間顯式傳固定 System actor（`secret-scanner`），沿 Command→Handler→Domain→`KeyRevoked` outbox payload 傳遞；response `revokedBy` 維持 api-spec §3.2.8 的 actor id 字串。既有 Then 新增 response／巢狀 actor 斷言，自然紅 20/5/26→綠 25/26；orchestrator 親跑 full gate：SharedKernel 6/6、Architecture 14/14、Functional 25/26，RevokeKey 96.2%、RevokeLeakedKeys 95.5% coverage — `e94bbbd`
+- **ADR-025 Agent Engineering Kit 跨專案可攜化** — 使用者確認 installer 為正式目標、但須先以第二個真實專案人工 pilot 驗證邊界；決策固化 Core／Stack Profile／Project Overlay 三層、獨立 kit repo、manifest＋immutable baseline／lock、install／check／upgrade 與五階段 rollout。Phase 1 設「共用性不足即停止」閘門，避免違反制度機制事故驅動原則；todo 已登記 Phase 0–4，全部未排程 — `3fe2c91`
 - **KeyCreated `name` contract drift 修復（2026-07-10 使用者雙裁決：name 補實作、型別對齊）** — ADR-022 §2 既有行為變更路線：feature Then＋steps 綁定＋payload `name` 斷言先行 → 自然紅（`The given key was not present in the dictionary`）→ `KeyCreated` record＋`ApiKey.Create` 補 `Name` → 綠 24/27；integration spec §6.1 `consumerId`/`tenantId` 型別標記 `UUID`→`String` 對齊實作（場景語料 `"tenant-A"` 非 UUID，方向為 spec 就實作）；`Spec-change:` trailer 齊備，orchestrator 親跑 full gate 綠放行 — `3905357`。spec 其餘 4 處 `tenantId/consumerId: UUID`（EventEnvelope §3／ValidateConsumer／LockKey／ValidationAttempt）屬未實作契約未動，各 slice 落地時對齊。executor 零 blocker 零 friction（88.5K tokens／51 calls／3.5 分）
 
 ## 待驗證
@@ -51,6 +52,7 @@
 - A2 派工使用 `fork_turns=none` 控制 transcript 成本，但 spec 漏列 active lessons；executor 的規範載入腳本再次使用 zsh 唯讀變數 `status` 而中止一次，監控發現後在編輯前補讀 16 條 active lessons 並改用 `exit_code`。根因與做法記於 `tasks/lessons/20260710-fork-none-must-carry-active-lessons.md`。
 - A2 前置 repo 搜尋以 broad `rg` 執行兩次皆被 `exit 137` 終止且零輸出，縮窄範圍仍同；改用 `git grep` 立即取得結果。另 executor 的規範批次輸出曾截斷，改逐檔／小批次重讀補齊，未影響後續實作。
 - A2 checkpoint 首次用單一大型 patch 更新時，context 片段把 `gate 綠` 誤寫成 `gate綠`，`apply_patch` 驗證失敗且零部分寫入；改以小 patch 分段套用並逐段 read-back。
+- ADR-025 依 doc-coauthoring 優先嘗試 Gemini CLI cross-model review：首次因未啟用 experimental plan mode 在讀檔前退出；移除該 flag 後，服務端回 `IneligibleTierError`（現有 Gemini Code Assist individual client 不再支援），無可用 model list。改走 skill 的三 persona self-review fallback，補強 pilot target 判準、immutable baseline content 與 Phase 1 停止條件。
 
 ## 待裁決
 
@@ -59,13 +61,15 @@
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
 1. ~~上游 skill 實作~~ ✅ **2026-07-11 全數完成**：backlog-decomposition（`5b7bf60`）＋domain-discovery（`4edb8ad`）皆落地並通過綠＋故意紅；地圖兩缺口銷案，剩餘 fog（既有兩 skill 驗證設計、Discovery 解凍、方法論整併）見 `tasks/upstream-map.md`，維持觸發制。首次活體使用已於同日發生（hash 題目開場，skill 事實蒐集階段即發現 ADR-017 已裁決而正確終止——見已完成欄）；下一個真新設計任務開場時直接 `/domain-discovery`。
-2. **產品主線 Wave 3 續**：`03_SuspendResumeKey.feature`「金鑰非 Active 狀態 — 拒絕暫停」＝guard 負場景：production guard 已在（`SuspendKeyHandler` guard 3，INVALID_STATE_TRANSITION 409），預期 test-only 啟用＋故意紅義務；「暫停失敗」Then 需鏡射「撤銷失敗」的 (status, errorCode) 對照表先例。基線：FunctionalTests 25 passed/26 skipped。spec 精度注意（累積）：測試計數勿外推（46 場景＋5 hasher）、migration 需 `dotnet tool restore` 前置（本場景無 migration）、帳面更新排在 ci-checks 之前、scratchpad 訊息檔名帶場景代號、復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在、When step 需依場景措辭選 token（`TestTokenFactory`，預設 SecurityAdmin）、spec 明列 active lessons 讀取義務。
-3. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
-4. **小項**：todo #14–#18、#21–#24 housekeeping。
-5. **觸發制（勿提前實作）**：checkpoint 分流（`tasks/checkpoints/<workstream>.md`）與 bdd-progress 帳面生成化，規格已定於 ADR-021 §2／§3，觸發條件「第二個常設寫者出現」成立時依規格執行，不需新開 ADR；其餘 CI 端 trailer 覆核／Discovery 解凍見 `tasks/todo.md`「觸發制擱置項」段。
+2. **Agent Engineering Kit Phase 0（未排程，須使用者指示後開始）**：依 ADR-025 Decision §5 盤點現有 hooks／skills／rules／templates／gates，逐項分類 Core／Stack Profile／Project Overlay，並以反向搜尋列出 domain coupling；只產 inventory 與排除清單，不搬檔、不建 kit repo、不實作 installer。
+3. **產品主線 Wave 3 續**：`03_SuspendResumeKey.feature`「金鑰非 Active 狀態 — 拒絕暫停」＝guard 負場景：production guard 已在（`SuspendKeyHandler` guard 3，INVALID_STATE_TRANSITION 409），預期 test-only 啟用＋故意紅義務；「暫停失敗」Then 需鏡射「撤銷失敗」的 (status, errorCode) 對照表先例。基線：FunctionalTests 25 passed/26 skipped。spec 精度注意（累積）：測試計數勿外推（46 場景＋5 hasher）、migration 需 `dotnet tool restore` 前置（本場景無 migration）、帳面更新排在 ci-checks 之前、scratchpad 訊息檔名帶場景代號、復用既有 Then 前逐一核對該 step 讀取的 response 欄位在新 wire 形狀下存在、When step 需依場景措辭選 token（`TestTokenFactory`，預設 SecurityAdmin）、spec 明列 active lessons 讀取義務。
+4. **validation slice 前置合約已備**（ADR-017 Implementation Rule 6）：落地時必須帶 KeyHash 唯一索引 migration、`FixedTimeEquals` 複核、效能 smoke（P99 < 50ms／≥100 RPS）並同 commit 登記矩陣 — 效能無防線區在該點消除。todo #7 併發 guard 仍開放。
+5. **小項**：todo #14–#18、#21–#24 housekeeping。
+6. **觸發制（勿提前實作）**：checkpoint 分流（`tasks/checkpoints/<workstream>.md`）與 bdd-progress 帳面生成化，規格已定於 ADR-021 §2／§3，觸發條件「第二個常設寫者出現」成立時依規格執行，不需新開 ADR；其餘 CI 端 trailer 覆核／Discovery 解凍見 `tasks/todo.md`「觸發制擱置項」段。
 
 ## 工作區狀態警告
 
+- 2026-07-11 ADR-025 收尾 failure triage：三個 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新紀錄；active=18 < 20 未觸發 lessons triage。Gemini CLI 兩次失敗未進 root failure log，已記於「已嘗試且失敗的方法」。
 - 2026-07-11 revokedBy 回補包收尾 failure triage：三個 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。executor 唯一 friction 為 must-read 單次輸出截斷，改分批讀完，未形成新失敗簽名。
 - 2026-07-11 活體使用＋勘誤包收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增，無新 REPEAT；新 lesson 後 active=18 < 20 未觸發 lessons triage。
 - 2026-07-11 domain-discovery 落地收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=17 < 20 未觸發 lessons triage。
