@@ -19,7 +19,7 @@
 | 0 | 模糊想法 → Context Map／BC 分類／關鍵 ADR | （無） | **缺口 — spec 已備** |
 | 1–2 | PRD／High-level Design | `doc-coauthoring` skill | 存在，未經本 loop 驗證 |
 | 3–5 | BC 契約 → 聚合規格 → BDD 場景 | `requirements-analysis-design` skill＋`docs/design-methodology.md` | 存在，未經本 loop 驗證；Step 5 受 Discovery 凍結 |
-| 6 | 場景 → wave 切分＋基礎設施解鎖點 | （無；手工先例在 `tasks/bdd-progress.md`） | **缺口 — spec 已備** |
+| 6 | 場景 → wave 切分＋基礎設施解鎖點 | `backlog-decomposition` skill | **已落地**（`5b7bf60`，回放＋故意紅驗證通過） |
 | 7 | 場景 → 實作 | `bdd-vertical-slice`＋驗證矩陣 | 20/46 實戰淬煉，不屬本圖 |
 
 Golden trace（回放驗證的對照基準）：`docs/design/prd.md` → `design-doc.md` → `context-integration-spec.md` → `docs/detailed-design/`（5 BC）→ `docs/bdd/`（5 BC）→ 46 場景 feature 檔 → `tasks/bdd-progress.md` wave 表＋解鎖點表。
@@ -30,6 +30,7 @@ Golden trace（回放驗證的對照基準）：`docs/design/prd.md` → `design
 - **wayfinder 不整包引入**（2026-07-11 分析裁決）— 階段錯配／制度凍結／依賴鏈缺失三理由；留用 map-as-index 與 fog-of-war 兩思路。
 - [domain-discovery spec](specs/skill-domain-discovery.md) — 缺口 0 的 skill 規格；DoD 錨定 `requirements-analysis-design` 的 Prerequisite Guardrail 三項。
 - [backlog-decomposition spec](specs/skill-backlog-decomposition.md) — 缺口 6 的 skill 規格；回放 46 場景 golden trace 驗證，可全 AFK，建議首個實作。
+- **backlog-decomposition skill 落地**（2026-07-11，`5b7bf60`）— 首個「spec→skill→回放驗證」全程走通的先例：回放 wave 表與 golden trace 逐列吻合、三解鎖點時點相同、故意紅（只餵 05_RotateKey 藏時鐘線索）一次命中；executor 加值兩處（準則 2 展開四類信號掃描表＋反向核對、準則 1 補 seed 例外）。
 
 ## Not yet specified（fog — 「能精確陳述問題」才升格為工作項，勿預切）
 

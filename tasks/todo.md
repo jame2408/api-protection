@@ -16,8 +16,8 @@
 ## 上游管線 charting — 開放（2026-07-11 使用者裁決：Fable 5 視窗轉向）
 
 - 地圖：`tasks/upstream-map.md`（destination／缺口盤點／fog／out-of-scope，單一入口）。
-- 兩份 skill spec 已備至 executor 可實作精度：`tasks/specs/skill-backlog-decomposition.md`（全 AFK 可驗證，**建議首個實作**）、`tasks/specs/skill-domain-discovery.md`（HITL 驗證，排第二）。
-- 後續動作（後任協調者）：依 spec 派 executor 實作＋驗證（綠＋故意紅設計已內建於各 spec）；既有兩 skill（doc-coauthoring／requirements-analysis-design）的驗證設計留在地圖 fog 欄，待缺口 skill 驗證方法被證明後升格。
+- 兩份 skill spec 已備至 executor 可實作精度：`tasks/specs/skill-backlog-decomposition.md`（✅ **2026-07-11 已落地** `5b7bf60`，回放＋故意紅驗證通過）、`tasks/specs/skill-domain-discovery.md`（HITL 驗證，待實作）。
+- 後續動作（後任協調者）：依 spec 派工 `domain-discovery`（HITL 驗證需使用者在場）；既有兩 skill（doc-coauthoring／requirements-analysis-design）的驗證設計留在地圖 fog 欄——回放驗證方法已被 backlog-decomposition 證明可行，可升格時參照。
 
 ## Non-blocking follow-ups（已登記，未排程）
 
