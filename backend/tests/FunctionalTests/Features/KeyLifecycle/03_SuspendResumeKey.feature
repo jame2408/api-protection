@@ -45,7 +45,6 @@ Feature: 暫停與恢復金鑰
     When  操作者恢復 "key-A"
     Then  恢復失敗，錯誤原因為「金鑰狀態非 Suspended」
 
-  @ignore
   Scenario: 操作者無恢復權限 — 拒絕恢復
     Given 金鑰 "key-A" 狀態為 Suspended
     And   操作者為一般 Consumer（無恢復權限）

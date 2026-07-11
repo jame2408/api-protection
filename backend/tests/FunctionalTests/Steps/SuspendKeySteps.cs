@@ -39,6 +39,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
     }
 
     [Given(@"操作者為一般 Consumer（無暫停權限）")]
+    [Given(@"操作者為一般 Consumer（無恢復權限）")]
     public void GivenOperatorIsConsumerWithoutSuspendPermission()
     {
         _ctx.AuthToken = TestTokenFactory.CreateConsumerToken();

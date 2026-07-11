@@ -36,11 +36,14 @@ public static class ResumeKeyEndpoint
 
                 return Results.Ok(result.Value);
             })
-            // ADR-024 §4: control-plane endpoint, must be authenticated. Role policy (api-spec.md
-            // §3.2.6 Authorization: SecurityAdmin, TenantAdmin) is deliberately not enforced yet —
-            // left as a bare authentication gate until the "操作者無恢復權限 — 拒絕恢復" scenario
-            // drives it in with a real 403 red, per the SuspendKey precedent for the human-actor
-            // guard (this scenario has no actor-type restriction, only a role restriction).
-            .RequireAuthorization();
+            // api-spec.md §3.2.6 Authorization row: SecurityAdmin, TenantAdmin. Unlike
+            // SuspendKeyEndpoint's role gate, "System" is deliberately NOT included here.
+            // SuspendKey admits System into its role gate so the request reaches the handler's
+            // actor-type guard, which rejects System with a 422 HUMAN_ACTOR_REQUIRED — preserving
+            // that 422 contract requires letting System past the role check first. ResumeKey has no
+            // such actor-type guard (ResumeKeyHandler.cs guard 1: invariant 6 constrains Suspend
+            // only, there is no System-resume scenario to protect a 422 for), so there is nothing to
+            // preserve — System being rejected here with 403 by the role policy is correct.
+            .RequireAuthorization(policy => policy.RequireRole("SecurityAdmin", "TenantAdmin"));
     }
 }
