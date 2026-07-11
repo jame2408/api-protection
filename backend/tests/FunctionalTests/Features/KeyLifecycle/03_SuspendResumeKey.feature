@@ -33,7 +33,6 @@ Feature: 暫停與恢復金鑰
 
   # === C6: ResumeKey ===
 
-  @ignore
   Scenario: 成功恢復金鑰
     Given 金鑰 "key-A" 狀態為 Suspended
     And   操作者具備恢復權限

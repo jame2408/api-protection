@@ -115,6 +115,22 @@ public class ApiKey : AggregateRoot<Guid>
     }
 
     /// <summary>
+    /// Resumes the key. Guards (not-found / non-Suspended status) are the handler's
+    /// responsibility; mirrors <see cref="Suspend"/>. No actor-type restriction — invariant 6
+    /// ("human-only") only constrains Suspend, not Resume.
+    /// </summary>
+    public void Resume(Actor resumedBy)
+    {
+        Status = ApiKeyStatus.Active;
+
+        AddDomainEvent(new KeyResumed(
+            EventId: Guid.NewGuid(),
+            OccurredAt: DateTimeOffset.UtcNow,
+            KeyId: Id,
+            ResumedBy: resumedBy));
+    }
+
+    /// <summary>
     /// Clears the predecessor link on a rotation successor (used when the predecessor is
     /// revoked while Rotating — design-doc.md T6).
     /// </summary>

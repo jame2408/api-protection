@@ -46,6 +46,18 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
             new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
     }
 
+    [Given(@"操作者具備恢復權限")]
+    public void GivenOperatorHasResumePermission()
+    {
+        // ResumeKeyEndpoint currently only requires authentication (no role policy yet — see
+        // ResumeKeyEndpoint.Map comment), so any authenticated actor has "resume permission"
+        // today. SecurityAdmin here mirrors GivenOperatorIsSecurityAdmin so the KeyResumed
+        // event's resumedBy assertion has a stable actor id ("security-admin-1").
+        _ctx.AuthToken = TestTokenFactory.CreateSecurityAdminToken();
+        _ctx.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
@@ -110,6 +122,18 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"操作者恢復 ""(.*)""")]
+    public async Task WhenOperatorResumesKey(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        // api-spec.md §3.2.6: POST /resume has no request body.
+        _ctx.Response = await _ctx.Client.PostAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/resume", null);
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
@@ -153,6 +177,49 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         suspendedBy.GetProperty("name").GetString().Should().Be("security-admin-1");
 
         root.GetProperty("reason").GetString().Should().Be("維護排程");
+    }
+
+    [Then(@"""(.*)"" 狀態變為 Active")]
+    public void ThenKeyStatusBecomesActive(string keyAlias)
+    {
+        _ctx.Response!.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // ADR-006: assert raw JSON literal to lock the wire-format string,
+        // not just the round-tripped enum value.
+        using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+        doc.RootElement.GetProperty("lifecycleStatus").GetString().Should().Be("Active");
+
+        var reloadedKeyId = _ctx.SeededKeys[keyAlias];
+
+        // AsNoTracking: mirrors ThenKeyStatusBecomesSuspended — the Given step above added and
+        // saved this same entity on this same scenario-scoped DbContext, so a tracked re-query
+        // would return the stale in-memory instance instead of reflecting the HTTP request's
+        // (separate DbContext instance's) update.
+        var reloaded = Db.ApiKeys.AsNoTracking().Single(k => k.Id == reloadedKeyId);
+        reloaded.Status.Should().Be(ApiKeyStatus.Active, "the transition must be persisted, not just returned on the wire");
+    }
+
+    [Then(@"系統產生 KeyResumed 事件，包含 keyId、resumedBy")]
+    public void ThenKeyResumedEventIsPublished()
+    {
+        using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+        var keyId = doc.RootElement.GetProperty("keyId").GetGuid();
+
+        using var payload = Db.RequireOutboxEvent("KeyResumed", keyId);
+        var root = payload.RootElement;
+
+        root.GetProperty("keyId").GetGuid().Should().Be(keyId);
+
+        // resumedBy is a nested Actor object on the wire (integration spec §6.1 / §3 Actor
+        // schema) — distinct from the response's flat `resumedBy` string (api-spec.md §3.2.6).
+        var resumedBy = root.GetProperty("resumedBy");
+        resumedBy.GetProperty("type").GetString().Should().Be("User");
+        resumedBy.GetProperty("id").GetString().Should().Be("security-admin-1");
+        resumedBy.GetProperty("name").GetString().Should().Be("security-admin-1");
+
+        // KeyResumed has no Reason field (unlike KeySuspended) — lock the wire shape so a
+        // future edit doesn't silently reintroduce one.
+        root.TryGetProperty("reason", out _).Should().BeFalse();
     }
 
     [Then(@"暫停失敗，錯誤原因為「(.*)」")]
