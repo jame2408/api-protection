@@ -19,7 +19,6 @@ Feature: 暫停與恢復金鑰
     When  System（非人為操作者）對 "key-A" 發出暫停命令
     Then  暫停失敗，錯誤原因為「暫停操作僅限人為操作」
 
-  @ignore
   Scenario: 操作者無暫停權限 — 拒絕
     Given 金鑰 "key-A" 狀態為 Active
     And   操作者為一般 Consumer（無暫停權限）

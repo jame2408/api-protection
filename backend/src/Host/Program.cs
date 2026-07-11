@@ -5,6 +5,7 @@ using ApiKeyManagement.Infrastructure;
 using ApiKeyManagement.KeyLifecycle;
 using ApiKeyManagement.TenantManagement;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +43,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ProblemAuthorizationResultHandler>();
 
 // ADR-006: enum string wire format aligned with PascalCase enum members.
 // allowIntegerValues=false rejects numeric enum values in request bodies.

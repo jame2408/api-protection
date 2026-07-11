@@ -37,6 +37,14 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
             new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
     }
 
+    [Given(@"操作者為一般 Consumer（無暫停權限）")]
+    public void GivenOperatorIsConsumerWithoutSuspendPermission()
+    {
+        _ctx.AuthToken = TestTokenFactory.CreateConsumerToken();
+        _ctx.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
@@ -44,6 +52,20 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
     [When(@"Security Admin 暫停 ""(.*)""，原因為「(.*)」")]
     public async Task WhenSecurityAdminSuspendsKey(string keyAlias, string reason)
     {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/suspend",
+            new SuspendKeyEndpoint.Request(reason));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
+    [When(@"操作者暫停 ""(.*)""，原因為「(.*)」")]
+    public async Task WhenOperatorSuspendsKey(string keyAlias, string reason)
+    {
+        // Token already issued by the Given step above (Consumer here) — do not re-issue it,
+        // this step must work for whichever actor a scenario's Given set up.
         var keyId = _ctx.SeededKeys[keyAlias];
 
         _ctx.Response = await _ctx.Client.PostAsJsonAsync(
@@ -126,6 +148,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
             // re-states the strings so a constant value drift would surface as a test failure.
             ["金鑰狀態非 Active"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
             ["暫停操作僅限人為操作"] = (HttpStatusCode.UnprocessableEntity, "HUMAN_ACTOR_REQUIRED"),
+            ["權限不足"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));

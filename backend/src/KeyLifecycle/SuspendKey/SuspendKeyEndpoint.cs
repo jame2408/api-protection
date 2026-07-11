@@ -40,6 +40,11 @@ public static class SuspendKeyEndpoint
 
                 return Results.Ok(result.Value);
             })
-            .RequireAuthorization(); // ADR-024 §4: control-plane endpoint, must be authenticated.
+            // api-spec.md §3.2.5 Authorization row: SecurityAdmin, TenantAdmin. "System" is also
+            // allowed through this role gate (not listed in that row) so the request reaches the
+            // handler's actor-type guard, which rejects System with a 422 HUMAN_ACTOR_REQUIRED —
+            // api-spec.md §2.1 System actor 段:「僅限人為操作」類業務限制由 domain guard 以 Actor
+            // 型別拒絕（業務 Failure），不以 403 表達；若 policy 排除 System，該場景會從 422 退化成 403。
+            .RequireAuthorization(policy => policy.RequireRole("SecurityAdmin", "TenantAdmin", "System"));
     }
 }

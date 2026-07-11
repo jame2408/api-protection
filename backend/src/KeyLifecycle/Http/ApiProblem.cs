@@ -18,10 +18,16 @@ public static class ApiProblem
 {
     private const string TypeBaseUri = "https://api.example.com/errors/";
 
+    // Generic authorization-denial code (api-spec.md §2.2 FORBIDDEN row). Not a per-BC
+    // *FailureCodes constant because the authorization policy runs in Program.cs / the
+    // authorization middleware — before any BC Handler executes — so no BC "owns" this code.
+    public const string ForbiddenCode = "FORBIDDEN";
+
     // Failure.Code -> (HTTP status, human-readable title). VALIDATION_ERROR:* is handled by prefix.
     private static readonly Dictionary<string, (int Status, string Title)> Map =
         new()
         {
+            [ForbiddenCode] = (StatusCodes.Status403Forbidden, "Forbidden"),
             [ConsumerValidationFailureCodes.TenantNotFound] = (StatusCodes.Status404NotFound, "Tenant Not Found"),
             [ConsumerValidationFailureCodes.ConsumerNotFound] = (StatusCodes.Status404NotFound, "Consumer Not Found"),
             [ConsumerValidationFailureCodes.TenantSuspended] = (StatusCodes.Status403Forbidden, "Tenant Suspended"),
