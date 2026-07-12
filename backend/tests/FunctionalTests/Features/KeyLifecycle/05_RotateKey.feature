@@ -40,6 +40,12 @@ Feature: 輪替金鑰
     When  操作者對 "key-A" 發起輪替
     Then  輪替失敗，錯誤原因為「權限不足」
 
+  Scenario: Consumer 輪替非自身金鑰 — 拒絕
+    Given 金鑰 "key-A" 狀態為 Active，且屬於其他 Consumer
+    And   操作者為一般 Consumer
+    When  操作者對 "key-A" 發起輪替
+    Then  輪替失敗，錯誤原因為「權限不足」
+
   # === C9: CompleteGracePeriod ===
 
   @ignore

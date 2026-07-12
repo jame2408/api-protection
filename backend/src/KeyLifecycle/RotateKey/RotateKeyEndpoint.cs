@@ -33,7 +33,11 @@ public static class RotateKeyEndpoint
                     KeyId: keyId,
                     GracePeriod: request.GracePeriod is null
                         ? null
-                        : XmlConvert.ToTimeSpan(request.GracePeriod));
+                        : XmlConvert.ToTimeSpan(request.GracePeriod),
+                    // MapInboundClaims=false (Program.cs) keeps this the raw JWT claim name —
+                    // TestTokenFactory only writes "consumerId" for Consumer tokens, so
+                    // TenantAdmin/SecurityAdmin naturally read null here.
+                    ActorConsumerId: httpContext.User.FindFirst("consumerId")?.Value);
 
                 var result = await handler.HandleAsync(command, cancel);
 
@@ -47,10 +51,9 @@ public static class RotateKeyEndpoint
             })
             // api-spec.md §3.2.4 Authorization row: TenantAdmin, Consumer（限自身金鑰）. The role
             // half is enforced here (RequireRole), red-driven by "操作者無輪替權限 — 拒絕輪替"
-            // (defect-repro, security review 9e0e432). The ownership half ("限自身金鑰") remains
-            // deferred to the companion ownership defect-repro scenario — RotateKeyHandler has no
-            // actor-ownership guard yet, so admitting both roles past this policy is correct until
-            // that scenario red-drives the narrower check.
+            // (defect-repro, security review 9e0e432). The ownership half ("限自身金鑰") is
+            // enforced in RotateKeyHandler (ActorConsumerId guard), red-driven by
+            // "Consumer 輪替非自身金鑰 — 拒絕" (defect-repro companion scenario).
             .RequireAuthorization(policy => policy.RequireRole("TenantAdmin", "Consumer"));
     }
 }

@@ -22,6 +22,9 @@ public class RotateKeySteps(FunctionalTestContext ctx)
     private AppDbContext Db =>
         _ctx.ServiceScope!.ServiceProvider.GetRequiredService<AppDbContext>();
 
+    private IApiKeyHasher Hasher =>
+        _ctx.ServiceScope!.ServiceProvider.GetRequiredService<IApiKeyHasher>();
+
     // -------------------------------------------------------------------------
     // Given
     // -------------------------------------------------------------------------
@@ -35,6 +38,31 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         Db.ApiKeys.Any(k => k.Status == ApiKeyStatus.Rotating).Should().BeFalse();
     }
 
+    [Given(@"金鑰 ""(.*)"" 狀態為 Active，且屬於其他 Consumer")]
+    public async Task GivenKeyIsActiveOwnedByOtherConsumer(string keyAlias)
+    {
+        _ctx.CurrentTenantId = "tenant-A";
+
+        // "other-consumer" is deliberately different from the "操作者為一般 Consumer" When
+        // step's token consumerId claim ("consumer-1") — that mismatch is the mechanical
+        // definition of "非自身金鑰" this scenario asserts against (mirrors
+        // RevokeKeySteps.CreateSeedKey's seed shape, private there so re-declared here).
+        var (key, _) = ApiKey.Create(
+            consumerId: "other-consumer",
+            tenantId: _ctx.CurrentTenantId,
+            name: keyAlias,
+            environment: "Production",
+            scopes: ["seed:read"],
+            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
+
+        Db.ApiKeys.Add(key);
+        _ctx.SeededKeys[keyAlias] = key.Id;
+
+        await Db.SaveChangesAsync();
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
@@ -44,7 +72,11 @@ public class RotateKeySteps(FunctionalTestContext ctx)
     {
         var keyId = _ctx.SeededKeys[keyAlias];
 
-        _ctx.AuthToken = TestTokenFactory.CreateConsumerToken();
+        // This When's semantics are "the key's own Consumer initiates rotation" — the token's
+        // consumerId claim must match the seed's ConsumerId (RevokeKeySteps.CreateSeedKey:
+        // "any-consumer"), otherwise the ownership guard (RotateKeyHandler) rejects it as
+        // non-self rotation.
+        _ctx.AuthToken = TestTokenFactory.CreateConsumerToken(consumerId: "any-consumer");
         _ctx.Client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
 

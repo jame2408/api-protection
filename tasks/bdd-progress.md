@@ -23,7 +23,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 35 / 47  
+**已通過：** 36 / 48  
 **下一個：** `05_RotateKey.feature` — 金鑰非 Active 狀態 — 拒絕輪替
 
 ---
@@ -36,7 +36,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 | `02_RevokeKey.feature` | 2 | 撤銷金鑰 | 7 | KeyLifecycle.RevokeKey | Rotating 狀態需 seed |
 | `03_SuspendResumeKey.feature` | 3 | 暫停與恢復金鑰 | 8 | KeyLifecycle.SuspendKey、ResumeKey | AuthToken 機制（Wave 3 前須建立） |
 | `04_LockUnlockKey.feature` | 4 | 鎖定與解鎖金鑰 | 6 | KeyLifecycle.LockKey、UnlockKey | System 角色 |
-| `05_RotateKey.feature` | 5+6 | 輪替金鑰 + 完成寬限期 | 8 | KeyLifecycle.RotateKey、CompleteGracePeriodJob | FakeClock（Wave 5 後段） |
+| `05_RotateKey.feature` | 5+6 | 輪替金鑰 + 完成寬限期 | 9 | KeyLifecycle.RotateKey、CompleteGracePeriodJob | FakeClock（Wave 5 後段） |
 | `06_ExpireKey.feature` | 7 | 金鑰到期處理 | 6 | KeyLifecycle.ExpireKeyJob | FakeClock |
 
 ---

@@ -645,7 +645,7 @@ JWT Claims：
 | errorCode | HTTP | 條件 |
 |:----------|:-----|:-----|
 | NOT_FOUND | 404 | 金鑰不存在 |
-| FORBIDDEN | 403 | 操作者 role 非 TenantAdmin／Consumer（權限不足） |
+| FORBIDDEN | 403 | 操作者 role 非 TenantAdmin／Consumer，或 Consumer 對非自身金鑰輪替（權限不足） |
 | INVALID_STATE_TRANSITION | 409 | 金鑰狀態非 Active |
 | ROTATION_IN_PROGRESS | 409 | 同 Consumer + Environment 下已有 Rotating 金鑰（INV-4） |
 | KEY_ALREADY_EXPIRED | 409 | 金鑰已到期，無法輪替 |
