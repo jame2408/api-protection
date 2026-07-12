@@ -1,7 +1,7 @@
 ---
 date: 2026-07-12
 type: correction
-status: active
+status: archived
 ---
 
 # @ignore 佇列查找必須用行號數值排序 — 純字典序把同檔 5 行排在 19 行後，錯誤指標曾寫進帳面
@@ -11,3 +11,5 @@ status: active
 **Rule:** (1) 查找下一個 `@ignore` 場景一律用佇列 SSOT `tasks/bdd-progress.md` 記載的指令（`grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort -t: -k1,1 -k2,2n | head -1`），不得用純字典序 `sort`。(2) 對 grep 輸出的佇列判定，落帳前以 feature 檔原文覆核目標場景前面沒有更早的 `@ignore`——工具輸出的排序假設也是一種需要驗證的執行期值。
 
 **落地:** 本條 lesson；CLAUDE.md 佇列指令已於 2026-07-12 經使用者核准改為數值排序版（與 bdd-progress.md SSOT 對齊），Rule (1) 的 drift 根因已除，Rule (2)（工具輸出排序假設需覆核）維持習慣承載。
+
+**歸檔（2026-07-12 lessons triage，active=20 觸發）:** Rule (1) 已由 CLAUDE.md（每 session 自動載入）與 bdd-progress.md SSOT 雙重承載，注入零增量；Rule (2) 屬「執行期值求證」既有習慣家族範疇——依 ADR-013 決策 (b) 歸檔。
