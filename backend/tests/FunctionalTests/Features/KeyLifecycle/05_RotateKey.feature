@@ -2,7 +2,6 @@ Feature: 輪替金鑰
 
   # === C2: RotateKey ===
 
-  @ignore
   Scenario: 成功啟動金鑰輪替
     Given 金鑰 "key-A" 狀態為 Active，尚未到期
     And   同一 Consumer + Environment 下沒有其他 Rotating 金鑰

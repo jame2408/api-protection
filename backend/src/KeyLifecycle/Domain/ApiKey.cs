@@ -25,6 +25,7 @@ public class ApiKey : AggregateRoot<Guid>
     public Guid PolicyId { get; private set; }
     public Guid? SuccessorKeyId { get; private set; }
     public Guid? PredecessorKeyId { get; private set; }
+    public DateTimeOffset? GraceDeadline { get; private set; }
 
     // EF Core
     private ApiKey() { }
@@ -168,6 +169,33 @@ public class ApiKey : AggregateRoot<Guid>
     /// revoked while Rotating — design-doc.md T6).
     /// </summary>
     public void ClearPredecessorLink() => PredecessorKeyId = null;
+
+    /// <summary>
+    /// Initiates rotation on this key (Key A). Deliberately merges the Active → Rotating
+    /// transition with setting the successor link in one method: INV-2 ("Rotating 必有
+    /// Successor", design-doc.md L739) is guaranteed by this method's signature — there is no
+    /// code path that can leave the key in Rotating without a successor. Guards (not-found /
+    /// non-Active) are the handler's responsibility; mirrors <see cref="Suspend"/>.
+    /// </summary>
+    public void InitiateRotation(Guid successorKeyId, TimeSpan gracePeriod, DateTimeOffset now)
+    {
+        Status = ApiKeyStatus.Rotating;
+        SuccessorKeyId = successorKeyId;
+        GraceDeadline = now + gracePeriod;
+
+        AddDomainEvent(new KeyRotationInitiated(
+            EventId: Guid.NewGuid(),
+            OccurredAt: now,
+            OldKeyId: Id,
+            NewKeyId: successorKeyId,
+            GraceDeadline: GraceDeadline.Value));
+    }
+
+    /// <summary>
+    /// Sets the predecessor link on this key (Key B, the rotation successor). Mirrors
+    /// <see cref="ClearPredecessorLink"/>'s single-line style.
+    /// </summary>
+    public void SetPredecessor(Guid predecessorKeyId) => PredecessorKeyId = predecessorKeyId;
 
     /// <summary>
     /// Records that this key must be flagged to Security Admin and Consumer following a

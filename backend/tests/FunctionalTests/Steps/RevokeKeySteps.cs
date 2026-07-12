@@ -57,6 +57,9 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     // -------------------------------------------------------------------------
 
     [Given(@"金鑰 ""(.*)"" 狀態為 Active")]
+    // 05_RotateKey.feature line 7 — same seed (expiresAt: UtcNow.AddDays(30), see CreateSeedKey)
+    // already satisfies "尚未到期"; overlaid rather than duplicated (RotateKeySteps.cs).
+    [Given(@"金鑰 ""(.*)"" 狀態為 Active，尚未到期")]
     public async Task GivenKeyIsActive(string keyAlias)
     {
         _ctx.CurrentTenantId = "tenant-A";
