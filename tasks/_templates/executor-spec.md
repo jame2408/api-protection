@@ -18,6 +18,7 @@
 > 凡涉及執行期值（預設值、null 與否、初始狀態）的敘述，必須讀該欄位／屬性的宣告與初始化行求證；核實深度以「executor 可直接照抄判斷式」為準。
 > 凡啟用「測試後段 guard」的 BDD 場景：本欄必須列出 handler guard 順序，並逐一核對該場景請求形狀（URL、payload 常值）與 seed 狀態能通過目標 guard 之前的每一道 guard；佔位常值（如 `"any:read"`）視同執行期值求證。
 > 凡列舉型敘述（caller 數、樣板出現點清單、「恰 N 處」）：必須以 `grep -n` 對全檔取證計數後才可寫入，不得憑部分閱讀列舉——漏列會迫使 executor 在「照 spec 留孤兒引用致編譯失敗」與「自行擴大範圍」之間二選一（2026-07-12 重構 pass 實例：spec 列 5 個 caller、實為 7）。
+> 凡 BDD 派工宣稱「新 step」：每一條 step 文字必須逐字 grep `backend/tests/FunctionalTests/Steps/` 證明無既有 binding 才可列為新增——同文 pattern 在新檔重複宣告是 Reqnroll ambiguous binding，且既有實作的語意可能與新場景衝突（2026-07-12 C9 實例：「觸發主動快取失效」已存在於 RevokeKeySteps 且硬讀 ResponseBody，spec 誤列新 step 致紅 A 計數不符觸發停止）。
 
 ## 允許改動的檔案集（嚴格限定）
 
