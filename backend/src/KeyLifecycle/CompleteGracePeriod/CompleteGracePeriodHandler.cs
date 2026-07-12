@@ -20,18 +20,22 @@ public class CompleteGracePeriodHandler(
         if (key.Status != ApiKeyStatus.Rotating)
             return FailureProvider.CreateFailure(CompleteGracePeriodFailureCodes.InvalidStateTransition);
 
-        // 3. Guard: now >= GraceDeadline — deliberately NOT implemented this round (BDD
-        //    discipline: only one @ignore removed at a time). "寬限期尚未到期 — 不處理" is the
-        //    next scenario in the backlog and will red-drive this guard; insertion point is here,
-        //    between the status guard above and the state transition below, mirroring
-        //    RotateKeyHandler's guard-order precedent for its analogous "expired" check.
+        var now = clock.GetUtcNow();
+
+        // 3. Guard: now >= GraceDeadline (mirrors RotateKeyHandler's guard-order precedent for its
+        //    analogous "expired" check). GraceDeadline is nullable (ApiKey.cs) — a Rotating key
+        //    without a deadline is corrupt data, not a due-for-completion signal, so null is
+        //    treated as "not yet due" (reject completion) rather than "unconditionally due":
+        //    leaving it stuck in Rotating is the safer failure mode than silently revoking it.
+        if (key.GraceDeadline is null || now < key.GraceDeadline)
+            return FailureProvider.CreateFailure(CompleteGracePeriodFailureCodes.GracePeriodNotReached);
 
         // INV-2 guarantees SuccessorKeyId is non-null while Status is Rotating (ApiKey.cs
         // CompleteGracePeriod doc comment) — captured before the domain method clears it, since
         // the response needs it.
         var successorKeyId = key.SuccessorKeyId!.Value;
 
-        key.CompleteGracePeriod(clock.GetUtcNow());
+        key.CompleteGracePeriod(now);
 
         await keyRepository.UpdateAsync(key, cancel);
 

@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 40 / 48  
-**下一個：** `05_RotateKey.feature` — 寬限期尚未到期 — 不處理
+**已通過：** 41 / 48  
+**下一個：** `05_RotateKey.feature` — 非 Rotating 狀態 — 拒絕完成寬限期
 
 ---
 

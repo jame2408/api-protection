@@ -9,4 +9,9 @@ public static class CompleteGracePeriodFailureCodes
     // Result<T, Failure> returned to the (future) per-key command caller.
     public const string KeyNotFound = "NOT_FOUND";
     public const string InvalidStateTransition = "INVALID_STATE_TRANSITION";
+
+    // "寬限期尚未到期 — 不處理" scenario's guard failure. Same no-wire-consumer situation as the
+    // two codes above (no ApiProblem.Map entry needed) — the scan handler (
+    // CompleteGracePeriodScanHandler) only counts successes, it discards this Failure silently.
+    public const string GracePeriodNotReached = "GRACE_PERIOD_NOT_REACHED";
 }

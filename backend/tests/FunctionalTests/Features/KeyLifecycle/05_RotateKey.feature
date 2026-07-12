@@ -54,7 +54,6 @@ Feature: 輪替金鑰
     And   系統產生 KeyGracePeriodExpired 事件，包含 keyId、successorKeyId
     And   觸發主動快取失效
 
-  @ignore
   Scenario: 寬限期尚未到期 — 不處理
     Given 金鑰 "key-A" 狀態為 Rotating
     And   當前時間尚未超過 "key-A" 的 graceDeadline
