@@ -1,6 +1,6 @@
 # Checkpoint 範本
 
-> 用途：session／執行者交接時的標準格式。抽象自 `tasks/process-improvement-plan.md` §8.5 的實際範例。
+> 用途：session／執行者交接時的標準格式。抽象自 `tasks/archive/process-improvement-plan.md` §8.5 的實際範例（plan 檔已依 ADR-028 退役歸檔，僅出處路徑重定向）。
 > 治理：本檔案的欄位定義受 `docs/adr/adr-007-process-governance.md` 管轄 — 修改欄位結構須先開新 ADR，見 `docs/orchestration.md` §Checkpoint schema。
 > 使用方式：複製下列欄位到交接紀錄（例如 plan 檔案的某個章節、或 PR/issue 描述），逐欄填寫；不要複寫欄位定義本身，只填內容。
 

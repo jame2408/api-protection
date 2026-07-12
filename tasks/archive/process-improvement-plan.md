@@ -1,5 +1,7 @@
 # 開發流程與制度補強 Plan
 
+> **已歸檔（2026-07-12，`docs/adr/adr-028-knowledge-ledger-lifecycle-and-adr-index.md` 決策 §3）**：本檔為 2026-05～07 hardening 與協調層盤點的歷史紀錄，自 `tasks/` 根層退役至此，內文逐字保留。殘餘開放項已遷 `tasks/todo.md`（zh-lint 掃描範圍觀察 → Non-blocking follow-ups；Tessl §9.3 D-2 擱置裁決 → 觸發制擱置項）。歷史文件內指向舊路徑 `tasks/process-improvement-plan.md` 的引用一律以本檔為終點。
+>
 > 本 plan 記錄 hardening pass 後的閉環工程（loop engineering）補強方向：哪些 drift 根因已被關閉、哪些仍是開環、以及後續應以什麼順序建立機械化防線。
 > 初稿：2026-05-01。更新：2026-06-13。狀態：執行計畫草稿，下一步應拆出正式 ADR 與具體 backlog。
 

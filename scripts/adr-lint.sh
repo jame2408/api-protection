@@ -12,6 +12,8 @@
 #   5. Filename numbering is unique and sequential (no gaps, no dupes)
 #   6. Each "### Alternative " block contains literal "Rejected."
 #   7. Each "Negative" / "Trade-offs" bullet has a "Mitigation:" follow-up
+#   8. docs/adr/README.md index is bidirectionally consistent with adr-*.md
+#      files (ADR-028; full-set lint only, like check 5)
 #
 # Usage:
 #   scripts/adr-lint.sh                    # lint all docs/adr/adr-*.md
@@ -81,21 +83,27 @@ check_file() {
     done < <(grep -nE '\.(md|cs|csproj|feature):[0-9]+' "$f" || true)
 
     # 6. Each "### Alternative " block contains "Rejected."
-    awk '
+    # NOTE: read from process substitution, not a pipe — a pipe puts the while
+    # body in a subshell and the violations counter increment is lost (lint
+    # printed the violation but still exited 0; dead defense, fixed per ADR-028).
+    while IFS=: read -r ln name; do
+        report "$rel" "$ln" "Alternative without explicit \"Rejected.\" marker — $name"
+    done < <(awk '
         /^### Alternative / { name = $0; has_rejected = 0; next }
         /^### / && name { if (!has_rejected) print NR": "name; name = "" }
         /^## / && name  { if (!has_rejected) print NR": "name; name = "" }
         /Rejected\./ && name { has_rejected = 1 }
         END { if (name && !has_rejected) print NR": "name }
-    ' "$f" | while IFS=: read -r ln name; do
-        report "$rel" "$ln" "Alternative without explicit \"Rejected.\" marker — $name"
-    done
+    ' "$f")
 
     # 7. Trade-off bullets need Mitigation follow-up
     # Heuristic: inside "### Negative" or "### Negative / Trade-offs" block,
     # every top-level bullet ("- " at column 0) must be followed (within next 3 lines)
     # by a "Mitigation:" indented bullet.
-    awk '
+    # (process substitution for the same subshell-counter reason as check 6)
+    while IFS=: read -r ln text; do
+        report "$rel" "$ln" "Trade-off bullet without Mitigation follow-up — $text"
+    done < <(awk '
         /^### Negative/        { in_block = 1; next }
         /^### / && in_block    { in_block = 0 }
         /^## /  && in_block    { in_block = 0 }
@@ -115,9 +123,32 @@ check_file() {
             }
             if (!found) print bullet_line": "bullet_text
         }
-    ' "$f" | while IFS=: read -r ln text; do
-        report "$rel" "$ln" "Trade-off bullet without Mitigation follow-up — $text"
+    ' "$f")
+}
+
+check_index_consistency() {
+    # 8. docs/adr/README.md index ↔ adr-*.md files, bidirectional (ADR-028)
+    local index="$ADR_DIR/README.md"
+    local index_rel="${index#"$REPO_ROOT"/}"
+    if [[ ! -f "$index" ]]; then
+        report "$index_rel" - 'ADR index missing — every adr-*.md must be listed (ADR-028)'
+        return
+    fi
+    local f base
+    for f in "$ADR_DIR"/adr-*.md; do
+        [[ -e "$f" ]] || continue
+        base=$(basename "$f")
+        if ! grep -qF "($base)" "$index"; then
+            report "$index_rel" - "index row missing for $base — add it in the same commit (ADR-028)"
+        fi
     done
+    local ref
+    while IFS= read -r ref; do
+        [[ -n "$ref" ]] || continue
+        if [[ ! -f "$ADR_DIR/$ref" ]]; then
+            report "$index_rel" - "index references missing file: $ref"
+        fi
+    done < <(grep -oE 'adr-[0-9]+[a-z0-9-]*\.md' "$index" | sort -u)
 }
 
 check_filename_numbering() {
@@ -176,9 +207,10 @@ main() {
         check_file "$f"
     done
 
-    # Filename-level checks (only when linting full set)
+    # Repo-level checks (only when linting full set)
     if [[ $# -eq 0 ]]; then
         check_filename_numbering
+        check_index_consistency
     fi
 
     if [[ $violations -eq 0 ]]; then

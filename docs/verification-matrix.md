@@ -4,7 +4,7 @@
 >
 > **同步義務**：任何檢驗機制新增、修改、或除役（新增測試、改 lint pattern、換 hook 邏輯）時，本表必須在**同一個 commit** 內同步更新（`docs/adr/adr-007-process-governance.md` 規則 2：規範文件修改若影響其他文件對同一規則的引用，須同 commit 修正）。
 >
-> 關閉 `tasks/process-improvement-plan.md` §9.2 O-6。
+> 關閉 `tasks/archive/process-improvement-plan.md` §9.2 O-6（plan 檔已依 ADR-028 退役歸檔）。
 
 ---
 
@@ -32,7 +32,7 @@
 | 9e | `tasks/bdd-progress.md` 與實作同 commit + 帳面一致（已通過 N/M 必等於 場景總數−`@ignore` 數） — `CLAUDE.md` §BDD「same commit」條 | `scripts/git-hooks/pre-commit`（同 commit staged 檢查）+ `scripts/bdd-lint.sh`（帳面一致性） | commit 前 / push 前 / CI | 腳本 |
 | 9f | scenario enablement commit 必附重構判斷 trailer——`.claude/skills/bdd-vertical-slice/SKILL.md` 步驟 9 的判斷（含「不重構」）不得省略留痕 — `CLAUDE.md` §BDD Constraints「Refactor-assessment」條 | `scripts/git-hooks/commit-msg`（staged net `@ignore` 移除 ≥ 1 時強制 message 含 `Refactor-assessment: .+`） | commit 前（僅本機 hook；`--no-verify` 可繞過，CI 不覆蓋——誠實標注，殘餘風險比照 9d） | 腳本 |
 | 9g | 既有場景修訂／缺陷再現／行為移除等非 `@ignore` 的 `.feature` 改動須附 `Spec-change:` trailer 記載裁決依據 — `docs/adr/adr-022-bdd-requirement-type-routing.md` §5 | `scripts/git-hooks/commit-msg`（staged diff 觸及 `.feature` 且變更行非純 `@ignore` 增減時強制 message 含 `Spec-change: .+`；逃生口 `ALLOW_FEATURE_MAINTENANCE=1` 限機械性整理） | commit 前（僅本機 hook；`--no-verify` 可繞過，CI 不覆蓋——誠實標注，殘餘風險比照 9d/9f） | 腳本 |
-| **`scripts/adr-lint.sh` — 結構性（1 項，涵蓋 7 個子檢查：Status 格式 / 7 個必要章節 / governance clause / 禁 file:line / 檔名編號連續 / Alternative 需 `Rejected.` / Trade-off 需 `Mitigation:`）＋ pre-commit 配套 guard（10a）** ||||
+| **`scripts/adr-lint.sh` — 結構性（1 項，涵蓋 8 個子檢查：Status 格式 / 7 個必要章節 / governance clause / 禁 file:line / 檔名編號連續 / Alternative 需 `Rejected.` / Trade-off 需 `Mitigation:` / `docs/adr/README.md` 索引雙向一致，ADR-028）＋ pre-commit 配套 guard（10a）** ||||
 | 10 | `docs/adr/adr-*.md` 結構性合規 — `CLAUDE.md`「Architecture Decision Records (ADR)」段 + 其「Validation」→「Structural lint (mechanical)」子段 | `scripts/adr-lint.sh` | commit 前（僅當 `docs/adr/` 有 staged 變更才觸發，見 `scripts/git-hooks/pre-commit`）/ push 前 / CI | 腳本 |
 | 10a | `docs/adr/` 有 staged 變更時，該目錄不得存在 untracked `adr-*.md`（未輪到的 ADR 草稿留 scratchpad；adr-lint 讀工作區，untracked 檔會被 lint 卻不入 commit，遮蔽編號缺口）— `tasks/lessons/20260706-untracked-adr-draft-blocks-commit.md`（已歸檔，防線代記） | `scripts/git-hooks/pre-commit`（`git ls-files --others` 檢查段） | commit 前（僅本機 hook；`--no-verify` 可繞過，CI 不覆蓋——誠實標注，殘餘風險比照 9d） | 腳本 |
 | **`dotnet format`** ||||
@@ -75,7 +75,7 @@
 | 23a | zsh 對裸 `=` 開頭參數（`=word` 展開）攔截——對應 `(eval):N: == not found` 事故，見 `tasks/lessons/20260705-zsh-bare-equals-expansion.md` | `scripts/agent/hook.py` `pre-tool-bash`（`_ZSH_EQUALS_TOKEN` regex） | 寫的當下（Claude Code／Codex Bash hook） | 腳本 |
 | 23b | tool failure observation 必須先做 key-based＋value-based secret scrubbing 再寫入 `.claude/failures.jsonl`，供 ADR-018 phase-close triage 使用 | `scripts/agent/hook.py` `observe-tool-failure`；Claude Code 由 `PostToolUseFailure` 送任意 tool failure，Codex 由 `PostToolUse` 在 response 明確含失敗旗標／非零 exit code 時送入 | tool failure 後（coverage 依 harness event 能力） | 腳本 |
 
-不列 Tessl（`tasks/process-improvement-plan.md` §9.3 D-2 裁決：擱置，不入制度）。
+不列 Tessl（`tasks/archive/process-improvement-plan.md` §9.3 D-2 裁決：擱置，不入制度；追蹤項見 `tasks/todo.md` 觸發制擱置項段）。
 
 **第一層 coverage 邊界**：Codex 的 PreToolUse／PostToolUse 只攔其原生支援的 shell、`apply_patch` 與 MCP 等 tool path，且沒有 Claude Code `PostToolUseFailure` 的完整等價事件；第 12–15a、23–23b 項是提早回饋層，不是完整 enforcement boundary。規則完整性仍由 commit／push／CI gates 承擔（ADR-023 Decision §5／§7）。
 
@@ -101,13 +101,14 @@
 | Refactor 紀律：production-only / test-only 不混改（介面/DTO 改名與 wire-contract 變更豁免） | `CLAUDE.md` §BDD「Refactor discipline」段 | 未追蹤——**2026-07-05 使用者裁決不機械化**（合法例外多，staged 路徑比對必然誤報；由 review 承擔） |
 | `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` 晉升只能由使用者執行 | `CLAUDE.md` §BDD Kanban 段 | 本質不可機械化（無法從 diff 判定「誰」決定的）；由 review 與 git 歷史事後稽核承擔，明文承認無防線 |
 | 驗證矩陣同步義務（機制異動同 commit 登記本表） | 本檔治理聲明「同步義務」段 | 半防線——`scripts/machinery-check.sh` 驗「本表引用的路徑存在」，不驗反向「新機制已登記」；缺口明文承認，靠 ADR 同步項目清單與 review 承擔 |
+| phase 收尾清掃：已結案項自活帳面（`tasks/todo.md` 為主）移至 `tasks/archive/` | `docs/adr/adr-028-knowledge-ledger-lifecycle-and-adr-index.md` 決策 §2 | 未機械化——「已結案」判定屬語意判斷，**ADR-028 明文裁決不機械化**（字樣比對必然誤報，比照 Refactor 紀律先例）；由 `tasks/checkpoint.md`「如何接上」儀式句（與 failure-triage 同時機）＋review 承擔，archive 檔日期戳可稽核 |
 
 ---
 
 ## 審校紀錄（2026-07-04 orchestrator review）
 
 - Executor 自查時回報的 4 項並行時序落差（hook-smoke 未接線、`pending-lessons.jsonl` 未刪、`.gitignore` 缺 `.claude/*.marker`、第 16 項為預寫狀態），於本表 commit 時**已全部消解**：Phase B 落地 + orchestrator 裁決 `hook_smoke` 同時接入 fast 與 full（維持「fast ⊂ full」不變式）。
-- **仍開放**：`dotnet format` 的權威來源模糊（主表第 11 項）——`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免，style/naming 規則未定義，格式規則對應不到任何 `CLAUDE.md`/ADR 條文，權威來源仍為工具預設。裁決狀態維持待規格擁有者決定，追蹤於 `tasks/process-improvement-plan.md` §8.3。
+- **仍開放**：`dotnet format` 的權威來源模糊（主表第 11 項）——`backend/.editorconfig` 存在，僅含 2 檔 `generated_code` whitespace 豁免，style/naming 規則未定義，格式規則對應不到任何 `CLAUDE.md`/ADR 條文，權威來源仍為工具預設。裁決狀態維持待規格擁有者決定，追蹤於 `tasks/archive/process-improvement-plan.md` §8.3。（本節為 2026-07-04 當時審校紀錄；此項同日稍後已由 ADR-011／Phase F 關閉，見無防線區塊「命名慣例」列的移出註記。）
 - 主表其餘各行「機制」檔案路徑已由 executor 逐一 `ls`/`grep` 確認存在（見下方核對清單），orchestrator 抽驗無誤。
 
 ---

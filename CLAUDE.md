@@ -43,7 +43,7 @@ _How Claude and the user collaborate — committed to the repo so it persists ac
 - ADRs touching reference docs / CLAUDE.md / examples MUST list "同步項目" (Status one-liner or Decision sub-section) and land all sync edits in the same commit.
 
 #### Validation
-- **結構性 lint**：`scripts/adr-lint.sh`（Status 格式／必要章節／governance clause／禁 file:line／檔名編號／Alternatives 需 "Rejected."／Trade-off 需 "Mitigation:"）；staged 含 `docs/adr/` 時 pre-commit 自動跑。
+- **結構性 lint**：`scripts/adr-lint.sh`（Status 格式／必要章節／governance clause／禁 file:line／檔名編號／Alternatives 需 "Rejected."／Trade-off 需 "Mitigation:"／`docs/adr/README.md` 索引雙向一致，ADR-028）；staged 含 `docs/adr/` 時 pre-commit 自動跑。
 - **驗收指令**：承諾 repo 範圍清理的 ADR，Implementation Rules 須內嵌可執行驗證指令（範例見 ADR-006 §6）。
 - **Review checklist（判斷型，7 項）**：合併 ADR PR 前逐條核對，清單見 `docs/adr/_template.md` 內建的 Review Checklist 註解區。
 

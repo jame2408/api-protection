@@ -96,7 +96,7 @@
 
 ## 6. 冷啟動標準 prompt
 
-> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (d) 管轄，修改文字須先開新 ADR。交接入口指針已由 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c) 修訂為 `tasks/checkpoint.md`（原指 `tasks/process-improvement-plan.md` §8.5）；「模型分級」用語由 `docs/adr/adr-026-role-based-model-routing-and-codex-subagents.md` Phase 1 修訂為「角色路由」。
+> 治理：本節受 `docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (d) 管轄，修改文字須先開新 ADR。交接入口指針已由 `docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c) 修訂為 `tasks/checkpoint.md`（原指 plan 檔 §8.5，該檔已依 `docs/adr/adr-028-knowledge-ledger-lifecycle-and-adr-index.md` 決策 §3 退役為 `tasks/archive/process-improvement-plan.md`，本註記僅路徑重定向）；「模型分級」用語由 `docs/adr/adr-026-role-based-model-routing-and-codex-subagents.md` Phase 1 修訂為「角色路由」。
 
 給使用者 / 協調者在開新 session 接手時使用的固定開場文字，取代每次臨場手寫指示。內容只放指針，不重複規範本體（比照 §5 原則 2）：
 

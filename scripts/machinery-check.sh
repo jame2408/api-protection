@@ -3,11 +3,11 @@
 # (Claude/Codex wiring, shared hook dispatcher, skill links, and pointers).
 #
 # Adopted from zeuikli/claude-code-workspace's healthcheck.sh (see
-# tasks/process-improvement-plan.md §10, P2) — rewritten fail-loud. That
-# repo's own healthcheck used `if [ -f ]` to silently skip missing files,
+# tasks/archive/process-improvement-plan.md §10, P2) — rewritten fail-loud.
+# That repo's own healthcheck used `if [ -f ]` to silently skip missing files,
 # which is exactly the anti-pattern this check exists to prevent (see
-# process-improvement-plan.md §10.1, last row). Every check below is either
-# pass or hard-fail; nothing is silently skipped.
+# tasks/archive/process-improvement-plan.md §10.1, last row). Every check
+# below is either pass or hard-fail; nothing is silently skipped.
 #
 # Checks:
 #   1. .claude/settings.json and .codex/hooks.json are valid JSON; .mcp.json
@@ -48,7 +48,7 @@ for config in .claude/settings.json .codex/hooks.json; do
 done
 
 # .mcp.json is optional tooling config (Tessl et al., see
-# tasks/process-improvement-plan.md §9.3 D-2) — checking "if present" here is
+# tasks/archive/process-improvement-plan.md §9.3 D-2) — checking "if present" here is
 # the spec's own conditional, not a silent skip of something required to exist.
 if [ -f .mcp.json ]; then
   if ! ERR=$(python3 -c "import json; json.load(open('.mcp.json'))" 2>&1); then

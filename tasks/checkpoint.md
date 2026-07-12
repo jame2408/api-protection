@@ -1,6 +1,6 @@
 # Checkpoint
 
-> 唯一續接入口（`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c)）。欄位比照 `tasks/_templates/checkpoint.md`；歷史交接紀錄見 git log（本檔內容取代 `tasks/process-improvement-plan.md` §8.5 原文）。新 session 直接讀本檔即可接手，不需要先讀 plan 全文。
+> 唯一續接入口（`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (c)）。欄位比照 `tasks/_templates/checkpoint.md`；歷史交接紀錄見 git log（本檔內容取代 `tasks/archive/process-improvement-plan.md` §8.5 原文）。新 session 直接讀本檔即可接手，不需要先讀 plan 全文。
 
 ---
 
@@ -54,6 +54,8 @@
 - **scenario「操作者無恢復權限 — 拒絕恢復」真 Red→Green，27/46 — C6 ResumeKey 收官、03 檔 8 場景全綠** — production：`ResumeKeyEndpoint` bare auth 改 `RequireRole("SecurityAdmin", "TenantAdmin")`，**不含 System**（Resume 無 actor guard、無 422 契約需保護，System 由 policy 擋 403 即正確；與 SuspendKey 先例的差異 rationale 刻在 endpoint 註解）；403 body 沿用 23/46 機制零新增。test：Given 新措辭以 attribute 疊加（零新方法）、Then FORBIDDEN 條目 `7c6490c` 預鎖直接兌現。真紅 A（undefined Given）＋真行為紅 B（403 斷言收 200）→ 綠 32/19，回歸紅線（成功恢復／非 Suspended）detailed verbosity 逐場景綠證，Architecture.Tests 14/14；api-spec §3.2.6 Errors 補 FORBIDDEN 列同 commit — `90feb44`。executor 零 blocker、friction 1 條良性（回歸紅線取證需 `--filter`＋detailed verbosity 才列已通過場景名，取證手法調整）（61.8K tokens／32 calls／4.5 分）；orchestrator 親驗 scope／trailer／semantic review 放行 push（full gate 綠）
 - **scenario「System 嘗試暫停 — 拒絕」真 Red→Green，22/46** — 契約缺口先經使用者裁決（api-spec §3.2.5 Errors 補 `HUMAN_ACTOR_REQUIRED`／422，依 L76 總則不以 403 表達）；orchestrator 設計裁決 guard 置頂（零 I/O fail-fast，「System＋不存在 key」回 actor 錯誤屬知情接受）。真 TDD：紅 A（undefined When）＋紅 B（行為紅：422 斷言收 200，production 無 guard）→ production 補 guard（FailureCodes＋Handler 置頂 guard＋ApiProblem 422 映射）→ 綠 27/24；新 When 以 System token＋合法 reason＋Active seed 證明拒絕來自 actor guard；api-spec 表列與帳面同 commit — `9bed11d`。executor 零 blocker 零 friction（101.2K tokens／58 calls／3.4 分，standard-code→sonnet 路由）；orchestrator 親驗 scope／trailer／semantic review 放行。**附帶勘誤**：前輪 21/46 落帳的 Edit 錨點誤吞 KeyCreated 條目標頭（`a30951a`），本 commit 拆回獨立條目
 
+- **ADR-028 知識帳面生命週期落地（2026-07-12 使用者裁決「直接動手做 1–3」）** — 三件一批：(1) `docs/adr/README.md` 索引（28 列）＋adr-lint 檢查 8（索引雙向一致，綠＋雙向故意紅取證）；**附帶修復檢查 6／7 死防線**（`awk | while` subshell 使 violations 計數丟失，違規印紅字卻 exit 0——合成探針證實後改 process substitution，探針復跑 exit 1）；(2) phase 收尾清掃義務正式化（與 failure-triage 同時機，明文不機械化，矩陣無防線區塊登記）＋首次執行（todo.md 已結案四段 → `tasks/archive/todo-closed-2026-07-12.md`）；(3) plan 檔退役 `git mv` → `tasks/archive/process-improvement-plan.md`（殘項遷 todo：zh-lint 掃描範圍觀察、Tessl D-2 擱置），machinery-check 所轄活文件指針同 commit 更新（orchestration §6 治理註記、矩陣 ×3、CLAUDE.md lint 清單、docs/README ADR 段改指針、模板出處註記、machinery-check 註解 ×3）。orchestrator 親作（知識管理裁決＋規格撰寫職責）
+
 ## 待驗證
 
 - 一般互動式 Codex session 首次載入或 hook definition 變更後，仍須由使用者在 Codex `/hooks` 檢視並 trust（harness 安全邊界，repo 側無法代辦）。
@@ -70,7 +72,7 @@
 
 ## 待裁決
 
-- Tessl 擱置項（`tasks/process-improvement-plan.md` §9.3 D-2）與 §8.3 低優先開環觀察（zh-lint 掃描範圍僅及 `git ls-files`）仍非阻塞。
+- Tessl 擱置項與 zh-lint 掃描範圍觀察已依 ADR-028 遷入 `tasks/todo.md`（觸發制擱置項段／Non-blocking follow-ups 段），仍非阻塞；原裁決紀錄見 `tasks/archive/process-improvement-plan.md` §9.3 D-2 與 §8.3。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）
 
@@ -85,6 +87,7 @@
 
 ## 工作區狀態警告
 
+- 2026-07-12 ADR-028 收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。
 - 2026-07-11 場景 27/46 收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。
 - 2026-07-11 ADR-027 收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT；active=18 < 20 未觸發 lessons triage。
 - 2026-07-11 role-management discovery 收尾 failure triage：三 REPEAT 仍為既有簽名且計數未增（`== not found` ×4／`Exit code N` ×3／`cd backend` ×2），無新 REPEAT（本輪一次 orchestrator `===` echo 被 pre-tool hook 事前攔下、一次 Edit 錨點誤植即改，皆未成失敗簽名）；active=18 < 20 未觸發 lessons triage。
@@ -110,11 +113,11 @@
 - 2026-07-10 name-drift 包收尾 failure triage：無新 REPEAT（新增簽名皆 1x，含一筆 orchestrator sed quoting 一次性失誤），三既有 REPEAT 計數未增；active=17 < 20 未觸發 lessons triage。
 - 2026-07-10 Codex harness parity 收尾 failure triage：三個 REPEAT 仍為既有簽名（`== not found` ×4／`cd backend` ×2／`Exit code N` ×3）；前兩者維持既有處置，`Exit code N` 雖增一筆仍摺疊多個不同指令、無共同根因，不轉 lesson／todo。`== not found` 與 heredoc 現由矩陣 23/23a 的共用 Claude/Codex hook 接管。批次落地（`1a8e315`）後複跑：三簽名計數未增，維持處置。
 - 2026-07-05 首次 failure triage（ADR-018 決策 §3）處置紀錄：`(eval):N: == not found` ×4 → 已轉 lesson（zsh 等號展開）；`(eval):cd:N: no such file or directory: backend` ×2 → 不轉，探索性 cwd 誤試、無制度性根因；`Exit code N` ×2 → 不轉，簽名過泛（多個不同指令的非零退出被摺疊）、無共同根因。
-- `.agents/skills/tessl__*`、`.tessl/`、`tessl.json`、`.claude/parked/`：既有 Tessl 相關 untracked 項，依 `tasks/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。2026-07-10 起 tessl MCP（原 `.mcp.json`）與 5 個 `tessl__*` skills 收納至 `.claude/parked/`（降低 session 初始載入）。
+- `.agents/skills/tessl__*`、`.tessl/`、`tessl.json`、`.claude/parked/`：既有 Tessl 相關 untracked 項，依 `tasks/archive/process-improvement-plan.md` §9.3 D-2 裁決維持 untracked，不要 `git add`。2026-07-10 起 tessl MCP（原 `.mcp.json`）與 5 個 `tessl__*` skills 收納至 `.claude/parked/`（降低 session 初始載入）。
 - 目錄歸檔（Tessl 相關 skill 目錄、`docs/arch-flow.html` 等可重產產物）另包處理，不在本檔範圍內處理。
 
 ## 如何接上
 
 > 2026-07-12 起協調者由其他具備 Orchestrator 角色能力的常設模型接任（Fable 5 退場）——憲章 §1 明文規則 (ii) 保證本節流程不因模型更替而變；使用者側的操作方式見 `docs/user-guide.md`（被問「怎麼用」時指過去，勿臨場重寫）。
 
-新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章，`tasks/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（非必讀）。Claude Code／Codex 由各自 config 呼叫 `scripts/agent/hook.py` `session-context`，自動注入 must-read 與 `tasks/lessons/` active 教訓；Codex hook hash 變更後先在 `/hooks` trust。每條新檢驗記得「綠＋故意紅」；phase 收尾更新本檔前先跑 `scripts/failure-triage.sh` 並處置 REPEAT；報表末行同時判定 lessons triage 門檻（active ≥ 20 即依 `tasks/todo.md` 常設觸發條款執行 lessons triage）。
+新 session 直接在 `main` 上工作：讀本檔即知全貌；`docs/orchestration.md` 是協調憲章，ADR 總覽見 `docs/adr/README.md` 索引，`tasks/archive/process-improvement-plan.md` §1–§9 是歷史盤點紀錄（非必讀）。Claude Code／Codex 由各自 config 呼叫 `scripts/agent/hook.py` `session-context`，自動注入 must-read 與 `tasks/lessons/` active 教訓；Codex hook hash 變更後先在 `/hooks` trust。每條新檢驗記得「綠＋故意紅」；phase 收尾更新本檔前先跑 `scripts/failure-triage.sh` 並處置 REPEAT，**同一時機巡活帳面（`tasks/todo.md` 為主）把已結案項移至 `tasks/archive/`（ADR-028 決策 §2）**；報表末行同時判定 lessons triage 門檻（active ≥ 20 即依 `tasks/todo.md` 常設觸發條款執行 lessons triage）。

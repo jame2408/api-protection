@@ -42,9 +42,7 @@
 
 ## 架構決策紀錄（`adr/`）
 
-- [ADR-001: Tech Stack](./adr/adr-001-tech-stack.md) — 技術選型決策
-- [ADR-002: Project Structure](./adr/adr-002-project-structure.md) — 專案結構與架構模式
-- [ADR-003: Error Handling and Cross-BC Contracts](./adr/adr-003-error-handling-and-cross-bc-contracts.md) — Repository、Handler、HTTP boundary 與跨 BC contract 的錯誤處理責任分工
+- 完整索引見 [adr/README.md](./adr/README.md) — 一行一 ADR（編號、Accepted 日期、標題），一致性由 `scripts/adr-lint.sh` 機械化維持（ADR-028）；本檔不再逐份手列。
 
 ## 資料夾結構
 
@@ -69,7 +67,6 @@ docs/
 │   ├── audit-compliance.md
 │   └── tenant-management.md
 └── adr/                       ← 架構決策紀錄
-    ├── adr-001-tech-stack.md
-    ├── adr-002-project-structure.md
-    └── adr-003-error-handling-and-cross-bc-contracts.md
+    ├── README.md              ← ADR 索引（一行一 ADR，lint 機械化維持）
+    └── adr-*.md               ← 一檔一決策
 ```

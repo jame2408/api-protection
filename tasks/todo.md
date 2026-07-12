@@ -18,18 +18,8 @@
 - Phase 3 Upgrade／三方衝突保護：未排程，須等 Phase 2 exit gate。
 - Phase 4 雙專案驗收與 1.0 發版：未排程，須等 Phase 3 exit gate。
 
-## Codex harness parity — 已結案（2026-07-10）
-
-- `docs/adr/adr-023-cross-harness-hook-and-skill-parity.md` 定案：Claude Code／Codex 的第一層防線共用單一 `scripts/agent/hook.py`，兩份 harness config 只做薄 wiring。
-- Codex `apply_patch` 與 Claude Edit／Write／MultiEdit payload 已正規化；session context、四個 C# guard、兩個 Bash guard、四類 syntax validation、failure scrubbing 都由 `scripts/hook-smoke.sh` 鎖定 parity。
-- 9 個 tracked project skills 以 `.agents/skills` symlink 指回 `.claude/skills`；Codex `prompt-input` 實測全部可發現，內容仍只維護一份。
-- `scripts/machinery-check.sh` fail-loud 驗兩份 wiring、dispatcher executable／py_compile、skill links 與 pointers；`scripts/ci-checks.sh fast` 全綠。Codex 原生 hook coverage／failure event 差異已在驗證矩陣明文保留，不宣稱完整 enforcement parity。
-
-## Secret Scanner 批次自動撤銷 — 已結案（2026-07-10）
-
-兩契約缺口經使用者裁決（內部批次端點 `POST /internal/security/leaked-keys`／outbox 通知事件 `KeyLeakNotificationRequested`），完整垂直切片落地 `0072337`（19/46，api-spec §3.2.9 同步）。過程紀錄見 `tasks/checkpoint.md` 已完成欄。
-
 > 2026-07-10 歸檔 pass（GPT-5.6 回饋處置）：本檔原名「`.claude/` Hardening — Outstanding Work」，已結案內容（hardening 七 commit、ADR-004 acceptance、coverage gate 計畫、ADR-021/022 規劃段、multi-agent review 已結案項）移至 `tasks/archive/todo-closed-2026-07-10.md`。開放項沿用 2026-04-30 multi-agent review 原編號（checkpoint 與多份 ADR 以該編號引用，不重編）。
+> 2026-07-12 收尾清掃（ADR-028 首次執行）：已結案內容（Codex harness parity、Secret Scanner 批次自動撤銷、跨 harness CLI 觸發項、cross-doc sweep #38）移至 `tasks/archive/todo-closed-2026-07-12.md`。
 
 ## 上游管線 charting — 開放（2026-07-11 使用者裁決：Fable 5 視窗轉向）
 
@@ -48,10 +38,11 @@
 - Lessons triage 常設觸發：`tasks/lessons/` 內 `status: active` 檔案數 ≥ 20、或 phase 收尾時，盤點 active 條目可否機械化（腳本/lint/gate），可機械化者落地後改該檔 frontmatter 為 `status: archived`（判準：`docs/adr/adr-013-content-tiering-and-injection-slimming.md` 決策 (b)；載體見 `docs/adr/adr-021-shared-state-files-team-scale.md`）。門檻 2026-07-10 使用者裁決（D4）自 15 調升 20：triage 第四輪後不可歸檔的習慣型地板為 15 條，原門檻永久到期、失去鑑別度；機械判定見 `scripts/failure-triage.sh` `report_lessons_count` 段（矩陣 19e）。
 - ADR-004 允許 ILogger 邊界清單第 6 類（Infrastructure ApiClient，`LoggerBoundaryTests` 與 `exceptions.rule.md` §B 已實質採用）待正名——掛到下一份錯誤處理相關 ADR，不單開。
 - `requirements-analysis-design` skill 觸發詞與 `.feature` 凍結相撞——根治在 upstream `jame2408/agent-skills` repo 加凍結 gate，本地已在 `tasks/bdd-backlog.md` 檔頭布防；2026-07-10 起本地 SKILL.md description 已移除相撞觸發詞並明示改道 ADR-022。
+- zh-lint 掃描範圍僅及 `git ls-files`（index）：新檔在 `git add` 前的工作期不可見——commit gate 不受影響（staged 即可見），已於 2026-07-11 ADR-026 commit 實際發生一次（pre-stage 手動跑 lint 未見 untracked ADR）。若要擴大掃描範圍到 untracked 檔屬 ADR-009 範圍變更，須開新 ADR。（原 plan 檔 §8.3 低優先開環觀察，2026-07-12 依 ADR-028 遷入）
 
 ## 觸發制擱置項（GPT-5.6 回饋處置 2026-07-10；觸發成立前勿動）
 
-- ~~跨 harness 共用規則 CLI：第一層 hook 邏輯抽成共用執行核心，各 harness 只做 adapter——觸發：第二個 harness 常態參與開發。~~ ✅ **2026-07-10 已由 ADR-023 與 `scripts/agent/hook.py` 關閉**；Claude Code／Codex config 皆為薄 wiring，skill 以 symlink 共用。
+- Tessl eval harness 擱置：維持 untracked、不入 git、不寫進驗證矩陣（2026-07-04 使用者裁決 D-2，紀錄見 `tasks/archive/process-improvement-plan.md` §9.3；相關檔案 2026-07-10 起收納 `.claude/parked/`）——**觸發：真需要跨模型 skill eval 時再議**。（2026-07-12 依 ADR-028 自 plan 檔遷入）
 - commit trailer／staged 紀律的 CI 端覆核：CI 對 base..head 逐 commit 驗 `Refactor-assessment:`／`Spec-change:`／進度檔同 commit——**觸發：首次觀察到 `--no-verify` 或未裝 hook 的繞過事故**（矩陣 9d/9f/9g 殘餘風險現況為知情接受）。
 - Discovery 管道解凍：`requirements-analysis-design` skill 正式接回 BDD backlog（Example Mapping → 候選場景 → 使用者核准晉升）——**觸發：首個「repo 內無既有場景的真新需求」出現**；解除規格另開 ADR（ADR-022 明文排除範圍）。
 - ci-checks scope 分級（docs-only 降級，2026-07-10 登記）：`scripts/ci-checks.sh` 內建 diff 分類器——push range 變更檔案全部命中保守 allowlist（`docs/**`、`tasks/**`、根層 `*.md`；`backend/**` 與 `.feature` 一律排除）才以 fast 取代 full，任何存疑一律 full。落點必須在 ci-checks.sh 本體而非 ci.yml（維持「本機 pre-push 與 CI 同一支腳本」不變式）；上線需矩陣同步＋綠與故意紅驗證（誤分類靜默跳過 build＝自製死防線，比慢更糟）——**觸發：純文件 push 頻率有痛感（如連續數日每日多次）**；先行更高 ROI 替代：#23 Testcontainers `.WithReuse(true)`。
@@ -103,6 +94,3 @@ A 4-agent parallel review (security / architecture / tests / `.claude` consisten
 33. `observe-tool-failure` trace fields (`tool_use_id`, `duration_ms`, `is_interrupt`) not mirrored in lesson records. (See Non-blocking follow-ups above.)
 34. `session-context` malformed-payload fallback semantics. (See Non-blocking follow-ups above.)
 
-## Cross-doc consistency sweep (2026-05-31) — 開放項
-
-- [x] **38. ✅ 已結案（2026-07-10 使用者裁決：erratum note，不開新 ADR）** ADR-002 Status 段補 Erratum 註記 — 示意樹漏列 `SharedKernel.Tests`，樹為示意非決策本體，原文不改。
