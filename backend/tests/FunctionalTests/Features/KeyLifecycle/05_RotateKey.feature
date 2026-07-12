@@ -20,7 +20,6 @@ Feature: 輪替金鑰
     When  Consumer 對 "key-A" 發起輪替
     Then  輪替失敗，錯誤原因為「金鑰狀態非 Active」
 
-  @ignore
   Scenario: 同 Consumer + Environment 下已有 Rotating 金鑰 — 拒絕輪替
     Given 金鑰 "key-A" 狀態為 Active
     And   同一 Consumer + Environment 下已有 "key-C" 狀態為 Rotating

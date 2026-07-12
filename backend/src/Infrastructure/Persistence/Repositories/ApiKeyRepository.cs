@@ -32,6 +32,16 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
             k.TenantId == tenantId, cancel);
     }
 
+    public async Task<bool> ExistsRotatingAsync(
+        string consumerId, string environment, string tenantId, CancellationToken cancel = default)
+    {
+        return await db.ApiKeys.AnyAsync(k =>
+            k.ConsumerId == consumerId &&
+            k.Environment == environment &&
+            k.TenantId == tenantId &&
+            k.Status == ApiKeyStatus.Rotating, cancel);
+    }
+
     // Tracked (no AsNoTracking) — caller mutates and persists via UpdateAsync.
     public async Task<ApiKey?> GetByIdAsync(Guid keyId, string tenantId, CancellationToken cancel = default)
     {

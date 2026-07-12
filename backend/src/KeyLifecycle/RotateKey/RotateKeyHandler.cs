@@ -32,12 +32,18 @@ public class RotateKeyHandler(
             return FailureProvider.CreateFailure(RotateKeyFailureCodes.Forbidden);
 
         // 3. Guard: status = Active
-        //    detailed-design §6.2 guard order also has "尚未到期" (KEY_ALREADY_EXPIRED) and
-        //    INV-4 "無其他 Rotating" (ROTATION_IN_PROGRESS) between here and step 4 below — both
-        //    deferred to scenarios 36/37 (no red to drive them in this scenario), to be inserted
-        //    at this position when their scenarios land.
+        //    detailed-design §6.2 guard order also has "尚未到期" (KEY_ALREADY_EXPIRED) between
+        //    here and guard 4 below — deferred to its scenario (no red to drive it yet), to be
+        //    inserted at this position when that scenario lands.
         if (keyA.Status != ApiKeyStatus.Active)
             return FailureProvider.CreateFailure(RotateKeyFailureCodes.InvalidStateTransition);
+
+        // 4. Guard: INV-4 — no other Rotating key in the same Consumer + Environment scope
+        //    (api-spec.md §3.2.4 Errors row ROTATION_IN_PROGRESS; detailed-design §6.2 guard
+        //    order). Zero-I/O guards (exists/ownership/status) run first; this is the first I/O
+        //    guard after them.
+        if (await keyRepository.ExistsRotatingAsync(keyA.ConsumerId, keyA.Environment, command.TenantId, cancel))
+            return FailureProvider.CreateFailure(RotateKeyFailureCodes.RotationInProgress);
 
         // 5. Create AccessPolicy (I2) for Key B — gets policyId before creating the key, same
         //    call-time sequencing as CreateApiKeyHandler (same DI scope / DbContext = same

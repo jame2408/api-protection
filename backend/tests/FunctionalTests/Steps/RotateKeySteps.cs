@@ -38,6 +38,53 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         Db.ApiKeys.Any(k => k.Status == ApiKeyStatus.Rotating).Should().BeFalse();
     }
 
+    // Regex, not Cucumber Expression — Reqnroll's CucumberExpressionDetector auto-classifies any
+    // pattern containing "(.*)" as regex (CommonRegexStepDefPatterns), so unlike the plain-text
+    // "沒有其他" Given above (Cucumber Expression, literal "+" correct there), the "+" here is a
+    // regex quantifier over the preceding space unless escaped — `\+` required for a literal
+    // match (confirmed empirically: unescaped "+" left this step permanently undefined even
+    // though the method existed; anti-pattern in 9e0e432's lesson concerned a capture-free
+    // Cucumber Expression context, not this Regex-classified one).
+    [Given(@"同一 Consumer \+ Environment 下已有 ""(.*)"" 狀態為 Rotating")]
+    public async Task GivenOtherRotatingKeyExists(string keyAlias)
+    {
+        // key-C shares consumerId/environment/tenantId with key-A's seed (any-consumer /
+        // Production / tenant-A — RevokeKeySteps.CreateSeedKey shape) so it collides on the
+        // same scope INV-4 guards against. INV-2 ("Rotating 必有 Successor") requires a paired
+        // successor for key-C to be a structurally valid Rotating row, so an anonymous
+        // successor key is seeded too (private-setter bypass mirrors
+        // RevokeKeySteps.GivenKeyIsRotatingWithSuccessor L69–86).
+        var (keyC, _) = ApiKey.Create(
+            consumerId: "any-consumer",
+            tenantId: _ctx.CurrentTenantId,
+            name: keyAlias,
+            environment: "Production",
+            scopes: ["seed:read"],
+            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
+
+        var (successor, _) = ApiKey.Create(
+            consumerId: "any-consumer",
+            tenantId: _ctx.CurrentTenantId,
+            name: keyAlias + "-successor",
+            environment: "Production",
+            scopes: ["seed:read"],
+            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
+
+        Db.ApiKeys.Add(keyC);
+        Db.ApiKeys.Add(successor);
+        _ctx.SeededKeys[keyAlias] = keyC.Id;
+
+        Db.Entry(keyC).Property(k => k.Status).CurrentValue = ApiKeyStatus.Rotating;
+        Db.Entry(keyC).Property(k => k.SuccessorKeyId).CurrentValue = successor.Id;
+        Db.Entry(successor).Property(k => k.PredecessorKeyId).CurrentValue = keyC.Id;
+
+        await Db.SaveChangesAsync();
+    }
+
     [Given(@"金鑰 ""(.*)"" 狀態為 Active，且屬於其他 Consumer")]
     public async Task GivenKeyIsActiveOwnedByOtherConsumer(string keyAlias)
     {
@@ -260,8 +307,10 @@ public class RotateKeySteps(FunctionalTestContext ctx)
             ["權限不足"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
             // status guard (RotateKeyHandler guard 3) — §3.2.4 Errors 表既有列。
             ["金鑰狀態非 Active"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
-            // §3.2.4 Errors 表其餘兩碼（ROTATION_IN_PROGRESS／KEY_ALREADY_EXPIRED）由對應場景
-            // 啟用輪逐條補入此表。
+            // INV-4 guard（RotateKeyHandler，status guard 之後）— §3.2.4 Errors 表既有列，本 commit
+            // 首度兌現。
+            ["已有進行中的輪替"] = (HttpStatusCode.Conflict, "ROTATION_IN_PROGRESS"),
+            // §3.2.4 Errors 表餘下一碼（KEY_ALREADY_EXPIRED）由對應場景啟用輪補入此表。
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));

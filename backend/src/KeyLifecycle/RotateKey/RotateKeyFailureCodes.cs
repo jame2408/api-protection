@@ -14,8 +14,12 @@ public static class RotateKeyFailureCodes
     // at static init; mirrors ResumeKeyFailureCodes' reuse-not-redeclare pattern).
     public const string Forbidden = "FORBIDDEN";
 
-    // api-spec.md §3.2.4 Errors table also lists ROTATION_IN_PROGRESS (INV-4) and
-    // KEY_ALREADY_EXPIRED — deferred to scenarios 36/37 (no red to drive them yet in this
-    // scenario's guard chain; detailed-design §6.2 guard order: status → 未到期 → 無其他
-    // Rotating, to be inserted at that position when their scenarios land).
+    // INV-4 guard (RotateKeyHandler, status guard 之後) — api-spec.md §3.2.4 Errors 表既有列，
+    // rotate 首個專屬碼（非共用字面值，ApiProblem.Map 首度註冊）。
+    public const string RotationInProgress = "ROTATION_IN_PROGRESS";
+
+    // api-spec.md §3.2.4 Errors table also lists KEY_ALREADY_EXPIRED — deferred to its scenario
+    // (no red to drive it yet in this scenario's guard chain; detailed-design §6.2 guard order:
+    // status → 未到期 → 無其他 Rotating, to be inserted between status and the INV-4 guard above
+    // when that scenario lands).
 }

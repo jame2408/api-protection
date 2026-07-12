@@ -1,5 +1,6 @@
 using ApiKeyManagement.KeyLifecycle.CreateApiKey;
 using ApiKeyManagement.KeyLifecycle.RevokeKey;
+using ApiKeyManagement.KeyLifecycle.RotateKey;
 using ApiKeyManagement.KeyLifecycle.SuspendKey;
 using ApiKeyManagement.SharedKernel.Contracts;
 using ApiKeyManagement.SharedKernel.Domain;
@@ -39,6 +40,7 @@ public static class ApiProblem
             [RevokeKeyFailureCodes.KeyInTerminalState] = (StatusCodes.Status409Conflict, "Key In Terminal State"),
             [SuspendKeyFailureCodes.InvalidStateTransition] = (StatusCodes.Status409Conflict, "Invalid State Transition"),
             [SuspendKeyFailureCodes.HumanActorRequired] = (StatusCodes.Status422UnprocessableEntity, "Human Actor Required"),
+            [RotateKeyFailureCodes.RotationInProgress] = (StatusCodes.Status409Conflict, "Rotation In Progress"),
         };
 
     /// <summary>Builds the RFC 9457 response for a failure. <c>errorCode</c> carries the stable
