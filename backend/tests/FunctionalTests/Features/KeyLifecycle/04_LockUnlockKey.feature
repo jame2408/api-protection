@@ -32,7 +32,6 @@ Feature: 鎖定與解鎖金鑰
     When  Security Admin 對 "key-A" 發出解鎖命令
     Then  解鎖失敗，錯誤原因為「金鑰狀態非 Locked」
 
-  @ignore
   Scenario: 操作者權限不足 — 拒絕解鎖
     Given 金鑰 "key-A" 狀態為 Locked
     And   操作者為一般 Consumer

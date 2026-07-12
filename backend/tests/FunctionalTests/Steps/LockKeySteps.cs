@@ -121,6 +121,22 @@ public class LockKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"操作者對 ""(.*)"" 發出解鎖命令")]
+    public async Task WhenOperatorUnlocksKey(string keyAlias)
+    {
+        // Token already issued by the Given step above (Consumer here) — do not re-issue it,
+        // this step must work for whichever actor the Given set up (mirrors
+        // SuspendKeySteps.WhenOperatorSuspendsKey). Legitimate Locked seed + no request body
+        // (api-spec.md §3.2.7): proves the rejection comes from the role policy, not from a
+        // malformed request or the status guard.
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        _ctx.Response = await _ctx.Client.PostAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/unlock", null);
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
@@ -155,7 +171,9 @@ public class LockKeySteps(FunctionalTestContext ctx)
             // Production code uses *FailureCodes.* constants; this map intentionally
             // re-states the strings so a constant value drift would surface as a test failure.
             ["金鑰狀態非 Locked"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
-            // 場景 6「權限不足」的 FORBIDDEN 未列 §3.2.7 Errors 表 — 契約缺口待裁決，故意不預鎖。
+            // SecurityAdmin-only role policy (403 FORBIDDEN via ProblemAuthorizationResultHandler)
+            // — §3.2.7 Errors 表已補列（本 commit）。
+            ["權限不足"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));

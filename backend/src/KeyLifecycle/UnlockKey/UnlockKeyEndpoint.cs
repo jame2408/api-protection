@@ -36,12 +36,14 @@ public static class UnlockKeyEndpoint
 
                 return Results.Ok(result.Value);
             })
-            // api-spec.md §3.2.7 Authorization row: SecurityAdmin-only. This feature has a
-            // not-yet-enabled "操作者權限不足 — 拒絕解鎖" scenario (feature line 37-41) requiring
-            // a non-SecurityAdmin authenticated request to reach the handler and be rejected
-            // there, so bare RequireAuthorization() (any authenticated actor) is used here rather
-            // than RequireRole — mirrors ResumeKey (90feb44) / LockKey (789e562) precedent. The
-            // SecurityAdmin-only restriction is deliberately deferred to that scenario's red.
-            .RequireAuthorization();
+            // api-spec.md §3.2.7 Authorization row: SecurityAdmin-only — deliberately narrower
+            // than ResumeKey's RequireRole("SecurityAdmin", "TenantAdmin"). ResumeKey's TenantAdmin
+            // inclusion is a plain state-transition reversal; Unlock is spec-framed as a security
+            // confirmation act ("Locked 狀態僅由系統（Monitoring）觸發，解鎖是人工確認安全後的操作" —
+            // api-spec.md §3.2.7 note), so the spec restricts it to SecurityAdmin alone. UnlockKeyHandler
+            // has no actor-type guard (unlike SuspendKey's System-only lock counterpart), so there is
+            // no 422 contract to preserve by admitting extra roles past this policy — rejection at the
+            // role gate is correct. Precedent: ResumeKey (90feb44) / LockKey (7f02530).
+            .RequireAuthorization(policy => policy.RequireRole("SecurityAdmin"));
     }
 }
