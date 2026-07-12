@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ApiKeyManagement.FunctionalTests.Infrastructure;
@@ -41,9 +40,7 @@ public class LockKeySteps(FunctionalTestContext ctx)
         var keyId = _ctx.SeededKeys[keyAlias];
 
         // Same token-issuance precedent as SuspendKeySteps.WhenSystemSuspendsKey.
-        _ctx.AuthToken = TestTokenFactory.CreateSystemToken();
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateSystemToken());
 
         _ctx.Response = await _ctx.Client.PostAsJsonAsync(
             $"/internal/keys/{keyId}/lock",
@@ -63,9 +60,7 @@ public class LockKeySteps(FunctionalTestContext ctx)
     {
         var keyId = _ctx.SeededKeys[keyAlias];
 
-        _ctx.AuthToken = TestTokenFactory.CreateSystemToken();
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateSystemToken());
 
         // Legitimate body + Suspended seed on purpose (mirrors SuspendKeySteps.WhenSystemSuspendsKey):
         // proves the rejection comes from the status guard, not from a malformed request.
@@ -87,9 +82,7 @@ public class LockKeySteps(FunctionalTestContext ctx)
     {
         var keyId = _ctx.SeededKeys[keyAlias];
 
-        _ctx.AuthToken = TestTokenFactory.CreateSecurityAdminToken();
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateSecurityAdminToken());
 
         // Legitimate body + Active seed on purpose (mirrors WhenSystemIssuesLockCommand):
         // proves the rejection comes from the System-only role policy, not from a

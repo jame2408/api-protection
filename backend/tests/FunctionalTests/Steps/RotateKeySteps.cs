@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ApiKeyManagement.FunctionalTests.Infrastructure;
@@ -151,9 +150,7 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         // consumerId claim must match the seed's ConsumerId (RevokeKeySteps.CreateSeedKey:
         // "any-consumer"), otherwise the ownership guard (RotateKeyHandler) rejects it as
         // non-self rotation.
-        _ctx.AuthToken = TestTokenFactory.CreateConsumerToken(consumerId: "any-consumer");
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateConsumerToken(consumerId: "any-consumer"));
 
         _ctx.Response = await _ctx.Client.PostAsJsonAsync(
             $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/rotate",
@@ -171,9 +168,7 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         // consumerId claim must match the seed's ConsumerId (RevokeKeySteps.CreateSeedKey:
         // "any-consumer"), otherwise the ownership guard (RotateKeyHandler) rejects it as
         // non-self rotation.
-        _ctx.AuthToken = TestTokenFactory.CreateConsumerToken(consumerId: "any-consumer");
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateConsumerToken(consumerId: "any-consumer"));
 
         _ctx.Response = await _ctx.Client.PostAsJsonAsync(
             $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/rotate",

@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using ApiKeyManagement.FunctionalTests.Infrastructure;
@@ -33,9 +32,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         // Same default TestHooks already wires up (TestHooks.cs:101-103) — declared explicitly
         // here so later scenarios in this feature that swap the actor (System / Consumer) have
         // a precedent for re-issuing the token and re-setting this header.
-        _ctx.AuthToken = TestTokenFactory.CreateSecurityAdminToken();
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateSecurityAdminToken());
     }
 
     [Given(@"操作者為一般 Consumer（無暫停權限）")]
@@ -43,9 +40,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
     [Given(@"操作者為一般 Consumer")]
     public void GivenOperatorIsConsumerWithoutSuspendPermission()
     {
-        _ctx.AuthToken = TestTokenFactory.CreateConsumerToken();
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateConsumerToken());
     }
 
     [Given(@"操作者具備恢復權限")]
@@ -55,9 +50,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         // ResumeKeyEndpoint.Map comment), so any authenticated actor has "resume permission"
         // today. SecurityAdmin here mirrors GivenOperatorIsSecurityAdmin so the KeyResumed
         // event's resumedBy assertion has a stable actor id ("security-admin-1").
-        _ctx.AuthToken = TestTokenFactory.CreateSecurityAdminToken();
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateSecurityAdminToken());
     }
 
     // -------------------------------------------------------------------------
@@ -113,9 +106,7 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
 
         // Legitimate reason + Active seed on purpose: proves the rejection comes from the
         // actor-type guard, not the reason-required or state-transition guards.
-        _ctx.AuthToken = TestTokenFactory.CreateSystemToken();
-        _ctx.Client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+        _ctx.AuthenticateAs(TestTokenFactory.CreateSystemToken());
 
         _ctx.Response = await _ctx.Client.PostAsJsonAsync(
             $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/suspend",
