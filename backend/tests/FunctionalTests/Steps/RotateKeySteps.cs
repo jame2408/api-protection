@@ -21,9 +21,6 @@ public class RotateKeySteps(FunctionalTestContext ctx)
     private AppDbContext Db =>
         _ctx.ServiceScope!.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    private IApiKeyHasher Hasher =>
-        _ctx.ServiceScope!.ServiceProvider.GetRequiredService<IApiKeyHasher>();
-
     // -------------------------------------------------------------------------
     // Given
     // -------------------------------------------------------------------------
@@ -48,34 +45,13 @@ public class RotateKeySteps(FunctionalTestContext ctx)
     public async Task GivenOtherRotatingKeyExists(string keyAlias)
     {
         // key-C shares consumerId/environment/tenantId with key-A's seed (any-consumer /
-        // Production / tenant-A — RevokeKeySteps.CreateSeedKey shape) so it collides on the
+        // Production / tenant-A — ApiKeySeeding.AddSeedKey shape) so it collides on the
         // same scope INV-4 guards against. INV-2 ("Rotating 必有 Successor") requires a paired
         // successor for key-C to be a structurally valid Rotating row, so an anonymous
         // successor key is seeded too (private-setter bypass mirrors
         // RevokeKeySteps.GivenKeyIsRotatingWithSuccessor L69–86).
-        var (keyC, _) = ApiKey.Create(
-            consumerId: "any-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: keyAlias,
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        var (successor, _) = ApiKey.Create(
-            consumerId: "any-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: keyAlias + "-successor",
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        Db.ApiKeys.Add(keyC);
-        Db.ApiKeys.Add(successor);
-        _ctx.SeededKeys[keyAlias] = keyC.Id;
+        var keyC = _ctx.AddSeedKey(keyAlias);
+        var successor = _ctx.AddSeedKey(keyAlias + "-successor", register: false);
 
         Db.Entry(keyC).Property(k => k.Status).CurrentValue = ApiKeyStatus.Rotating;
         Db.Entry(keyC).Property(k => k.SuccessorKeyId).CurrentValue = successor.Id;
@@ -92,19 +68,8 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         // "other-consumer" is deliberately different from the "操作者為一般 Consumer" When
         // step's token consumerId claim ("consumer-1") — that mismatch is the mechanical
         // definition of "非自身金鑰" this scenario asserts against (mirrors
-        // RevokeKeySteps.CreateSeedKey's seed shape, private there so re-declared here).
-        var (key, _) = ApiKey.Create(
-            consumerId: "other-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: keyAlias,
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        Db.ApiKeys.Add(key);
-        _ctx.SeededKeys[keyAlias] = key.Id;
+        // ApiKeySeeding.AddSeedKey's default shape, overridden here to a different consumer).
+        _ctx.AddSeedKey(keyAlias, consumerId: "other-consumer");
 
         await Db.SaveChangesAsync();
     }
@@ -121,18 +86,7 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         // GivenKeyIsActiveOwnedByOtherConsumer above).
         var now = _ctx.ServiceScope!.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
 
-        var (key, _) = ApiKey.Create(
-            consumerId: "any-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: keyAlias,
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: now.AddDays(-1),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        Db.ApiKeys.Add(key);
-        _ctx.SeededKeys[keyAlias] = key.Id;
+        _ctx.AddSeedKey(keyAlias, expiresAt: now.AddDays(-1));
 
         await Db.SaveChangesAsync();
     }

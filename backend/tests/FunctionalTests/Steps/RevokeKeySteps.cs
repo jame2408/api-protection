@@ -25,46 +25,20 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     private AppDbContext Db =>
         _ctx.ServiceScope!.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    private IApiKeyHasher Hasher =>
-        _ctx.ServiceScope!.ServiceProvider.GetRequiredService<IApiKeyHasher>();
-
-    // -------------------------------------------------------------------------
-    // Seed helpers
-    // -------------------------------------------------------------------------
-
-    // Revoke handler validates neither tenant nor consumer existence (RevokeKeyHandler.cs),
-    // so no Tenant/Consumer row is seeded here — CurrentTenantId is only needed for the URL.
-    private ApiKey CreateSeedKey(string keyAlias)
-    {
-        var (key, _) = ApiKey.Create(
-            consumerId: "any-consumer",
-            tenantId: _ctx.CurrentTenantId,
-            name: keyAlias,
-            environment: "Production",
-            scopes: ["seed:read"],
-            expiresAt: DateTimeOffset.UtcNow.AddDays(30),
-            policyId: Guid.NewGuid(),
-            hasher: Hasher);
-
-        Db.ApiKeys.Add(key);
-        _ctx.SeededKeys[keyAlias] = key.Id;
-
-        return key;
-    }
-
     // -------------------------------------------------------------------------
     // Given
     // -------------------------------------------------------------------------
 
     [Given(@"金鑰 ""(.*)"" 狀態為 Active")]
-    // 05_RotateKey.feature line 7 — same seed (expiresAt: UtcNow.AddDays(30), see CreateSeedKey)
-    // already satisfies "尚未到期"; overlaid rather than duplicated (RotateKeySteps.cs).
+    // 05_RotateKey.feature line 7 — same seed (expiresAt: UtcNow.AddDays(30), see
+    // ApiKeySeeding.AddSeedKey) already satisfies "尚未到期"; overlaid rather than duplicated
+    // (RotateKeySteps.cs).
     [Given(@"金鑰 ""(.*)"" 狀態為 Active，尚未到期")]
     public async Task GivenKeyIsActive(string keyAlias)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        CreateSeedKey(keyAlias);
+        _ctx.AddSeedKey(keyAlias);
 
         await Db.SaveChangesAsync();
     }
@@ -74,8 +48,8 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var predecessor = CreateSeedKey(predecessorAlias);
-        var successor = CreateSeedKey(successorAlias);
+        var predecessor = _ctx.AddSeedKey(predecessorAlias);
+        var successor = _ctx.AddSeedKey(successorAlias);
 
         // ApiKey properties are all `private set`; the rotation itself (Wave 5 RotateKey) is
         // out of scope here, so seeding sets the Added entities' CurrentValue directly —
@@ -93,7 +67,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = CreateSeedKey(keyAlias);
+        var key = _ctx.AddSeedKey(keyAlias);
 
         // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
         Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Locked;
@@ -106,7 +80,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = CreateSeedKey(keyAlias);
+        var key = _ctx.AddSeedKey(keyAlias);
 
         // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
         Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Suspended;
@@ -119,7 +93,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = CreateSeedKey(keyAlias);
+        var key = _ctx.AddSeedKey(keyAlias);
 
         // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
         Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Expired;
@@ -132,7 +106,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = CreateSeedKey(keyAlias);
+        var key = _ctx.AddSeedKey(keyAlias);
 
         // KeyPrefix is `private set` — bypass via CurrentValue as in the other Given steps
         // above; Create() derives its own prefix from tenantId/environment, which doesn't
