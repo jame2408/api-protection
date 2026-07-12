@@ -1,4 +1,5 @@
 using ApiKeyManagement.KeyLifecycle.CreateApiKey;
+using ApiKeyManagement.KeyLifecycle.LockKey;
 using ApiKeyManagement.KeyLifecycle.ResumeKey;
 using ApiKeyManagement.KeyLifecycle.RevokeKey;
 using ApiKeyManagement.KeyLifecycle.RevokeLeakedKeys;
@@ -18,6 +19,7 @@ public static class KeyLifecycleModule
         services.AddScoped<IRevokeLeakedKeysHandler, RevokeLeakedKeysHandler>();
         services.AddScoped<ISuspendKeyHandler, SuspendKeyHandler>();
         services.AddScoped<IResumeKeyHandler, ResumeKeyHandler>();
+        services.AddScoped<ILockKeyHandler, LockKeyHandler>();
         return services;
     }
 
@@ -28,6 +30,7 @@ public static class KeyLifecycleModule
         RevokeLeakedKeysEndpoint.Map(app);
         SuspendKeyEndpoint.Map(app);
         ResumeKeyEndpoint.Map(app);
+        LockKeyEndpoint.Map(app);
         return app;
     }
 }

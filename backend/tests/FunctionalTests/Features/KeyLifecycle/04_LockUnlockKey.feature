@@ -2,7 +2,6 @@ Feature: 鎖定與解鎖金鑰
 
   # === C3: LockKey ===
 
-  @ignore
   Scenario: 系統偵測到異常 — 自動鎖定金鑰
     Given 金鑰 "key-A" 狀態為 Active
     When  System 以 ruleId "impossible-travel"、severity HIGH 鎖定 "key-A"，原因為「異地同時存取」

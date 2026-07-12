@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 27 / 46  
-**下一個：** `04_LockUnlockKey.feature` — 系統偵測到異常 — 自動鎖定金鑰
+**已通過：** 28 / 46  
+**下一個：** `04_LockUnlockKey.feature` — 金鑰非 Active 狀態 — 拒絕鎖定
 
 ---
 

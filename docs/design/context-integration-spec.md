@@ -321,7 +321,7 @@ Command:  LockKey
 Input: {
   keyId:       UUID        — 要鎖定的金鑰
   tenantId:    UUID        — 租戶 ID（隔離驗證）
-  ruleId:      UUID        — 觸發的 DetectionRule ID
+  ruleId:      String      — 觸發的 DetectionRule 識別碼
   severity:    Severity    — High / Critical
   reason:      String      — 鎖定原因描述
   detectedAt:  Timestamp   — 異常偵測時間
@@ -557,7 +557,7 @@ ValidationAttempt {
 ```
 {
   keyId:    UUID
-  ruleId:   UUID                  — 觸發的 DetectionRule ID
+  ruleId:   String                — 觸發的 DetectionRule 識別碼
   reason:   String                — 鎖定原因
   evidence: Object                — 觸發證據（異常 IP、流量數據等）
 }

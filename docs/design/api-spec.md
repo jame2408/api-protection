@@ -442,7 +442,7 @@ JWT Claims：
 > **BC 對照**：[Key Lifecycle Detailed Design](../detailed-design/key-lifecycle.md)
 > **整合關係**：I1（查詢 TM）、I2（同一交易建立 Policy）、I3/I4（發布事件至 Audit/Monitoring）
 >
-> **不暴露的 Command**：C3 LockKey（Monitoring 內部觸發 I6）、C8 ExpireKey / C9 CompleteGracePeriod（System Agent Job）
+> **不暴露的 Command**：C3 LockKey（Monitoring 內部觸發 I6，內部端點見 §3.2.10）、C8 ExpireKey / C9 CompleteGracePeriod（System Agent Job）
 
 ---
 
@@ -829,6 +829,54 @@ JWT Claims：
 | errorCode | HTTP | 條件 |
 |:----------|:-----|:-----|
 | （無） | — | 無業務錯誤碼；prefix 無匹配時回空清單而非失敗 |
+
+---
+
+#### 3.2.10 POST /internal/keys/{keyId}/lock — Monitoring 異常偵測自動鎖定金鑰
+
+| 項目 | 值 |
+|:-----|:---|
+| Authorization | 內部端點（Monitoring 服務對服務呼叫 I6，不對外暴露）；現階段 JWT 認證，System-only 限制留待「非 System 角色嘗試鎖定」場景，mTLS／Internal Service Token 依 ADR-024 後置 |
+| Command | C3: LockKey（I6，系統唯一跨 BC 同步呼叫） |
+
+**Request Body：**（integration spec §4.6 I6 Input；keyId 走路徑參數）
+
+```json
+{
+  "tenantId": "tenant-A",
+  "ruleId": "impossible-travel",
+  "severity": "HIGH",
+  "reason": "異地同時存取",
+  "detectedAt": "2026-07-12T08:00:00Z",
+  "evidence": { "sourceIps": ["203.0.113.9", "198.51.100.7"], "distanceKm": 8000, "windowMinutes": 5 }
+}
+```
+
+| 欄位 | 類型 | 必填 | 說明 |
+|:-----|:-----|:-----|:-----|
+| `tenantId` | String | 是 | 租戶 ID（隔離驗證） |
+| `ruleId` | String | 是 | 觸發的 DetectionRule 識別碼 |
+| `severity` | String | 是 | 異常嚴重等級（透傳，本端點不驗證） |
+| `reason` | String | 是 | 鎖定原因描述 |
+| `detectedAt` | Timestamp | 是 | 異常偵測時間（透傳） |
+| `evidence` | Object | 是 | 觸發證據（異常 IP、流量數據等，自由形狀，原樣進 KeyLocked 事件） |
+
+**Response `200 OK`：**（integration spec §4.6 I6 Output）
+
+```json
+{
+  "keyId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "previousStatus": "Active",
+  "lockedAt": "2026-07-12T08:00:01Z"
+}
+```
+
+**Errors：**
+
+| errorCode | HTTP | 條件 |
+|:----------|:-----|:-----|
+| `NOT_FOUND` | 404 | 金鑰不存在（tenantId＋keyId 定位失敗） |
+| `INVALID_STATE_TRANSITION` | 409 | 金鑰狀態非 Active（I6 §4.6 細分碼 KEY_IN_TERMINAL_STATE／KEY_ALREADY_LOCKED／KEY_ALREADY_SUSPENDED 收斂為單一碼，對齊場景語料；細分需求出現時再分化） |
 
 ---
 
@@ -1478,7 +1526,7 @@ Gateway 不只傳金鑰字串，還必須提供驗證上下文，以便系統執
 |:----------------|:-----|:---------|:---------|
 | C1: CreateApiKey | POST | /tenants/{tenantId}/consumers/{consumerId}/keys | ✅ |
 | C2: RotateKey | POST | /tenants/{tenantId}/keys/{keyId}/rotate | ✅ |
-| C3: LockKey | — | — | ❌ 內部介面（I6，Monitoring 同步呼叫） |
+| C3: LockKey | POST | /internal/keys/{keyId}/lock | ❌ 內部端點（I6，§3.2.10） |
 | C4: UnlockKey | POST | /tenants/{tenantId}/keys/{keyId}/unlock | ✅ |
 | C5: SuspendKey | POST | /tenants/{tenantId}/keys/{keyId}/suspend | ✅ |
 | C6: ResumeKey | POST | /tenants/{tenantId}/keys/{keyId}/resume | ✅ |

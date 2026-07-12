@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using ApiKeyManagement.KeyLifecycle.Domain.Events;
 using ApiKeyManagement.SharedKernel.Domain;
 
@@ -112,6 +113,23 @@ public class ApiKey : AggregateRoot<Guid>
             KeyId: Id,
             SuspendedBy: suspendedBy,
             Reason: reason));
+    }
+
+    /// <summary>
+    /// Locks the key following an automated anomaly-detection rule hit. Guards (not-found /
+    /// non-Active status) are the handler's responsibility; mirrors <see cref="Suspend"/>.
+    /// </summary>
+    public void Lock(string ruleId, string reason, JsonElement evidence)
+    {
+        Status = ApiKeyStatus.Locked;
+
+        AddDomainEvent(new KeyLocked(
+            EventId: Guid.NewGuid(),
+            OccurredAt: DateTimeOffset.UtcNow,
+            KeyId: Id,
+            RuleId: ruleId,
+            Reason: reason,
+            Evidence: evidence));
     }
 
     /// <summary>
