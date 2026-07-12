@@ -58,9 +58,53 @@ public class LockKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"System 對 ""(.*)"" 發出鎖定命令")]
+    public async Task WhenSystemIssuesLockCommand(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        _ctx.AuthToken = TestTokenFactory.CreateSystemToken();
+        _ctx.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+
+        // Legitimate body + Suspended seed on purpose (mirrors SuspendKeySteps.WhenSystemSuspendsKey):
+        // proves the rejection comes from the status guard, not from a malformed request.
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/internal/keys/{keyId}/lock",
+            new LockKeyEndpoint.Request(
+                TenantId: _ctx.CurrentTenantId,
+                RuleId: "impossible-travel",
+                Severity: "HIGH",
+                Reason: "異地同時存取",
+                DetectedAt: DateTimeOffset.UtcNow,
+                Evidence: Evidence));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
+
+    [Then(@"鎖定失敗，錯誤原因為「(.*)」")]
+    public void ThenLockFailsWithReason(string reason)
+    {
+        var map = new Dictionary<string, (HttpStatusCode Status, string ErrorCode)>
+        {
+            // API wire contract — keep literals here to lock external HTTP error codes.
+            // Production code uses *FailureCodes.* constants; this map intentionally
+            // re-states the strings so a constant value drift would surface as a test failure.
+            // Only the first ruling is settled — the "只有系統可以鎖定金鑰" entry is a
+            // separate open contract decision, deliberately not pre-locked here.
+            ["金鑰狀態非 Active"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
+        };
+
+        var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
+        var (expectedStatus, expectedErrorCode) = entry.Value;
+
+        // RFC 9457 Problem Details wire contract (api-spec.md §2.2).
+        ProblemAssertions.RequireProblem(_ctx.Response!, _ctx.ResponseBody!, expectedStatus, expectedErrorCode);
+    }
 
     [Then(@"""(.*)"" 狀態變為 Locked")]
     public void ThenKeyStatusBecomesLocked(string keyAlias)

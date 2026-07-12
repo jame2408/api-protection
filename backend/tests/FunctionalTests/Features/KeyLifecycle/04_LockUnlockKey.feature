@@ -8,7 +8,6 @@ Feature: 鎖定與解鎖金鑰
     Then  "key-A" 狀態變為 Locked
     And   系統產生 KeyLocked 事件，包含 keyId、ruleId、reason、evidence
 
-  @ignore
   Scenario: 金鑰非 Active 狀態 — 拒絕鎖定
     Given 金鑰 "key-A" 狀態為 Suspended
     When  System 對 "key-A" 發出鎖定命令
