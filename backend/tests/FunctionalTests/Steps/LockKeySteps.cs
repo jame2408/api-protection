@@ -82,6 +82,31 @@ public class LockKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"Security Admin（人為操作者）對 ""(.*)"" 發出鎖定命令")]
+    public async Task WhenSecurityAdminIssuesLockCommand(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        _ctx.AuthToken = TestTokenFactory.CreateSecurityAdminToken();
+        _ctx.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+
+        // Legitimate body + Active seed on purpose (mirrors WhenSystemIssuesLockCommand):
+        // proves the rejection comes from the System-only role policy, not from a
+        // malformed request or the status guard.
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/internal/keys/{keyId}/lock",
+            new LockKeyEndpoint.Request(
+                TenantId: _ctx.CurrentTenantId,
+                RuleId: "impossible-travel",
+                Severity: "HIGH",
+                Reason: "異地同時存取",
+                DetectedAt: DateTimeOffset.UtcNow,
+                Evidence: Evidence));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
@@ -94,9 +119,10 @@ public class LockKeySteps(FunctionalTestContext ctx)
             // API wire contract — keep literals here to lock external HTTP error codes.
             // Production code uses *FailureCodes.* constants; this map intentionally
             // re-states the strings so a constant value drift would surface as a test failure.
-            // Only the first ruling is settled — the "只有系統可以鎖定金鑰" entry is a
-            // separate open contract decision, deliberately not pre-locked here.
             ["金鑰狀態非 Active"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
+            // System-only role policy (403 FORBIDDEN via ProblemAuthorizationResultHandler) —
+            // decided 2026-07-12: endpoint-level RequireRole, not a handler actor guard.
+            ["只有系統可以鎖定金鑰"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));

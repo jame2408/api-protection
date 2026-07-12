@@ -836,7 +836,7 @@ JWT Claims：
 
 | 項目 | 值 |
 |:-----|:---|
-| Authorization | 內部端點（Monitoring 服務對服務呼叫 I6，不對外暴露）；現階段 JWT 認證，System-only 限制留待「非 System 角色嘗試鎖定」場景，mTLS／Internal Service Token 依 ADR-024 後置 |
+| Authorization | 內部端點（Monitoring 服務對服務呼叫 I6，不對外暴露）；現階段 JWT 認證＋System-only role policy，mTLS／Internal Service Token 依 ADR-024 後置 |
 | Command | C3: LockKey（I6，系統唯一跨 BC 同步呼叫） |
 
 **Request Body：**（integration spec §4.6 I6 Input；keyId 走路徑參數）
@@ -877,6 +877,7 @@ JWT Claims：
 |:----------|:-----|:-----|
 | `NOT_FOUND` | 404 | 金鑰不存在（tenantId＋keyId 定位失敗） |
 | `INVALID_STATE_TRANSITION` | 409 | 金鑰狀態非 Active（I6 §4.6 細分碼 KEY_IN_TERMINAL_STATE／KEY_ALREADY_LOCKED／KEY_ALREADY_SUSPENDED 收斂為單一碼，對齊場景語料；細分需求出現時再分化） |
+| `FORBIDDEN` | 403 | 非 System 角色呼叫（endpoint role policy System-only；§2.2 通用碼，403 body 由 ProblemAuthorizationResultHandler 產生） |
 
 ---
 

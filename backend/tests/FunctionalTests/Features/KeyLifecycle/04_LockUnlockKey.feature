@@ -13,7 +13,6 @@ Feature: 鎖定與解鎖金鑰
     When  System 對 "key-A" 發出鎖定命令
     Then  鎖定失敗，錯誤原因為「金鑰狀態非 Active」
 
-  @ignore
   Scenario: 非 System 角色嘗試鎖定 — 拒絕
     Given 金鑰 "key-A" 狀態為 Active
     When  Security Admin（人為操作者）對 "key-A" 發出鎖定命令

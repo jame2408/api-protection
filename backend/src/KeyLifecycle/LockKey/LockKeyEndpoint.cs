@@ -50,13 +50,12 @@ public static class LockKeyEndpoint
             })
             // Internal endpoint (Monitoring BC service-to-service call, I6) — not exposed
             // externally, unlike Scanner's AllowAnonymous precedent
-            // (RevokeLeakedKeysEndpoint.Map): this scenario set has a "非 System 角色嘗試鎖定"
-            // scenario (feature line 18-22, not yet enabled) requiring a human-operator request
-            // to reach the handler and be rejected there — so bare RequireAuthorization() (any
-            // authenticated actor) is used here rather than AllowAnonymous, preserving that a
-            // human's request is authenticated but not yet System-restricted. The System-only
-            // restriction is deliberately deferred to that scenario's red-driven implementation.
+            // (RevokeLeakedKeysEndpoint.Map). Decided 2026-07-12 ("非 System 角色嘗試鎖定"
+            // scenario): the System-only restriction is expressed as an endpoint-level role
+            // policy (403 FORBIDDEN via ProblemAuthorizationResultHandler), not a handler actor
+            // guard — unlike SuspendKey, there is no in-handler "System rejected" contract this
+            // endpoint needs to protect, so the rejection can live entirely at the auth layer.
             // mTLS / Internal Service Token hardening is tracked by ADR-024 and out of scope here.
-            .RequireAuthorization();
+            .RequireAuthorization(policy => policy.RequireRole("System"));
     }
 }
