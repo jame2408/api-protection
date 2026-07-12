@@ -107,6 +107,20 @@ public class LockKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"Security Admin 對 ""(.*)"" 發出解鎖命令")]
+    public async Task WhenSecurityAdminUnlocksKey(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        // Token already issued by the "操作者為 Security Admin" Given step above — do not
+        // re-issue it. api-spec.md §3.2.7: POST /unlock has no request body (mirrors
+        // SuspendKeySteps.WhenOperatorResumesKey).
+        _ctx.Response = await _ctx.Client.PostAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/unlock", null);
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
@@ -175,5 +189,28 @@ public class LockKeySteps(FunctionalTestContext ctx)
         sourceIps[1].GetString().Should().Be("198.51.100.7");
         evidence.GetProperty("distanceKm").GetInt32().Should().Be(8000);
         evidence.GetProperty("windowMinutes").GetInt32().Should().Be(5);
+    }
+
+    [Then(@"系統產生 KeyUnlocked 事件，包含 keyId、unlockedBy")]
+    public void ThenKeyUnlockedEventIsPublished()
+    {
+        using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+        var keyId = doc.RootElement.GetProperty("keyId").GetGuid();
+
+        using var payload = Db.RequireOutboxEvent("KeyUnlocked", keyId);
+        var root = payload.RootElement;
+
+        root.GetProperty("keyId").GetGuid().Should().Be(keyId);
+
+        // unlockedBy is a nested Actor object on the wire (integration spec §6.1 / §3 Actor
+        // schema) — distinct from the response's flat `unlockedBy` string (api-spec.md §3.2.7).
+        var unlockedBy = root.GetProperty("unlockedBy");
+        unlockedBy.GetProperty("type").GetString().Should().Be("User");
+        unlockedBy.GetProperty("id").GetString().Should().Be("security-admin-1");
+        unlockedBy.GetProperty("name").GetString().Should().Be("security-admin-1");
+
+        // KeyUnlocked has no Reason field (mirrors KeyResumed) — lock the wire shape so a
+        // future edit doesn't silently reintroduce one.
+        root.TryGetProperty("reason", out _).Should().BeFalse();
     }
 }

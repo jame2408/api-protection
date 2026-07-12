@@ -149,6 +149,21 @@ public class ApiKey : AggregateRoot<Guid>
     }
 
     /// <summary>
+    /// Unlocks the key. Guards (not-found / non-Locked status) are the handler's
+    /// responsibility; mirrors <see cref="Resume"/>.
+    /// </summary>
+    public void Unlock(Actor unlockedBy)
+    {
+        Status = ApiKeyStatus.Active;
+
+        AddDomainEvent(new KeyUnlocked(
+            EventId: Guid.NewGuid(),
+            OccurredAt: DateTimeOffset.UtcNow,
+            KeyId: Id,
+            UnlockedBy: unlockedBy));
+    }
+
+    /// <summary>
     /// Clears the predecessor link on a rotation successor (used when the predecessor is
     /// revoked while Rotating — design-doc.md T6).
     /// </summary>

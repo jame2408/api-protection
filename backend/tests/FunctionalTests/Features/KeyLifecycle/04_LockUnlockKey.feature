@@ -20,7 +20,6 @@ Feature: 鎖定與解鎖金鑰
 
   # === C4: UnlockKey ===
 
-  @ignore
   Scenario: Security Admin 解鎖金鑰
     Given 金鑰 "key-A" 狀態為 Locked
     And   操作者為 Security Admin
