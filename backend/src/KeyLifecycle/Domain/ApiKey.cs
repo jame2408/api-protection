@@ -198,6 +198,30 @@ public class ApiKey : AggregateRoot<Guid>
     public void SetPredecessor(Guid predecessorKeyId) => PredecessorKeyId = predecessorKeyId;
 
     /// <summary>
+    /// Completes the grace period on this key (Key A) once the scan determines
+    /// now &gt;= GraceDeadline: transitions Rotating → Revoked and clears the successor link.
+    /// SuccessorKeyId is captured before clearing — INV-2 ("Rotating 必有 Successor",
+    /// design-doc.md L739) guarantees it is non-null while Status is Rotating, so this method's
+    /// caller (the Rotating-status guard already passed) never observes a null here. Guards
+    /// (not-found / non-Rotating / deadline) are the handler's responsibility; mirrors
+    /// <see cref="InitiateRotation"/>. GraceDeadline itself is left untouched (detailed-design
+    /// C9 side effects list does not include clearing it) — kept as a historical record.
+    /// </summary>
+    public void CompleteGracePeriod(DateTimeOffset now)
+    {
+        var successorKeyId = SuccessorKeyId!.Value;
+
+        Status = ApiKeyStatus.Revoked;
+        SuccessorKeyId = null;
+
+        AddDomainEvent(new KeyGracePeriodExpired(
+            EventId: Guid.NewGuid(),
+            OccurredAt: now,
+            KeyId: Id,
+            SuccessorKeyId: successorKeyId));
+    }
+
+    /// <summary>
     /// Records that this key must be flagged to Security Admin and Consumer following a
     /// Secret Scanner leak detection (RevokeLeakedKeys slice) — separate from the KeyRevoked
     /// event so the revoke path itself stays reason-agnostic.

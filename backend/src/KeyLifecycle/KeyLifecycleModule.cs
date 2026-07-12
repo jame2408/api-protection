@@ -1,3 +1,4 @@
+using ApiKeyManagement.KeyLifecycle.CompleteGracePeriod;
 using ApiKeyManagement.KeyLifecycle.CreateApiKey;
 using ApiKeyManagement.KeyLifecycle.LockKey;
 using ApiKeyManagement.KeyLifecycle.ResumeKey;
@@ -24,6 +25,8 @@ public static class KeyLifecycleModule
         services.AddScoped<IResumeKeyHandler, ResumeKeyHandler>();
         services.AddScoped<ILockKeyHandler, LockKeyHandler>();
         services.AddScoped<IUnlockKeyHandler, UnlockKeyHandler>();
+        services.AddScoped<ICompleteGracePeriodHandler, CompleteGracePeriodHandler>();
+        services.AddScoped<ICompleteGracePeriodScanHandler, CompleteGracePeriodScanHandler>();
         return services;
     }
 

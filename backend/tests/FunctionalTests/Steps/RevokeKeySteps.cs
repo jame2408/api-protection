@@ -173,6 +173,18 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     [Then(@"""(.*)"" 狀態變為 Revoked")]
     public void ThenKeyStatusBecomesRevoked(string keyAlias)
     {
+        // 05_RotateKey.feature C9 (CompleteGracePeriod) scenario reuses this step but has no HTTP
+        // wire (System Agent Job, api-spec.md §3.1 / §3.4 matrix) — _ctx.Response stays null
+        // throughout that scenario, so the observation surface there is the DB directly instead
+        // of the wire-format assertions below.
+        if (_ctx.Response is null)
+        {
+            var noWireKeyId = _ctx.SeededKeys[keyAlias];
+            var noWireKey = Db.ApiKeys.AsNoTracking().Single(k => k.Id == noWireKeyId);
+            noWireKey.Status.Should().Be(ApiKeyStatus.Revoked);
+            return;
+        }
+
         _ctx.Response!.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // ADR-006: assert raw JSON literal to lock the wire-format string,
@@ -273,6 +285,30 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     [Then(@"觸發主動快取失效")]
     public void ThenActiveCacheInvalidationIsTriggered()
     {
+        // 05_RotateKey.feature C9 (CompleteGracePeriod) scenario reuses this step but has no HTTP
+        // wire (System Agent Job, api-spec.md §3.1 / §3.4 matrix) — _ctx.Response stays null
+        // throughout that scenario. (a) Same "event presence in the outbox *is* the trigger"
+        // reading as the KeyRevoked branch below, applied to KeyGracePeriodExpired: design-doc.md's
+        // rotation sequence diagram has KeyLifecycle publish to ValidationMiddleware, which reacts
+        // by clearing its cache. (b) context-integration-spec.md §4.7's I7 projection table does
+        // NOT list KeyGracePeriodExpired — that is a contract gap, not resolved here (tracked at
+        // orchestrator/checkpoint level, not pre-empted by this test). (c) EventType existence is
+        // sufficient here — payload shape and AggregateId are already locked by the preceding Then
+        // step ("系統產生 KeyGracePeriodExpired 事件..."), so this step is purely the
+        // cache-invalidation *interpretation* record, not a second payload assertion. Respawn
+        // resets the DB every scenario (TestHooks.cs), so there is no cross-scenario false match.
+        // NOTE for a future second caller (e.g. C8 ExpireKey, another no-HTTP System Agent Job):
+        // a null Response alone cannot discriminate which event type to assert here if a second
+        // no-wire caller reuses this step — that will need a better discriminator than this
+        // branch's current hardcoded "KeyGracePeriodExpired" literal. Left as-is; do not
+        // over-design for a caller that does not exist yet.
+        if (_ctx.Response is null)
+        {
+            Db.OutboxMessages.Any(m => m.EventType == "KeyGracePeriodExpired")
+                .Should().BeTrue("KeyGracePeriodExpired must reach the outbox to trigger active cache invalidation");
+            return;
+        }
+
         // context-integration-spec.md §4.7 I7 projection table marks KeyRevoked as requiring
         // active cache invalidation ("是"): the Gateway pub/sub broadcast is driven by the
         // KeyRevoked domain event itself, so the event's presence in the outbox *is* the

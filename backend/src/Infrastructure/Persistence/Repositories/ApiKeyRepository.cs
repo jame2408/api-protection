@@ -63,4 +63,12 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
             k.Status != ApiKeyStatus.Revoked &&
             k.Status != ApiKeyStatus.Expired).ToListAsync(cancel);
     }
+
+    // Tracked (no AsNoTracking) — caller (CompleteGracePeriodScanHandler) mutates and persists
+    // each match, same reasoning as GetNonTerminalByPrefixAsync above. Cross-tenant: no tenantId
+    // filter (System Agent scan scope, IApiKeyRepository.cs).
+    public async Task<IReadOnlyList<ApiKey>> GetRotatingAsync(CancellationToken cancel = default)
+    {
+        return await db.ApiKeys.Where(k => k.Status == ApiKeyStatus.Rotating).ToListAsync(cancel);
+    }
 }

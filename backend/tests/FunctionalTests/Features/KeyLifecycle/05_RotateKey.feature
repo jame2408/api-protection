@@ -45,7 +45,6 @@ Feature: 輪替金鑰
 
   # === C9: CompleteGracePeriod ===
 
-  @ignore
   Scenario: 寬限期到期 — 自動完成輪替
     Given 金鑰 "key-A" 狀態為 Rotating
     And   當前時間已超過 "key-A" 的 graceDeadline

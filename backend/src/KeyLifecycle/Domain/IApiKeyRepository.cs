@@ -9,4 +9,9 @@ public interface IApiKeyRepository
     Task<ApiKey?> GetByIdAsync(Guid keyId, string tenantId, CancellationToken cancel = default);
     Task UpdateAsync(ApiKey apiKey, CancellationToken cancel = default);
     Task<IReadOnlyList<ApiKey>> GetNonTerminalByPrefixAsync(string keyPrefix, CancellationToken cancel = default);
+
+    // System Agent scan (C9 CompleteGracePeriod) — cross-tenant on purpose: the grace-period
+    // sweep is a system-wide job, not a per-tenant request, so unlike GetByIdAsync there is no
+    // tenantId filter here.
+    Task<IReadOnlyList<ApiKey>> GetRotatingAsync(CancellationToken cancel = default);
 }
