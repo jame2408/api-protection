@@ -41,6 +41,7 @@ public static class ApiProblem
             [SuspendKeyFailureCodes.InvalidStateTransition] = (StatusCodes.Status409Conflict, "Invalid State Transition"),
             [SuspendKeyFailureCodes.HumanActorRequired] = (StatusCodes.Status422UnprocessableEntity, "Human Actor Required"),
             [RotateKeyFailureCodes.RotationInProgress] = (StatusCodes.Status409Conflict, "Rotation In Progress"),
+            [RotateKeyFailureCodes.KeyAlreadyExpired] = (StatusCodes.Status409Conflict, "Key Already Expired"),
         };
 
     /// <summary>Builds the RFC 9457 response for a failure. <c>errorCode</c> carries the stable

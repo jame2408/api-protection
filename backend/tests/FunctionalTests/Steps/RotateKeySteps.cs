@@ -110,6 +110,34 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         await Db.SaveChangesAsync();
     }
 
+    [Given(@"金鑰 ""(.*)"" 狀態為 Active，但已到期")]
+    public async Task GivenKeyIsActiveButExpired(string keyAlias)
+    {
+        _ctx.CurrentTenantId = "tenant-A";
+
+        // "已到期" is mechanically defined as ExpiresAt sitting before the frozen "now" shared
+        // by test and handler via DI TimeProvider (FrozenTimeProvider) — ApiKey.Create has no
+        // guard against a past expiresAt (KeyLifecycle/Domain/ApiKey.cs), so seeding it directly
+        // is sufficient; no private-setter bypass needed (shape mirrors
+        // GivenKeyIsActiveOwnedByOtherConsumer above).
+        var now = _ctx.ServiceScope!.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow();
+
+        var (key, _) = ApiKey.Create(
+            consumerId: "any-consumer",
+            tenantId: _ctx.CurrentTenantId,
+            name: keyAlias,
+            environment: "Production",
+            scopes: ["seed:read"],
+            expiresAt: now.AddDays(-1),
+            policyId: Guid.NewGuid(),
+            hasher: Hasher);
+
+        Db.ApiKeys.Add(key);
+        _ctx.SeededKeys[keyAlias] = key.Id;
+
+        await Db.SaveChangesAsync();
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
@@ -310,7 +338,8 @@ public class RotateKeySteps(FunctionalTestContext ctx)
             // INV-4 guard（RotateKeyHandler，status guard 之後）— §3.2.4 Errors 表既有列，本 commit
             // 首度兌現。
             ["已有進行中的輪替"] = (HttpStatusCode.Conflict, "ROTATION_IN_PROGRESS"),
-            // §3.2.4 Errors 表餘下一碼（KEY_ALREADY_EXPIRED）由對應場景啟用輪補入此表。
+            // expired guard（RotateKeyHandler，status guard 之後）— §3.2.4 Errors 表既有列。
+            ["金鑰已到期，無法輪替"] = (HttpStatusCode.Conflict, "KEY_ALREADY_EXPIRED"),
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));

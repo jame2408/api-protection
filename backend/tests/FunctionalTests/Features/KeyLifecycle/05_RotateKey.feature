@@ -26,7 +26,6 @@ Feature: 輪替金鑰
     When  Consumer 對 "key-A" 發起輪替
     Then  輪替失敗，錯誤原因為「已有進行中的輪替」
 
-  @ignore
   Scenario: 金鑰已到期 — 拒絕輪替
     Given 金鑰 "key-A" 狀態為 Active，但已到期
     When  Consumer 對 "key-A" 發起輪替

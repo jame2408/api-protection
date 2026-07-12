@@ -32,26 +32,33 @@ public class RotateKeyHandler(
             return FailureProvider.CreateFailure(RotateKeyFailureCodes.Forbidden);
 
         // 3. Guard: status = Active
-        //    detailed-design §6.2 guard order also has "尚未到期" (KEY_ALREADY_EXPIRED) between
-        //    here and guard 4 below — deferred to its scenario (no red to drive it yet), to be
-        //    inserted at this position when that scenario lands.
         if (keyA.Status != ApiKeyStatus.Active)
             return FailureProvider.CreateFailure(RotateKeyFailureCodes.InvalidStateTransition);
 
-        // 4. Guard: INV-4 — no other Rotating key in the same Consumer + Environment scope
+        // now is read once here (not just before InitiateRotation) so the expired guard below and
+        // the eventual InitiateRotation call share the same instant — avoids two clock reads per
+        // request.
+        var now = clock.GetUtcNow();
+
+        // 4. Guard: 尚未到期 (KEY_ALREADY_EXPIRED) — detailed-design §6.2 guard order: status →
+        //    尚未到期 → 無其他 Rotating (INV-4 below).
+        if (keyA.ExpiresAt <= now)
+            return FailureProvider.CreateFailure(RotateKeyFailureCodes.KeyAlreadyExpired);
+
+        // 5. Guard: INV-4 — no other Rotating key in the same Consumer + Environment scope
         //    (api-spec.md §3.2.4 Errors row ROTATION_IN_PROGRESS; detailed-design §6.2 guard
-        //    order). Zero-I/O guards (exists/ownership/status) run first; this is the first I/O
-        //    guard after them.
+        //    order). Zero-I/O guards (exists/ownership/status/expired) run first; this is the
+        //    first I/O guard after them.
         if (await keyRepository.ExistsRotatingAsync(keyA.ConsumerId, keyA.Environment, command.TenantId, cancel))
             return FailureProvider.CreateFailure(RotateKeyFailureCodes.RotationInProgress);
 
-        // 5. Create AccessPolicy (I2) for Key B — gets policyId before creating the key, same
+        // 6. Create AccessPolicy (I2) for Key B — gets policyId before creating the key, same
         //    call-time sequencing as CreateApiKeyHandler (same DI scope / DbContext = same
         //    transaction).
         var policyId = await accessPolicyService.CreateDefaultPolicyAsync(
             Guid.NewGuid(), command.TenantId, cancel);
 
-        // 6. Create Key B — inherits name/scopes/environment/expiresAt from Key A (rotation only
+        // 7. Create Key B — inherits name/scopes/environment/expiresAt from Key A (rotation only
         //    replaces credential material, not the validity window — 2026-07-12 使用者裁決).
         var (keyB, rawKey) = ApiKey.Create(
             keyA.ConsumerId,
@@ -63,12 +70,11 @@ public class RotateKeyHandler(
             policyId,
             keyHasher);
 
-        // 7. Transition Key A → Rotating + link successor; link Key B's predecessor.
-        var now = clock.GetUtcNow();
+        // 8. Transition Key A → Rotating + link successor; link Key B's predecessor.
         keyA.InitiateRotation(keyB.Id, command.GracePeriod ?? DefaultGracePeriod, now);
         keyB.SetPredecessor(keyA.Id);
 
-        // 8. Persist both aggregates in the same transaction.
+        // 9. Persist both aggregates in the same transaction.
         await keyRepository.UpdateAsync(keyA, cancel);
         await keyRepository.SaveAsync(keyB, cancel);
 

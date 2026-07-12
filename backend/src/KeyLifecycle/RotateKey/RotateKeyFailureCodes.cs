@@ -18,8 +18,8 @@ public static class RotateKeyFailureCodes
     // rotate 首個專屬碼（非共用字面值，ApiProblem.Map 首度註冊）。
     public const string RotationInProgress = "ROTATION_IN_PROGRESS";
 
-    // api-spec.md §3.2.4 Errors table also lists KEY_ALREADY_EXPIRED — deferred to its scenario
-    // (no red to drive it yet in this scenario's guard chain; detailed-design §6.2 guard order:
-    // status → 未到期 → 無其他 Rotating, to be inserted between status and the INV-4 guard above
-    // when that scenario lands).
+    // Expired guard (RotateKeyHandler, status guard 之後、INV-4 guard 之前，detailed-design §6.2
+    // guard order) — api-spec.md §3.2.4 Errors 表既有列，rotate 第二個專屬碼
+    // （ApiProblem.Map 註冊 409）。
+    public const string KeyAlreadyExpired = "KEY_ALREADY_EXPIRED";
 }
