@@ -27,7 +27,6 @@ Feature: 鎖定與解鎖金鑰
     Then  "key-A" 狀態變為 Active
     And   系統產生 KeyUnlocked 事件，包含 keyId、unlockedBy
 
-  @ignore
   Scenario: 金鑰非 Locked 狀態 — 拒絕解鎖
     Given 金鑰 "key-A" 狀態為 Active
     When  Security Admin 對 "key-A" 發出解鎖命令

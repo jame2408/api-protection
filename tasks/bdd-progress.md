@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 31 / 46  
-**下一個：** `04_LockUnlockKey.feature` — 金鑰非 Locked 狀態 — 拒絕解鎖
+**已通過：** 32 / 46  
+**下一個：** `04_LockUnlockKey.feature` — 操作者權限不足 — 拒絕解鎖
 
 ---
 

@@ -146,6 +146,25 @@ public class LockKeySteps(FunctionalTestContext ctx)
         ProblemAssertions.RequireProblem(_ctx.Response!, _ctx.ResponseBody!, expectedStatus, expectedErrorCode);
     }
 
+    [Then(@"解鎖失敗，錯誤原因為「(.*)」")]
+    public void ThenUnlockFailsWithReason(string reason)
+    {
+        var map = new Dictionary<string, (HttpStatusCode Status, string ErrorCode)>
+        {
+            // API wire contract — keep literals here to lock external HTTP error codes.
+            // Production code uses *FailureCodes.* constants; this map intentionally
+            // re-states the strings so a constant value drift would surface as a test failure.
+            ["金鑰狀態非 Locked"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
+            // 場景 6「權限不足」的 FORBIDDEN 未列 §3.2.7 Errors 表 — 契約缺口待裁決，故意不預鎖。
+        };
+
+        var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
+        var (expectedStatus, expectedErrorCode) = entry.Value;
+
+        // RFC 9457 Problem Details wire contract (api-spec.md §2.2).
+        ProblemAssertions.RequireProblem(_ctx.Response!, _ctx.ResponseBody!, expectedStatus, expectedErrorCode);
+    }
+
     [Then(@"""(.*)"" 狀態變為 Locked")]
     public void ThenKeyStatusBecomesLocked(string keyAlias)
     {
