@@ -83,7 +83,7 @@ Silently ask "is there a more elegant way?" before presenting a solution — sur
 
 > Development phase only — `.feature` scenarios and API specs are already produced. 凍結的是 Discovery 新場景產出；既有場景修訂、缺陷再現、行為移除走 `docs/adr/adr-022-bdd-requirement-type-routing.md` 分流（§1 需求類型分流表）。
 
-**Kanban**: `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` → ✅ Done. Only the user promotes backlog → progress; Claude MUST NOT do this autonomously. `tasks/bdd-progress.md` is the queue SSOT; find the next scenario via `grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort | head -1`.
+**Kanban**: `tasks/bdd-backlog.md` → `tasks/bdd-progress.md` → ✅ Done. Only the user promotes backlog → progress; Claude MUST NOT do this autonomously. `tasks/bdd-progress.md` is the queue SSOT; find the next scenario via `grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort -t: -k1,1 -k2,2n | head -1`（行號需數值排序——純字典序會把同檔的 5 行排在 19 行後，曾致帳面勘誤 `843b9f3`）.
 
 **Execute via** the `/bdd-vertical-slice` skill (procedure, BC identification, patterns).
 

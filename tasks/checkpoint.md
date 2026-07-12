@@ -40,7 +40,6 @@
 ## 待裁決
 
 - **RotateKey 授權缺口（2026-07-12 裁決 (a) 遞延，security review 升級警示）**：`RotateKeyEndpoint` 現為 bare auth，role policy（TenantAdmin/Consumer）與 ownership guard（限自身金鑰）均無場景可紅驅動——但 rotate 回傳**新金鑰明文**（rawKey Display Once），任何已認證 actor 可對任意 tenant 的 key 發起輪替並取得有效新憑證＝跨租戶金鑰接管（IDOR），風險量級高於 Lock/Unlock 同型缺口。背景 security review 於 commit `9e0e432` 與 push 兩層均標紅此項。**建議**：優先補「權限不足 — 拒絕輪替」與「非自身金鑰 — 拒絕輪替」場景（走 ADR-022 §1 場景修訂分流，需使用者核准），而非留待 Discovery 解凍。
-- **CLAUDE.md 佇列查找指令修訂提案**：CLAUDE.md「BDD Scenario Development Cycle」段的 `grep -rn "@ignore" … | sort | head -1` 為純字典序，與佇列 SSOT `tasks/bdd-progress.md` 的 `sort -t: -k1,1 -k2,2n` drift，已造成一次帳面勘誤（`843b9f3`）。CLAUDE.md 修改須使用者發起——建議把該句改為指向 bdd-progress.md 指令或直接替換為數值排序版。
 - Tessl 擱置項與 zh-lint 掃描範圍觀察已依 ADR-028 遷入 `tasks/todo.md`（觸發制擱置項段／Non-blocking follow-ups 段），仍非阻塞；原裁決紀錄見 `tasks/archive/process-improvement-plan.md` §9.3 D-2 與 §8.3。
 
 ## 下一步（每項獨立可中斷；優先序供參，取捨由規格擁有者決定）

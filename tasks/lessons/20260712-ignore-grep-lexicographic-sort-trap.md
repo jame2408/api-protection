@@ -10,4 +10,4 @@ status: active
 
 **Rule:** (1) 查找下一個 `@ignore` 場景一律用佇列 SSOT `tasks/bdd-progress.md` 記載的指令（`grep -rn "@ignore" backend/tests/FunctionalTests/Features/ | sort -t: -k1,1 -k2,2n | head -1`），不得用純字典序 `sort`。(2) 對 grep 輸出的佇列判定，落帳前以 feature 檔原文覆核目標場景前面沒有更早的 `@ignore`——工具輸出的排序假設也是一種需要驗證的執行期值。
 
-**落地:** 本條 lesson；CLAUDE.md 的簡化指令修訂屬使用者裁決（已於 2026-07-12 session 面呈）。
+**落地:** 本條 lesson；CLAUDE.md 佇列指令已於 2026-07-12 經使用者核准改為數值排序版（與 bdd-progress.md SSOT 對齊），Rule (1) 的 drift 根因已除，Rule (2)（工具輸出排序假設需覆核）維持習慣承載。
