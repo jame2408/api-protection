@@ -108,10 +108,8 @@ public class LockKeySteps(FunctionalTestContext ctx)
         // Token already issued by the "操作者為 Security Admin" Given step above — do not
         // re-issue it. api-spec.md §3.2.7: POST /unlock has no request body (mirrors
         // SuspendKeySteps.WhenOperatorResumesKey).
-        _ctx.Response = await _ctx.Client.PostAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/unlock", null);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await _ctx.PostNoBodyAndCaptureAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/unlock");
     }
 
     [When(@"操作者對 ""(.*)"" 發出解鎖命令")]
@@ -124,10 +122,8 @@ public class LockKeySteps(FunctionalTestContext ctx)
         // malformed request or the status guard.
         var keyId = _ctx.SeededKeys[keyAlias];
 
-        _ctx.Response = await _ctx.Client.PostAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/unlock", null);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await _ctx.PostNoBodyAndCaptureAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/unlock");
     }
 
     // -------------------------------------------------------------------------

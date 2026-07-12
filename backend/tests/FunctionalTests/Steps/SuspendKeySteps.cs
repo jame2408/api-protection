@@ -121,10 +121,8 @@ public class SuspendKeySteps(FunctionalTestContext ctx)
         var keyId = _ctx.SeededKeys[keyAlias];
 
         // api-spec.md §3.2.6: POST /resume has no request body.
-        _ctx.Response = await _ctx.Client.PostAsync(
-            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/resume", null);
-
-        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+        await _ctx.PostNoBodyAndCaptureAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/resume");
     }
 
     // -------------------------------------------------------------------------

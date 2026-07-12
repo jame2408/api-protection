@@ -20,4 +20,16 @@ public static class TestContextExtensions
         ctx.AuthToken = token;
         ctx.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
+
+    /// <summary>
+    /// POSTs with no request body and captures the response + its body onto the context.
+    /// Only for endpoints whose api-spec explicitly defines no request body — endpoints that
+    /// take a body (even an empty JSON object, e.g. "未提供原因" scenarios) must keep using
+    /// PostAsJsonAsync directly at the call site, since the body there carries scenario intent.
+    /// </summary>
+    public static async Task PostNoBodyAndCaptureAsync(this FunctionalTestContext ctx, string url)
+    {
+        ctx.Response = await ctx.Client.PostAsync(url, null);
+        ctx.ResponseBody = await ctx.Response.Content.ReadAsStringAsync();
+    }
 }
