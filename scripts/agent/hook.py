@@ -29,6 +29,10 @@ _DOUBLE_QUOTED = re.compile(r'"(?:[^"\\]|\\.)*"')
 _ARITHMETIC = re.compile(r"\$\(\([^)]*\)\)")
 _HEREDOC = re.compile(r"(?<!<)<<-?(?!<)")
 _ZSH_EQUALS_TOKEN = re.compile(r"^=.+")
+_ZSH_STATUS_ASSIGN = re.compile(
+    r"(?:^|[;&|({\n]\s*)(?:export\s+|local\s+|typeset\s+|readonly\s+)?status=",
+    re.MULTILINE,
+)
 
 _PATCH_FILE = re.compile(r"^\*\*\* (Add|Update|Delete) File: (.+)$")
 _PATCH_MOVE = re.compile(r"^\*\*\* Move to: (.+)$")
@@ -340,6 +344,12 @@ def pre_tool_bash(payload: dict[str, Any]) -> int:
         violations.append(
             f"zsh 對裸 `=` 開頭參數（例如 {rendered}）做 =word 展開會直接報錯，"
             "請加引號（如 echo '==='）"
+        )
+
+    if _ZSH_STATUS_ASSIGN.search(masked):
+        violations.append(
+            "zsh 的 status 是唯讀特殊變數，賦值會直接報錯——exit code 一律改用 exit_code"
+            "（見 tasks/lessons/20260710-zsh-status-readonly-and-restore-trap.md）"
         )
 
     if not violations:

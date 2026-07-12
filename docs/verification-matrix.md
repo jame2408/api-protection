@@ -70,10 +70,11 @@
 | 21 | Orchestrator review executor 產出：事實覆核（不接受概括摘要）、誠實申報覆核 — `docs/orchestration.md` §2 Executor Contract 第 3 條「誠實申報 blocker」的覆核方；第 5 條 unverified_success 條款（`docs/adr/adr-012-charter-amendments-external-adoption.md` 決策 (a)）明文化「協調者親自執行確定性檢查才能升級為已驗證」 | 無獨立腳本檔——純人工/Orchestrator 執行的 review 步驟，權威來源見 `docs/orchestration.md` §2 與 `tasks/lessons/` 對應條目（簡體字掃描已由第 16a 項機械化，不再屬 review 責任） | review 時 | Orchestrator |
 | **人工類** ||||
 | 22 | ADR PR review checklist（7 項 judgment 檢查：Context 並排引用 / Decision 邊界 / code 範例 / Rationale 三問 / ≥3 Alternatives / Implementation Rules 可打勾 / 同步項目同 commit） — `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 由 CLAUDE.md 遷移） | 無腳本；本體見 `docs/adr/_template.md` Review Checklist 註解區（ADR-013 決策 (d) 遷移） | review 時 | 人 |
-| **`scripts/agent/hook.py` `pre-tool-bash` — Claude Code／Codex 共用 Bash 指令寫時攔截，2 個 pattern** ||||
+| **`scripts/agent/hook.py` `pre-tool-bash` — Claude Code／Codex 共用 Bash 指令寫時攔截，3 個 pattern** ||||
 | 23 | heredoc（`<<`／`<<-`，排除 herestring `<<<`）攔截——heredoc 寫檔曾致本 harness 背景卡死 3.5 小時，見 `tasks/lessons/20260705-heredoc-write-tool.md` | `scripts/agent/hook.py` `pre-tool-bash`（`_HEREDOC` regex） | 寫的當下（Claude Code／Codex Bash hook） | 腳本（hook，exit 2 阻擋） |
 | 23a | zsh 對裸 `=` 開頭參數（`=word` 展開）攔截——對應 `(eval):N: == not found` 事故，見 `tasks/lessons/20260705-zsh-bare-equals-expansion.md` | `scripts/agent/hook.py` `pre-tool-bash`（`_ZSH_EQUALS_TOKEN` regex） | 寫的當下（Claude Code／Codex Bash hook） | 腳本 |
 | 23b | tool failure observation 必須先做 key-based＋value-based secret scrubbing 再寫入 `.claude/failures.jsonl`，供 ADR-018 phase-close triage 使用 | `scripts/agent/hook.py` `observe-tool-failure`；Claude Code 由 `PostToolUseFailure` 送任意 tool failure，Codex 由 `PostToolUse` 在 response 明確含失敗旗標／非零 exit code 時送入 | tool failure 後（coverage 依 harness event 能力） | 腳本 |
+| 23c | zsh 唯讀變數 `status=` 賦值（含 `export`／`local`／`typeset`／`readonly` 前綴、命令位置）攔截——對應 `read-only variable: status` 事故 REPEAT ×2（2026-07-10 兩起並立、2026-07-12 failure-triage 再現），見 `tasks/lessons/20260710-zsh-status-readonly-and-restore-trap.md` | `scripts/agent/hook.py` `pre-tool-bash`（`_ZSH_STATUS_ASSIGN` regex） | 寫的當下（Claude Code／Codex Bash hook） | 腳本（hook，exit 2 阻擋） |
 
 不列 Tessl（`tasks/archive/process-improvement-plan.md` §9.3 D-2 裁決：擱置，不入制度；追蹤項見 `tasks/todo.md` 觸發制擱置項段）。
 
