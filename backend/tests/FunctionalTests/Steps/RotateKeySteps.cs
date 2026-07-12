@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -50,6 +51,23 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         _ctx.Response = await _ctx.Client.PostAsJsonAsync(
             $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/rotate",
             new RotateKeyEndpoint.Request("PT24H"));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
+    [When(@"操作者對 ""(.*)"" 發起輪替")]
+    public async Task WhenOperatorInitiatesRotation(string keyAlias)
+    {
+        // Token already issued by the Given step above — do not re-issue it, this step must
+        // work for whichever actor the Given set up (mirrors LockKeySteps.WhenOperatorUnlocksKey).
+        // Legitimate body (null grace period = default grace path) + Active seed on purpose:
+        // proves the rejection comes from the role policy, not from a malformed request or the
+        // status guard.
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/rotate",
+            new RotateKeyEndpoint.Request(null));
 
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
@@ -175,5 +193,27 @@ public class RotateKeySteps(FunctionalTestContext ctx)
 
         var exists = await Db.AccessPolicies.AnyAsync(p => p.Id == policyId);
         exists.Should().BeTrue();
+    }
+
+    [Then(@"輪替失敗，錯誤原因為「(.*)」")]
+    public void ThenRotateFailsWithReason(string reason)
+    {
+        var map = new Dictionary<string, (HttpStatusCode Status, string ErrorCode)>
+        {
+            // API wire contract — keep literals here to lock external HTTP error codes.
+            // Production code uses *FailureCodes.* constants; this map intentionally
+            // re-states the strings so a constant value drift would surface as a test failure.
+            // TenantAdmin/Consumer role policy (403 FORBIDDEN via ProblemAuthorizationResultHandler)
+            // — §3.2.4 Errors 表已補列（本 commit）。
+            ["權限不足"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
+            // §3.2.4 Errors 表其餘三碼（INVALID_STATE_TRANSITION／ROTATION_IN_PROGRESS／
+            // KEY_ALREADY_EXPIRED）由對應場景啟用輪逐條補入此表。
+        };
+
+        var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));
+        var (expectedStatus, expectedErrorCode) = entry.Value;
+
+        // RFC 9457 Problem Details wire contract (api-spec.md §2.2).
+        ProblemAssertions.RequireProblem(_ctx.Response!, _ctx.ResponseBody!, expectedStatus, expectedErrorCode);
     }
 }

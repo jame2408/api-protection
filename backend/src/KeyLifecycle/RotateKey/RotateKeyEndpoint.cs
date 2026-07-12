@@ -45,13 +45,12 @@ public static class RotateKeyEndpoint
 
                 return Results.Ok(result.Value);
             })
-            // api-spec.md §3.2.4 Authorization row: TenantAdmin, Consumer（限自身金鑰）. This
-            // scenario set (05_RotateKey.feature) has no authorization-rejection scenario to
-            // red-drive either the role policy or the ownership ("限自身金鑰") guard — mirrors
-            // LockKey/UnlockKey's opening-scenario precedent (LockKeyEndpoint.Map, commit
-            // 789e562): bare RequireAuthorization() (any authenticated actor) is used here, and
-            // both the role policy and the ownership guard are deliberately deferred to a future
-            // red-driven scenario. Tracked as a checkpoint gap by the orchestrator (2026-07-12).
-            .RequireAuthorization();
+            // api-spec.md §3.2.4 Authorization row: TenantAdmin, Consumer（限自身金鑰）. The role
+            // half is enforced here (RequireRole), red-driven by "操作者無輪替權限 — 拒絕輪替"
+            // (defect-repro, security review 9e0e432). The ownership half ("限自身金鑰") remains
+            // deferred to the companion ownership defect-repro scenario — RotateKeyHandler has no
+            // actor-ownership guard yet, so admitting both roles past this policy is correct until
+            // that scenario red-drives the narrower check.
+            .RequireAuthorization(policy => policy.RequireRole("TenantAdmin", "Consumer"));
     }
 }

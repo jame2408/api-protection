@@ -34,6 +34,12 @@ Feature: 輪替金鑰
     When  Consumer 對 "key-A" 發起輪替
     Then  輪替失敗，錯誤原因為「金鑰已到期，無法輪替」
 
+  Scenario: 操作者無輪替權限 — 拒絕輪替
+    Given 金鑰 "key-A" 狀態為 Active
+    And   操作者為 Security Admin
+    When  操作者對 "key-A" 發起輪替
+    Then  輪替失敗，錯誤原因為「權限不足」
+
   # === C9: CompleteGracePeriod ===
 
   @ignore
