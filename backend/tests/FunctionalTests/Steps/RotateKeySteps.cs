@@ -87,6 +87,26 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    [When(@"Consumer 對 ""(.*)"" 發起輪替")]
+    public async Task WhenConsumerInitiatesRotation(string keyAlias)
+    {
+        var keyId = _ctx.SeededKeys[keyAlias];
+
+        // This When's semantics are "the key's own Consumer initiates rotation" — the token's
+        // consumerId claim must match the seed's ConsumerId (RevokeKeySteps.CreateSeedKey:
+        // "any-consumer"), otherwise the ownership guard (RotateKeyHandler) rejects it as
+        // non-self rotation.
+        _ctx.AuthToken = TestTokenFactory.CreateConsumerToken(consumerId: "any-consumer");
+        _ctx.Client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", _ctx.AuthToken);
+
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            $"/api/v1/tenants/{_ctx.CurrentTenantId}/keys/{keyId}/rotate",
+            new RotateKeyEndpoint.Request(null));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     [When(@"操作者對 ""(.*)"" 發起輪替")]
     public async Task WhenOperatorInitiatesRotation(string keyAlias)
     {
@@ -238,8 +258,10 @@ public class RotateKeySteps(FunctionalTestContext ctx)
             // TenantAdmin/Consumer role policy (403 FORBIDDEN via ProblemAuthorizationResultHandler)
             // — §3.2.4 Errors 表已補列（本 commit）。
             ["權限不足"] = (HttpStatusCode.Forbidden, "FORBIDDEN"),
-            // §3.2.4 Errors 表其餘三碼（INVALID_STATE_TRANSITION／ROTATION_IN_PROGRESS／
-            // KEY_ALREADY_EXPIRED）由對應場景啟用輪逐條補入此表。
+            // status guard (RotateKeyHandler guard 3) — §3.2.4 Errors 表既有列。
+            ["金鑰狀態非 Active"] = (HttpStatusCode.Conflict, "INVALID_STATE_TRANSITION"),
+            // §3.2.4 Errors 表其餘兩碼（ROTATION_IN_PROGRESS／KEY_ALREADY_EXPIRED）由對應場景
+            // 啟用輪逐條補入此表。
         };
 
         var entry = map.First(kv => reason.StartsWith(kv.Key, StringComparison.Ordinal));

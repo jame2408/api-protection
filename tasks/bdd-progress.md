@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 36 / 48  
-**下一個：** `05_RotateKey.feature` — 金鑰非 Active 狀態 — 拒絕輪替
+**已通過：** 37 / 48  
+**下一個：** `05_RotateKey.feature` — 同 Consumer + Environment 下已有 Rotating 金鑰 — 拒絕輪替
 
 ---
 

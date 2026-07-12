@@ -15,7 +15,6 @@ Feature: 輪替金鑰
     And   系統回傳 "key-B" 的金鑰明文（Display Once）
     And   同一交易內為 "key-B" 建立預設 AccessPolicy
 
-  @ignore
   Scenario: 金鑰非 Active 狀態 — 拒絕輪替
     Given 金鑰 "key-A" 狀態為 Suspended
     When  Consumer 對 "key-A" 發起輪替
