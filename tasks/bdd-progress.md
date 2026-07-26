@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 51 / 59  
-**下一個：** `07_ValidateKey.feature` — Rotating 金鑰在寬限期內仍可驗證
+**已通過：** 52 / 59  
+**下一個：** `07_ValidateKey.feature` — 金鑰格式不合法 — 拒絕驗證
 
 ---
 

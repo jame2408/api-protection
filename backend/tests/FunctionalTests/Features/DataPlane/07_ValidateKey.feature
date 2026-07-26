@@ -18,7 +18,6 @@ Feature: 金鑰驗證（Data Plane）
     Then  驗證通過，valid 為 true
     And   回應包含 keyId、tenantId、consumerId、environment、scopes
 
-  @ignore
   Scenario: Rotating 金鑰在寬限期內仍可驗證
     Given 金鑰 "key-A" 狀態為 Rotating
     And   "key-A" 的 scopes 為 ["orders:read"]
