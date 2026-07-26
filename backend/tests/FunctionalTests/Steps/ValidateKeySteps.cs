@@ -17,6 +17,10 @@ public class ValidateKeySteps(FunctionalTestContext ctx)
 {
     private readonly FunctionalTestContext _ctx = ctx;
 
+    // "一個前綴不合法的金鑰字串" Given 到 When 之間的暫存 — 本場景不 seed 任何金鑰，沒有
+    // SeededRawKeys 可查（RevokeKeySteps._leakedPrefix 同型先例）。
+    private string? _invalidPrefixKeyString;
+
     private AppDbContext Db =>
         _ctx.ServiceScope!.ServiceProvider.GetRequiredService<AppDbContext>();
 
@@ -55,6 +59,19 @@ public class ValidateKeySteps(FunctionalTestContext ctx)
     }
 
     // -------------------------------------------------------------------------
+    // Given
+    // -------------------------------------------------------------------------
+
+    // 本場景不 seed 任何金鑰（07_ValidateKey.feature 場景註解）：Layer 1 是純字串前綴檢查，
+    // 不需要任何已存在的 ApiKey 列。任何不以 "apk_" 起頭的字串都合乎「前綴不合法」的前提，
+    // 固定值即可、無需隨機化。
+    [Given(@"一個前綴不合法的金鑰字串")]
+    public void GivenAKeyStringWithInvalidPrefix()
+    {
+        _invalidPrefixKeyString = "not_a_valid_prefix_key_string";
+    }
+
+    // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
 
@@ -78,6 +95,25 @@ public class ValidateKeySteps(FunctionalTestContext ctx)
         _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
     }
 
+    // Distinct step text from WhenGatewayCallsValidate ("以 "(.*)" 的完整金鑰" points at a
+    // seeded alias) — this scenario has no seed to alias, it sends the raw Given string as-is
+    // (07_ValidateKey.feature "金鑰格式不合法" 場景).
+    [When(@"Gateway 以該金鑰字串、來源 IP ""(.*)""、requestedScope ""(.*)"" 呼叫驗證")]
+    public async Task WhenGatewayCallsValidateWithInvalidPrefixString(string sourceIp, string requestedScope)
+    {
+        _ctx.AuthenticateAs(TestTokenFactory.CreateSystemToken());
+
+        _ctx.Response = await _ctx.Client.PostAsJsonAsync(
+            ValidateKeyEndpoint.Route,
+            new ValidateKeyEndpoint.Request(
+                ApiKey: _invalidPrefixKeyString!,
+                SourceIp: sourceIp,
+                RequestedScope: requestedScope,
+                RequestId: null));
+
+        _ctx.ResponseBody = await _ctx.Response.Content.ReadAsStringAsync();
+    }
+
     // -------------------------------------------------------------------------
     // Then
     // -------------------------------------------------------------------------
@@ -89,6 +125,21 @@ public class ValidateKeySteps(FunctionalTestContext ctx)
 
         using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
         doc.RootElement.GetProperty("valid").GetBoolean().Should().BeTrue();
+    }
+
+    // 扁平失敗 body（2026-07-26 裁決，非 RFC 9457）——ProblemAssertions 不適用，直接讀
+    // JsonDocument 欄位，比照 RevokeKeySteps 讀 _ctx.ResponseBody 的既有寫法。
+    [Then(@"驗證失敗，errorCode 為 ""(.*)""，httpStatusHint 為 (.*)")]
+    public void ThenValidationFails(string expectedErrorCode, int expectedHttpStatusHint)
+    {
+        _ctx.Response!.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var doc = JsonDocument.Parse(_ctx.ResponseBody!);
+        var root = doc.RootElement;
+
+        root.GetProperty("valid").GetBoolean().Should().BeFalse();
+        root.GetProperty("errorCode").GetString().Should().Be(expectedErrorCode);
+        root.GetProperty("httpStatusHint").GetInt32().Should().Be(expectedHttpStatusHint);
     }
 
     [Then(@"回應包含 keyId、tenantId、consumerId、environment、scopes")]

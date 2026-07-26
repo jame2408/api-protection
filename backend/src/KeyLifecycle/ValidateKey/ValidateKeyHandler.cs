@@ -6,14 +6,14 @@ using ApiKeyManagement.SharedKernel.Domain;
 namespace ApiKeyManagement.KeyLifecycle.ValidateKey;
 
 /// <summary>
-/// Executes the validation funnel's hash-lookup layer (ADR-029 §1: all five layers run inside
-/// this system process, not the Gateway — this handler backs the funnel's sole trigger,
-/// <c>POST /api/internal/v1/validate-key</c>). This round only wires the all-guards-pass path
-/// (07_ValidateKey.feature "成功驗證 Active 金鑰"); the remaining funnel layers (format, status,
-/// IP, scope-insufficient) are separate Wave 8 scenarios still under @ignore — see the DEFERRAL
-/// comments below for each guard's future insertion point. No tenantId scoping here (unlike
-/// most KeyLifecycle handlers): the request carries none (api-spec.md §4.1 請求欄位表), so the
-/// hash lookup is necessarily cross-tenant; tenantId is read off the matched key and returned.
+/// Executes the validation funnel's Layer 1 (format) and Layer 4 (hash-lookup) checks (ADR-029
+/// §1: all five layers run inside this system process, not the Gateway — this handler backs the
+/// funnel's sole trigger, <c>POST /api/internal/v1/validate-key</c>). The remaining funnel layers
+/// (status, IP, scope-insufficient) are separate Wave 8 scenarios still under @ignore — see the
+/// DEFERRAL comments below for each guard's future insertion point. No tenantId scoping here
+/// (unlike most KeyLifecycle handlers): the request carries none (api-spec.md §4.1 請求欄位表),
+/// so the hash lookup is necessarily cross-tenant; tenantId is read off the matched key and
+/// returned.
 /// </summary>
 public class ValidateKeyHandler(
     IApiKeyRepository keyRepository,
@@ -23,6 +23,20 @@ public class ValidateKeyHandler(
     public async Task<Result<ValidateKeyResponse, Failure>> HandleAsync(
         ValidateKeyCommand command, CancellationToken cancel = default)
     {
+        // Layer 1（格式檢查）置於方法最前面，早於 Layer 4 的 ComputeHash 與資料庫查找——漏斗
+        // 層序即成本序（design-doc.md §6.2.1「每一層的成本遞增，先用便宜的檢查過濾明顯無效的
+        // 請求」）：字串前綴比對是 O(1) 且零 I/O，能在雜湊運算與 DB 往返之前擋掉明顯不合法的
+        // 輸入。本輪只實作前綴檢查（rawKey 必須以 "apk_" 起頭，ApiKey.GenerateKeyMaterial 的
+        // 格式規格）。
+        //
+        // DEFERRAL：長度與 checksum 檢查目前無任何場景覆蓋（api-spec.md §4.1 的
+        // KEY_FORMAT_INVALID 列雖寫「前綴/長度/checksum 不合法」，但本輪只有前綴有場景驅動）。
+        // 若要補齊需依 ADR-030 另行產出對應場景（使用者裁決）——不得自行補建無場景的檢查。
+        if (!command.ApiKey.StartsWith("apk_", StringComparison.Ordinal))
+        {
+            return FailureProvider.CreateFailure(ValidateKeyFailureCodes.KeyFormatInvalid);
+        }
+
         // ADR-017 Rule 6(a) 的 KeyHash 唯一索引把等值查找收斂到 DB 層（至多一筆候選），
         // Rule 6(b) 又要求 FixedTimeEquals 恆定時間比較 —— 兩者不是二選一：索引負責「查找
         // 效率」，FixedTimeEquals 負責「相符判定的字面滿足」與防禦深度（即使未來出現繞過索引
@@ -36,8 +50,9 @@ public class ValidateKeyHandler(
                 Encoding.UTF8.GetBytes(computedHash)))
         {
             // DEFERRAL: 07_ValidateKey.feature「金鑰雜湊不匹配 — 拒絕驗證」場景（KEY_NOT_FOUND /
-            // 401，故意不區分「不存在」與「錯誤」以防列舉）尚未啟用；本分支目前只需回傳
-            // Result 失敗，errorCode/httpStatusHint 的 wire 形狀由該場景的紅驅動落地。
+            // 401，故意不區分「不存在」與「錯誤」以防列舉）尚未啟用——本分支已可產出正確的
+            // errorCode/httpStatusHint wire 形狀（ValidateKeyFailureMapping 已涵蓋 KeyNotFound），
+            // 缺的只是該場景本身的紅綠驗證。
             return FailureProvider.CreateFailure(ValidateKeyFailureCodes.KeyNotFound);
         }
 

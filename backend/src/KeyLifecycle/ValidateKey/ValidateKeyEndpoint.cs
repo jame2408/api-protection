@@ -1,4 +1,3 @@
-using ApiKeyManagement.KeyLifecycle.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -25,7 +24,6 @@ public static class ValidateKeyEndpoint
             async (
                 Request request,
                 IValidateKeyHandler handler,
-                HttpContext httpContext,
                 CancellationToken cancel) =>
             {
                 var command = new ValidateKeyCommand(
@@ -38,12 +36,19 @@ public static class ValidateKeyEndpoint
 
                 if (result.IsFailure)
                 {
-                    // DEFERRAL: api-spec.md §4.1 的失敗回應形狀不是 RFC 9457 —— 是扁平的
-                    // `{ valid:false, errorCode, httpStatusHint, detail }`，與本 BC 其餘端點共用
-                    // 的 ApiProblem 信封不同。本輪唯一啟用的場景（成功驗證）不會走到這條分支；
-                    // ApiProblem.FromFailure 是佔位，待對應失敗場景的紅驅動該 wire 形狀落地時
-                    // 於此處替換。
-                    return ApiProblem.FromFailure(result.Error, httpContext);
+                    // 2026-07-26 裁決：失敗回應為 HTTP 200 ＋扁平 body（不是本 BC 其餘端點共用的
+                    // RFC 9457 ApiProblem 信封），也不是把 httpStatusHint 當傳輸層狀態碼。
+                    // `httpStatusHint` 這個欄位存在的意義就是「讓 Gateway 決定回 401 還是 403」
+                    // （api-spec.md §4.1「Gateway 根據 httpStatusHint 直接回傳對應的 HTTP Status
+                    // 給客戶端」）；若傳輸層狀態已經帶了它，該欄位即為冗餘。本端點是內部 RPC，
+                    // 「呼叫成功、答案是否定」即 200 —— Gateway 才是真正面向外部客戶端回應狀態
+                    // 碼的一方。
+                    var httpStatusHint = ValidateKeyFailureMapping.Resolve(result.Error.Code);
+
+                    return Results.Ok(new ValidateKeyFailureResponse(
+                        Valid: false,
+                        ErrorCode: result.Error.Code,
+                        HttpStatusHint: httpStatusHint));
                 }
 
                 return Results.Ok(result.Value);

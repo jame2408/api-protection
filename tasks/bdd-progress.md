@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 52 / 59  
-**下一個：** `07_ValidateKey.feature` — 金鑰格式不合法 — 拒絕驗證
+**已通過：** 53 / 59  
+**下一個：** `07_ValidateKey.feature` — 金鑰已暫停 — 拒絕驗證
 
 ---
 

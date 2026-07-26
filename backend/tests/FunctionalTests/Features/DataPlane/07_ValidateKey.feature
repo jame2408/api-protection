@@ -26,7 +26,6 @@ Feature: 金鑰驗證（Data Plane）
 
   # --- Layer 1: 格式檢查 ---
 
-  @ignore
   Scenario: 金鑰格式不合法 — 拒絕驗證
     Given 一個前綴不合法的金鑰字串
     When  Gateway 以該金鑰字串、來源 IP "203.0.113.42"、requestedScope "orders:read" 呼叫驗證
