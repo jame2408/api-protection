@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ApiKeyManagement.FunctionalTests.Infrastructure;
 
@@ -31,5 +32,27 @@ public static class TestContextExtensions
     {
         ctx.Response = await ctx.Client.PostAsync(url, null);
         ctx.ResponseBody = await ctx.Response.Content.ReadAsStringAsync();
+    }
+
+    /// <summary>
+    /// Resolves <typeparamref name="THandler"/> from a fresh DI scope and invokes it via
+    /// <paramref name="invoke"/>. A fresh scope (rather than reusing ctx.ServiceScope) mirrors how
+    /// the production job resolves the handler each run — these System Agent Job slices have no
+    /// HostedService/timer wrapper this round, so DI direct invocation from the step IS the
+    /// trigger surface, and each invocation should get its own scope just like a real scheduled
+    /// run would. Takes a delegate rather than resolving-and-returning the handler: the scope must
+    /// stay alive until the handler call completes. A resolve-and-return shape would let the
+    /// `using var scope` above dispose the moment the helper returns — before the caller's own
+    /// `await handler.HandleAsync(...)` even runs — leaving that call to execute against an
+    /// already-disposed scope's services.
+    /// </summary>
+    public static async Task<TResult> InScopedHandlerAsync<THandler, TResult>(
+        this FunctionalTestContext ctx, Func<THandler, Task<TResult>> invoke) where THandler : notnull
+    {
+        using var scope = ctx.ServiceScope!.ServiceProvider
+            .GetRequiredService<IServiceScopeFactory>().CreateScope();
+        var handler = scope.ServiceProvider.GetRequiredService<THandler>();
+
+        return await invoke(handler);
     }
 }

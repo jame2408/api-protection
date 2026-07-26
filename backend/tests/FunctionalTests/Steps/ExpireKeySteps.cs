@@ -138,16 +138,11 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
     {
         // C8 has no HTTP endpoint (api-spec.md §3.4 matrix: System Agent Job) — DI direct
         // invocation IS the trigger surface, mirrors
-        // CompleteGracePeriodSteps.WhenSystemAgentRunsGracePeriodScan. A fresh scope (rather than
-        // reusing _ctx.ServiceScope) mirrors how the production job would resolve the handler
-        // each run; _ctx.Response stays null throughout, since there is no HTTP wire for this
-        // scenario. No HostedService/timer wrapper exists this round — this step calls the scan
-        // handler directly.
-        using var scope = _ctx.ServiceScope!.ServiceProvider
-            .GetRequiredService<IServiceScopeFactory>().CreateScope();
-        var handler = scope.ServiceProvider.GetRequiredService<IExpireKeyScanHandler>();
-
-        var result = await handler.HandleAsync();
+        // CompleteGracePeriodSteps.WhenSystemAgentRunsGracePeriodScan; _ctx.Response stays null
+        // throughout, since there is no HTTP wire for this scenario.
+        var result = await _ctx.InScopedHandlerAsync<
+            IExpireKeyScanHandler, Result<ExpireKeyScanResponse, Failure>>(
+            handler => handler.HandleAsync());
 
         result.IsSuccess.Should().BeTrue();
 

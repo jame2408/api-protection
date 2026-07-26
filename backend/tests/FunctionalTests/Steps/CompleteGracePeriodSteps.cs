@@ -89,17 +89,12 @@ public class CompleteGracePeriodSteps(FunctionalTestContext ctx)
     public async Task WhenSystemAgentRunsGracePeriodScan()
     {
         // C9 has no HTTP endpoint (api-spec.md §3.1 / §3.4 matrix: System Agent Job) — DI direct
-        // invocation IS the trigger surface. A fresh scope (rather than reusing _ctx.ServiceScope)
-        // mirrors how the production job would resolve the handler each run; _ctx.Response stays
-        // null throughout, since there is no HTTP wire for this scenario (see the null-Response
-        // branches added to RevokeKeySteps.cs for the shared Then steps this scenario reuses). No
-        // HostedService/timer wrapper exists this round — this step calls the scan handler
-        // directly.
-        using var scope = _ctx.ServiceScope!.ServiceProvider
-            .GetRequiredService<IServiceScopeFactory>().CreateScope();
-        var handler = scope.ServiceProvider.GetRequiredService<ICompleteGracePeriodScanHandler>();
-
-        var result = await handler.HandleAsync();
+        // invocation IS the trigger surface; _ctx.Response stays null throughout, since there is
+        // no HTTP wire for this scenario (see the null-Response branches added to
+        // RevokeKeySteps.cs for the shared Then steps this scenario reuses).
+        var result = await _ctx.InScopedHandlerAsync<
+            ICompleteGracePeriodScanHandler, Result<CompleteGracePeriodScanResponse, Failure>>(
+            handler => handler.HandleAsync());
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -116,14 +111,12 @@ public class CompleteGracePeriodSteps(FunctionalTestContext ctx)
     [When(@"System Agent 對 ""(.*)"" 執行 CompleteGracePeriod")]
     public async Task WhenSystemAgentCompletesGracePeriod(string keyAlias)
     {
-        using var scope = _ctx.ServiceScope!.ServiceProvider
-            .GetRequiredService<IServiceScopeFactory>().CreateScope();
-        var handler = scope.ServiceProvider.GetRequiredService<ICompleteGracePeriodHandler>();
-
         // Unlike WhenSystemAgentRunsGracePeriodScan above, this scenario expects a guard failure —
         // the Result is stashed for the Then step to inspect instead of asserted here.
-        _completeGracePeriodResult = await handler.HandleAsync(
-            new CompleteGracePeriodCommand(_ctx.SeededKeys[keyAlias], _ctx.CurrentTenantId));
+        _completeGracePeriodResult = await _ctx.InScopedHandlerAsync<
+            ICompleteGracePeriodHandler, Result<CompleteGracePeriodResponse, Failure>>(
+            handler => handler.HandleAsync(
+                new CompleteGracePeriodCommand(_ctx.SeededKeys[keyAlias], _ctx.CurrentTenantId)));
     }
 
     // -------------------------------------------------------------------------
