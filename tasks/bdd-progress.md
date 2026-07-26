@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 46 / 48  
-**下一個：** `06_ExpireKey.feature` — 金鑰尚未到期 — 不處理
+**已通過：** 47 / 48  
+**下一個：** `06_ExpireKey.feature` — 金鑰已在終態 — 不處理
 
 ---
 

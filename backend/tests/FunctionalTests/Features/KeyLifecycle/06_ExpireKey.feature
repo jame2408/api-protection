@@ -29,7 +29,6 @@ Feature: 金鑰到期處理
     And   系統產生 KeyRevoked 事件，reason 包含原始鎖定 ruleId
     And   觸發主動快取失效
 
-  @ignore
   Scenario: 金鑰尚未到期 — 不處理
     Given 金鑰 "key-A" 狀態為 Active
     And   當前時間尚未超過 "key-A" 的 expiresAt
