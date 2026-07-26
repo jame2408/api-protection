@@ -88,14 +88,13 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = _ctx.AddSeedKey(keyAlias);
+        var key = _ctx.AddSeedKey(keyAlias, status: ApiKeyStatus.Locked);
 
         // Not key.Lock(ruleId, ...): Lock() also raises a KeyLocked domain event into the
         // outbox, which this scenario's seed does not intend (it seeds a key that is already
-        // Locked, not one being locked as part of the scenario). Status and LockRuleId are set
-        // directly via CurrentValue instead, bypassing the private setters — same technique as
-        // RevokeKeySteps.GivenKeyIsLocked.
-        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Locked;
+        // Locked, not one being locked as part of the scenario). LockRuleId is set directly via
+        // CurrentValue instead, bypassing its private setter (same technique AddSeedKey's
+        // `status` parameter now uses internally for Status itself — see its doc-comment).
         Db.Entry(key).Property(k => k.LockRuleId).CurrentValue = ruleId;
 
         _lockRuleId = ruleId;
@@ -112,7 +111,7 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
     // this slice with the other C8 ExpireKey scenarios above, not one of RevokeKeySteps' three
     // sibling Givens (GivenKeyIsSuspended / GivenKeyIsExpired / the Locked one), which seed for
     // C7's revoke-command scenarios instead. Shape otherwise mirrors those three exactly:
-    // AddSeedKey then CurrentValue bypass on the private-set Status.
+    // AddSeedKey with a status: override.
     //
     // Deliberately does not set expiresAt — this scenario's seed keeps AddSeedKey's default
     // (UtcNow +30 days, not yet expired). See the Then step below for why that default is load-
@@ -122,9 +121,7 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = _ctx.AddSeedKey(keyAlias);
-
-        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Revoked;
+        _ctx.AddSeedKey(keyAlias, status: ApiKeyStatus.Revoked);
 
         await Db.SaveChangesAsync();
     }

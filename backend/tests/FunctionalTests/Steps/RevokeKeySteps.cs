@@ -48,14 +48,15 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var predecessor = _ctx.AddSeedKey(predecessorAlias);
+        var predecessor = _ctx.AddSeedKey(predecessorAlias, status: ApiKeyStatus.Rotating);
         var successor = _ctx.AddSeedKey(successorAlias);
 
-        // ApiKey properties are all `private set`; the rotation itself (Wave 5 RotateKey) is
-        // out of scope here, so seeding sets the Added entities' CurrentValue directly —
-        // EF applies it at SaveChanges time, bypassing the private setters without adding a
-        // speculative production method just for test seeding.
-        Db.Entry(predecessor).Property(k => k.Status).CurrentValue = ApiKeyStatus.Rotating;
+        // SuccessorKeyId/PredecessorKeyId are `private set`; the rotation itself (Wave 5
+        // RotateKey) is out of scope here, so seeding sets the Added entities' CurrentValue
+        // directly — EF applies it at SaveChanges time, bypassing the private setters without
+        // adding a speculative production method just for test seeding (same technique
+        // AddSeedKey's `status` parameter now uses internally for Status itself — see its
+        // doc-comment).
         Db.Entry(predecessor).Property(k => k.SuccessorKeyId).CurrentValue = successor.Id;
         Db.Entry(successor).Property(k => k.PredecessorKeyId).CurrentValue = predecessor.Id;
 
@@ -67,10 +68,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = _ctx.AddSeedKey(keyAlias);
-
-        // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
-        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Locked;
+        _ctx.AddSeedKey(keyAlias, status: ApiKeyStatus.Locked);
 
         await Db.SaveChangesAsync();
     }
@@ -80,10 +78,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = _ctx.AddSeedKey(keyAlias);
-
-        // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
-        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Suspended;
+        _ctx.AddSeedKey(keyAlias, status: ApiKeyStatus.Suspended);
 
         await Db.SaveChangesAsync();
     }
@@ -93,10 +88,7 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
     {
         _ctx.CurrentTenantId = "tenant-A";
 
-        var key = _ctx.AddSeedKey(keyAlias);
-
-        // ApiKey.Status is `private set`; bypass via CurrentValue as in GivenKeyIsRotatingWithSuccessor above.
-        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Expired;
+        _ctx.AddSeedKey(keyAlias, status: ApiKeyStatus.Expired);
 
         await Db.SaveChangesAsync();
     }

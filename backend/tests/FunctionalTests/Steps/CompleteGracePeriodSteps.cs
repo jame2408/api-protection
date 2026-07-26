@@ -37,13 +37,13 @@ public class CompleteGracePeriodSteps(FunctionalTestContext ctx)
         // Successor is registered (unlike RotateKeySteps.GivenOtherRotatingKeyExists's anonymous
         // `register: false` successor) because this scenario's Then steps below assert against
         // the successor's own PredecessorKeyId, so it needs to be addressable by alias too.
-        var key = _ctx.AddSeedKey(keyAlias);
+        var key = _ctx.AddSeedKey(keyAlias, status: ApiKeyStatus.Rotating);
         var successor = _ctx.AddSeedKey(keyAlias + "-successor");
 
-        // ApiKey properties are all `private set`; bypass via CurrentValue as in
-        // RevokeKeySteps.GivenKeyIsRotatingWithSuccessor. GraceDeadline is set by the next Given
-        // step, not here.
-        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Rotating;
+        // SuccessorKeyId/PredecessorKeyId are `private set`; bypass via CurrentValue as in
+        // RevokeKeySteps.GivenKeyIsRotatingWithSuccessor (same technique AddSeedKey's `status`
+        // parameter now uses internally for Status itself — see its doc-comment). GraceDeadline
+        // is set by the next Given step, not here.
         Db.Entry(key).Property(k => k.SuccessorKeyId).CurrentValue = successor.Id;
         Db.Entry(successor).Property(k => k.PredecessorKeyId).CurrentValue = key.Id;
 

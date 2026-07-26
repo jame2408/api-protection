@@ -50,10 +50,9 @@ public class RotateKeySteps(FunctionalTestContext ctx)
         // successor for key-C to be a structurally valid Rotating row, so an anonymous
         // successor key is seeded too (private-setter bypass mirrors
         // RevokeKeySteps.GivenKeyIsRotatingWithSuccessor L69–86).
-        var keyC = _ctx.AddSeedKey(keyAlias);
+        var keyC = _ctx.AddSeedKey(keyAlias, status: ApiKeyStatus.Rotating);
         var successor = _ctx.AddSeedKey(keyAlias + "-successor", register: false);
 
-        Db.Entry(keyC).Property(k => k.Status).CurrentValue = ApiKeyStatus.Rotating;
         Db.Entry(keyC).Property(k => k.SuccessorKeyId).CurrentValue = successor.Id;
         Db.Entry(successor).Property(k => k.PredecessorKeyId).CurrentValue = keyC.Id;
 
