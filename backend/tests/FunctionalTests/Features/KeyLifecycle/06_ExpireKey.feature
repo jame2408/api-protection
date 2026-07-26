@@ -7,7 +7,6 @@ Feature: 金鑰到期處理
     Then  "key-A" 狀態變為 Expired
     And   系統產生 KeyExpired 事件，previousStatus 為 Active
 
-  @ignore
   Scenario: Rotating 金鑰到期
     Given 金鑰 "key-A" 狀態為 Rotating
     And   當前時間已超過 "key-A" 的 expiresAt
