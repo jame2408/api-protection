@@ -35,7 +35,6 @@ Feature: 金鑰到期處理
     When  System Agent 執行到期掃描
     Then  "key-A" 不在掃描結果中，狀態保持 Active
 
-  @ignore
   Scenario: 金鑰已在終態 — 不處理
     Given 金鑰 "key-A" 狀態為 Revoked
     When  System Agent 執行到期掃描

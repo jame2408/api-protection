@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 47 / 48  
-**下一個：** `06_ExpireKey.feature` — 金鑰已在終態 — 不處理
+**已通過：** 48 / 48  
+**下一個：** 無 — 全部場景已通過（repo 內 `@ignore` 零命中，`grep -rn "@ignore" backend/tests/FunctionalTests/Features/` 已確認）
 
 ---
 

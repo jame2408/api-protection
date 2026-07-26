@@ -103,6 +103,32 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
         await Db.SaveChangesAsync();
     }
 
+    // Regex pattern (the quoted alias is a "(.*)" capture group, so Reqnroll's
+    // CucumberExpressionDetector classifies the whole attribute as Regex — lesson
+    // 20260712-reqnroll-plus-escaping-depends-on-pattern-kind.md's judging method; the literal
+    // text has no regex-special characters, so no escaping is needed here).
+    //
+    // Placed here rather than in RevokeKeySteps: this is the 48/48 scan scenario's seed, sharing
+    // this slice with the other C8 ExpireKey scenarios above, not one of RevokeKeySteps' three
+    // sibling Givens (GivenKeyIsSuspended / GivenKeyIsExpired / the Locked one), which seed for
+    // C7's revoke-command scenarios instead. Shape otherwise mirrors those three exactly:
+    // AddSeedKey then CurrentValue bypass on the private-set Status.
+    //
+    // Deliberately does not set expiresAt — this scenario's seed keeps AddSeedKey's default
+    // (UtcNow +30 days, not yet expired). See the Then step below for why that default is load-
+    // bearing to this scenario's actual discriminating condition.
+    [Given(@"金鑰 ""(.*)"" 狀態為 Revoked")]
+    public async Task GivenKeyIsRevoked(string keyAlias)
+    {
+        _ctx.CurrentTenantId = "tenant-A";
+
+        var key = _ctx.AddSeedKey(keyAlias);
+
+        Db.Entry(key).Property(k => k.Status).CurrentValue = ApiKeyStatus.Revoked;
+
+        await Db.SaveChangesAsync();
+    }
+
     // -------------------------------------------------------------------------
     // When
     // -------------------------------------------------------------------------
@@ -232,5 +258,41 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
 
         var hasNonSeedEvent = await Db.OutboxMessages.AnyAsync(m => m.EventType != "KeyCreated");
         hasNonSeedEvent.Should().BeFalse("未到期的金鑰掃描不應產生任何非 seed 事件");
+    }
+
+    // Regex pattern (the quoted alias is a "(.*)" capture group, so Reqnroll's
+    // CucumberExpressionDetector classifies the whole attribute as Regex — lesson
+    // 20260712-reqnroll-plus-escaping-depends-on-pattern-kind.md's judging method; the literal
+    // text has no regex-special characters, so no escaping is needed here). Distinct step text
+    // from ThenKeyIsNotInScanResultAndStaysActive above ("不在掃描結果中，不產生任何事件" vs
+    // "...狀態保持 Active") — Reqnroll's implicit anchoring means the two never collide.
+    //
+    // "不在掃描結果中，不產生任何事件" is mechanically defined as exactly the two assertions the
+    // step text states — no added status assertion, since status is out of this step's stated
+    // semantics (that's 47/48's ThenKeyIsNotInScanResultAndStaysActive's job, not this one's):
+    // (a) the scan Result's ProcessedCount is 0; (b) no outbox row besides the seed's KeyCreated
+    // row landed.
+    //
+    // Discriminating-power disclosure (orchestrator-mandated, kept verbatim across renames of
+    // this method): this scenario's seed (GivenKeyIsRevoked above) is deliberately left at
+    // AddSeedKey's default ExpiresAt (+30 days, not yet expired) — so the condition that actually
+    // excludes it from GetExpiredNonTerminalAsync's scan is the date predicate
+    // (`k.ExpiresAt <= now`), not the terminal-state filter (`Status != Revoked && != Expired`).
+    // The terminal-state filter remains uncovered by any scenario — a fact already recorded in
+    // ApiKeyRepository.GetExpiredNonTerminalAsync's own comment; this scenario does not lift that
+    // recording. Covering the terminal-state filter would require a scenario whose seed is both
+    // terminal-status AND already past expiresAt — a new scenario semantics, out of this round's
+    // scope (routes via ADR-022 §3 if ever proposed).
+    [Then(@"""(.*)"" 不在掃描結果中，不產生任何事件")]
+    public async Task ThenKeyIsNotInScanResultAndNoEventProduced(string keyAlias)
+    {
+        _ = keyAlias; // step text carries the alias, but neither assertion below needs it —
+                      // ProcessedCount and the outbox scan are both alias-independent checks.
+
+        var scanResult = _scanResult!.Value;
+        scanResult.Value.ProcessedCount.Should().Be(0, "終態金鑰不應被掃描處理");
+
+        var hasNonSeedEvent = await Db.OutboxMessages.AnyAsync(m => m.EventType != "KeyCreated");
+        hasNonSeedEvent.Should().BeFalse("終態金鑰掃描不應產生任何非 seed 事件");
     }
 }
