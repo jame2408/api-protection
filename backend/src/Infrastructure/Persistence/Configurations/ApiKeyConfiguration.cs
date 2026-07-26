@@ -34,5 +34,10 @@ public class ApiKeyConfiguration : IEntityTypeConfiguration<ApiKey>
 
         builder.HasIndex(k => new { k.ConsumerId, k.Environment, k.TenantId, k.Status });
         builder.HasIndex(k => new { k.Name, k.ConsumerId, k.Environment, k.TenantId });
+
+        // ADR-017 Rule 6(a): KeyHash is deterministic (HMAC-SHA256 + global pepper), so a unique
+        // index turns validation's hash lookup (ApiKeyRepository.GetByKeyHashAsync) into an O(1)
+        // equality query instead of a per-key-prefix scan.
+        builder.HasIndex(k => k.KeyHash).IsUnique();
     }
 }

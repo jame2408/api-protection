@@ -20,4 +20,11 @@ public interface IApiKeyRepository
     // than in a per-key guard) — see ExpireKeyScanHandler's class comment for why this BC has no
     // per-key command handler this round.
     Task<IReadOnlyList<ApiKey>> GetExpiredNonTerminalAsync(DateTimeOffset now, CancellationToken cancel = default);
+
+    // Data Plane validation hot path (ValidateKeyHandler) — cross-tenant on purpose, same
+    // reasoning as GetRotatingAsync above: the validate-key request carries no tenantId
+    // (api-spec.md §4.1 請求欄位表). ADR-017 Rule 6(a)'s unique index on KeyHash makes this an
+    // O(1) equality lookup; the caller still re-checks the match with
+    // CryptographicOperations.FixedTimeEquals (Rule 6(b)) after retrieval.
+    Task<ApiKey?> GetByKeyHashAsync(string keyHash, CancellationToken cancel = default);
 }

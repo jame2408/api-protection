@@ -11,7 +11,6 @@ Feature: 金鑰驗證（Data Plane）
   # 且其「系統預設值」在 detailed-design 與 api-spec 都只出現在範例 payload、無規格定義。
   # 依題 3 裁決第一刀只查 KeyLifecycle 側，AP 側欄位（rateLimitConfig／ipAllowlist）
   # 連同預設值裁定收攏至 Wave 9；屆時本場景的 Then 須補回該欄位（backlog 已登記）。
-  @ignore
   Scenario: 成功驗證 Active 金鑰
     Given 金鑰 "key-A" 狀態為 Active
     And   "key-A" 的 scopes 為 ["orders:read", "orders:write"]

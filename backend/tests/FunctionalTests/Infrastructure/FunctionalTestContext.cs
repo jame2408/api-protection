@@ -34,4 +34,9 @@ public class FunctionalTestContext
 
     /// <summary>Maps a Gherkin key alias (e.g. "key-A") to its seeded Id, for steps that need to reference a previously-seeded key by name.</summary>
     public Dictionary<string, Guid> SeededKeys { get; } = new();
+
+    /// <summary>Maps a Gherkin key alias (e.g. "key-A") to its seeded raw key string (display-once
+    /// plaintext), for steps that need to send the actual key material over the wire (e.g. the
+    /// Data Plane validate-key When step) — mirrors <see cref="SeededKeys"/>.</summary>
+    public Dictionary<string, string> SeededRawKeys { get; } = new();
 }

@@ -87,4 +87,13 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
             k.Status != ApiKeyStatus.Revoked &&
             k.Status != ApiKeyStatus.Expired).ToListAsync(cancel);
     }
+
+    // AsNoTracking — validation is a read-only hot path (ValidateKeyHandler doesn't mutate the
+    // matched key), unlike GetByIdAsync above. ADR-017 Rule 6(a) unique index on KeyHash makes
+    // this an equality lookup, not a scan.
+    public async Task<ApiKey?> GetByKeyHashAsync(string keyHash, CancellationToken cancel = default)
+    {
+        return await db.ApiKeys.AsNoTracking()
+            .FirstOrDefaultAsync(k => k.KeyHash == keyHash, cancel);
+    }
 }
