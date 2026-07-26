@@ -31,6 +31,9 @@ Discovery → bdd-backlog.md → (用戶決定順序) → bdd-progress.md → �
 
 > **2026-07-26 使用者晉升第一批**：Data Plane 9 條中的 8 條已晉升為 **Wave 8**，順序即 `07_ValidateKey.feature` 檔內順序（首條為「成功驗證 Active 金鑰」），詳見 `tasks/bdd-progress.md`。剩餘 1 條留 Wave 9，因其需要 AccessPolicy 側 `ipAllowlist`，而 2026-07-26 題 3 裁決第一刀只查 KeyLifecycle 側欄位。
 
+- [ ] **場景修訂：成功驗證回應補回 `rateLimitConfig`** (`07_ValidateKey.feature`)
+      來源：需求變更 — 2026-07-26 使用者裁決選項 b（AccessPolicy 聚合尚無該欄位、預設值亦無規格定義，故第一刀先移除該斷言）
+      說明：Wave 9 隨 AP 側欄位一起補；前置為「AccessPolicy 加 rateLimitConfig 欄位＋migration＋**使用者裁定系統預設值**」（api-spec 的 10000／PT1H／100／150 僅出現在範例 payload，非規格）。修訂走 ADR-022 §2 既有行為變更路徑
 - [ ] **來源 IP 不在白名單 — 拒絕驗證** (`07_ValidateKey.feature`，置於檔尾)
       來源：ADR-030 spec-derived — api-spec §4.1 錯誤碼表 IP_NOT_ALLOWED 列（Layer 3）
       說明：**需 AP 側 ipAllowlist**；Wave 8 期間漏斗第 3 層走「無白名單即放行」的既有語意，本條隨 AP 側欄位可讀時晉升 Wave 9
