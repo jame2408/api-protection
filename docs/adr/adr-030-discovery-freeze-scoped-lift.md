@@ -30,7 +30,9 @@ Accepted (2026-07-26)
 
 ### 問題嚴重度
 
-1. **凍結的前提對 Data Plane 是偽的。** 凍結句宣稱場景與 API spec「皆已產出」。實測：`backend/tests/FunctionalTests/Features/` 只有 `KeyLifecycle/01–06`；`tasks/bdd-backlog.md` 待排程項目為空；而 `api-spec.md` §4「Data Plane API（Internal）」與 §5.6 對照表都完整定義了 `POST /api/internal/v1/validate-key`。Discovery 當初只跑過 Key Lifecycle。
+1. **凍結的前提對 Data Plane 是偽的。** 凍結句宣稱場景與 API spec「皆已產出」。實測：`docs/bdd/` 有五份 Discovery Step 5 產出的場景規格（tenant-management、access-policy、key-lifecycle、monitoring-detection、audit-compliance），**唯獨沒有 Data Plane／validation 的對應檔**；`backend/tests/FunctionalTests/Features/` 只有 `KeyLifecycle/01–06`；`tasks/bdd-backlog.md` 待排程項目為空；而 `api-spec.md` §4「Data Plane API（Internal）」與 §5.6 對照表都完整定義了 `POST /api/internal/v1/validate-key`。**即：Data Plane 的場景在任何形態下都不存在，凍結句所稱的「已產出」對它不成立。**
+
+   > **勘誤（2026-07-26 同日）**：本條原文曾寫「Discovery 當初只跑過 Key Lifecycle」——**該敘述有誤**。Discovery Step 5 涵蓋全部五個控制面 BC，其產出即 `docs/bdd/` 的五份規格（合計 121 條 Gherkin 場景）；未被涵蓋的只有 Data Plane。此誤述不影響本 ADR 的決定（Data Plane 確實從未有場景，範圍化解除仍然正當），但會誤導讀者以為 TM／AP／MD／Audit 也需解凍才能動工——**實際上那四個 BC 的場景早已產出，凍結管的是「產出新場景」，不是「把既有產出展開進 `.feature`」**，其待辦是走既有看板流程（`docs/bdd/` → `tasks/bdd-backlog.md` → 使用者晉升）。
 2. **凍結條款是被「補寫」進來的，不是帶論證的封閉裁決。** 該敘述由 commit `be0152e`（`docs(consistency): 規範層衝突修繕 — 8 處對齊 + 2 條 follow-up 登記`）加入 `tasks/bdd-backlog.md` 檔頭，性質是把既有狀態文字化，未附解除條件。
 3. **不處理則整條主線凍死。** validation slice 是 `docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md` Implementation Rule 6 三項承諾（`KeyHash` 唯一索引、`FixedTimeEquals` 複核、效能 smoke）的唯一兌現點；`docs/verification-matrix.md` 中兩條效能條目登記為「未追蹤」並指名由該 slice 兌現。凍結不動，這些都無限期懸空。
 

@@ -29,6 +29,45 @@ Discovery → bdd-backlog.md → (用戶決定順序) → bdd-progress.md → �
 
 ## 待排程項目
 
+## 已產出但未展開的場景（`docs/bdd/` → `.feature`）
+
+> **2026-07-26 登記**：`docs/bdd/` 的五份 Discovery Step 5 規格中，**只有 key-lifecycle 被展開進 `.feature`**；其餘四個 BC 合計 **77 條 Gherkin 場景從未展開**，這條管線至今未被啟用。
+>
+> **這些不受 Discovery 凍結限制** —— 凍結管的是「產出新場景」（`requirements-analysis-design` Step 5），而這 77 條早在 2026-05-02 就已產出。待辦是**展開**：`docs/bdd/` → 本檔 → 使用者決定順序 → `tasks/bdd-progress.md` → `.feature`（帶 `@ignore`）。
+>
+> **以 Feature 為登記粒度而非逐條列 77 個標題**：場景全文的單一事實來源是 `docs/bdd/`，把標題複製到本檔會製造兩份需同步的清單（drift 面）。晉升時再逐條展開該 Feature 的場景即可。
+>
+> **前置條件是各 BC 的實作深度，不是場景本身**——目前 TenantManagement 只有被 KL 呼叫的最小面（`ConsumerValidatorService`）、AccessPolicy 是佔位聚合（無 `ipAllowlist`／`rateLimitConfig`）、Monitoring 與 Audit 只有空 csproj、outbox 有寫入端無消費端。各 Feature 的具體前置見下列。
+
+### Tenant Management（19 條，`docs/bdd/tenant-management.md`）
+
+- [ ] **Feature 1: 管理租戶**（8 條）— C1 CreateTenant／C2 SuspendTenant／C3 ReactivateTenant。前置：TM 目前無任何命令與端點，屬全新切片。
+- [ ] **Feature 2: 管理 Consumer**（7 條）— C4 RegisterConsumer／C5 UpdateConsumer。同上。
+- [ ] **Feature 3: 驗證 Consumer 身份**（4 條）— I1 查詢；**實作已存在**（`ConsumerValidatorService`，CreateApiKey 場景已間接覆蓋部分路徑），可能多為 test-only 啟用。
+
+### Access Policy（15 條，`docs/bdd/access-policy.md`）
+
+- [ ] **Feature 1: 建立 Access Policy**（2 條）— C1，經 I2 由 KL 交易內觸發；**實作已存在**（`CreateDefaultPolicyAsync`）。
+- [ ] **Feature 2: 更新 IP 白名單**（6 條）— C2。前置：**聚合需補 `ipAllowlist` 欄位＋migration**；與 Wave 9 的「來源 IP 不在白名單」驗證場景共用同一前置。
+- [ ] **Feature 3: 更新速率限制**（7 條）— C3。前置：**聚合需補 `rateLimitConfig` 欄位＋migration，且「系統預設值」需使用者裁定**（規格只寫「系統預設值」無數字）；與 Wave 9 的 `rateLimitConfig` 回應修訂共用同一前置。
+
+### Monitoring & Detection（30 條，`docs/bdd/monitoring-detection.md`）
+
+- [ ] **Feature 1: 管理偵測規則**（12 條）— C1–C3。前置：**整個 BC 只有空 csproj**。
+- [ ] **Feature 2: 異常偵測與自動防禦**（7 條）— Detection Engine；I6 的**呼叫端**（接收端 `LockKeyEndpoint` 已存在）。
+- [ ] **Feature 3: 管理安全警報**（7 條）— C4 AcknowledgeAlert／C5 ResolveAlert。
+- [ ] **Feature 4: 使用基線管理**（4 條）— I4 事件消費。前置：**outbox 無消費端**（ADR-020 Relay 後置）。
+
+### Audit & Compliance（13 條，`docs/bdd/audit-compliance.md`）
+
+- [ ] **Feature 1: 審計記錄寫入**（6 條）— I3／I5／I9 事件消費。前置：**outbox 無消費端**——事件目前確實寫進表裡，但沒有任何東西讀它。
+- [ ] **Feature 2: 審計記錄不可變性**（2 條）— 同上。
+- [ ] **Feature 3: 審計記錄查詢**（5 條）— Q: SearchAuditLogs／ExportAuditLogs 端點。
+
+---
+
+## Data Plane（ADR-030 授權產出，非 Discovery 產物）
+
 > **2026-07-26 使用者晉升第一批**：Data Plane 9 條中的 8 條已晉升為 **Wave 8**，順序即 `07_ValidateKey.feature` 檔內順序（首條為「成功驗證 Active 金鑰」），詳見 `tasks/bdd-progress.md`。剩餘 1 條留 Wave 9，因其需要 AccessPolicy 側 `ipAllowlist`，而 2026-07-26 題 3 裁決第一刀只查 KeyLifecycle 側欄位。
 
 - [ ] **場景修訂：成功驗證回應補回 `rateLimitConfig`** (`07_ValidateKey.feature`)
