@@ -555,6 +555,8 @@ Validation Model 是 Key Lifecycle 與 Access Policy 的投影，專為驗證路
 | rateLimitConfig | Access Policy | 限流決策 |
 | tenantId | Key Lifecycle | 租戶隔離 |
 
+> 本視圖為**系統內部投影**：`keyHash` 與 pepper 都不離開系統邊界，驗證漏斗在金鑰管理系統內執行，邊緣節點快取的是驗證回應而非本視圖（見 `docs/adr/adr-029-validation-funnel-execution-side.md`）。
+
 驗證漏斗（Validation Funnel）由上至下逐層過濾，每一層的成本遞增：
 
 1. **格式檢查**（前綴 + 長度）→ 純記憶體操作，極快
@@ -807,28 +809,28 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant GW as API Gateway
-    participant Cache as Validation Cache
+    participant Cache as Edge Response Cache
     participant KM as 金鑰管理系統
 
-    GW->>Cache: 查詢 KeyValidationView
+    GW->>Cache: 查詢 validate-key 回應
     alt 快取命中
-        Cache-->>GW: 回傳 Metadata
+        Cache-->>GW: 回傳先前的驗證回應
     else 快取未命中
-        GW->>KM: 查詢金鑰 + 策略資料
-        KM-->>GW: 回傳資料
+        GW->>KM: POST /api/internal/v1/validate-key
+        KM->>KM: 執行驗證漏斗（五層，含雜湊比對）
+        KM-->>GW: 回傳 valid + metadata（不含 keyHash）
         GW->>Cache: 寫入快取（設 TTL）
     end
-    GW->>GW: 執行驗證漏斗
-    GW-->>GW: 非同步更新 lastUsedAt
+    KM-->>KM: 非同步更新 lastUsedAt
 ```
 
-**雜湊驗證與 Salt 策略：**
+**雜湊驗證策略：**
 
-KeyHash 的 Salt 採用 **per-key 獨立鹽值**，而非全局共用。驗證流程中，Gateway 不直接持有獨立的 Salt 欄位：
+金鑰雜湊為 `Base64(HMACSHA256(pepper, UTF8(rawKey)))`，pepper 為全域單一秘密、取自組態並於啟動 fail-fast（見 `docs/adr/adr-017-key-hash-hmac-and-hotpath-contract.md` Implementation Rule 3）。**驗證漏斗五層全部在金鑰管理系統內執行**（見 `docs/adr/adr-029-validation-funnel-execution-side.md`）：
 
-- **第 1~3 層檢查**（格式、狀態、IP）：不涉及雜湊比對，快取中的 KeyValidationView 即可完成。
-- **第 4 層雜湊驗證**：KeyValidationView 中包含預計算的 `keyHash`（內含 Salt）。Gateway 將請求中的金鑰明文以相同演算法與內嵌的 Salt 重新計算雜湊後進行恆定時間比對。Salt 不會以獨立欄位傳輸，而是內嵌在雜湊值中（如 `$algorithm$salt$hash` 格式）。
-- **安全考量**：即使快取層被入侵，攻擊者獲得的也僅是雜湊值（含內嵌 Salt），無法逆向還原金鑰明文，與資料庫中儲存的內容一致，不引入額外風險。
+- **第 1~5 層檢查**：皆由系統側依內部的 KeyValidationView 完成，Gateway 不持有 `keyHash`、也不持有 pepper。
+- **第 4 層雜湊驗證**：系統以相同的 pepper 重算請求金鑰的 HMAC，並以 `CryptographicOperations.FixedTimeEquals` 恆定時間比對。雜湊具確定性，故可用 `KeyHash` 唯一索引直接命中，無須先以 `keyPrefix` 縮小候選集再逐筆重算。
+- **安全考量**：pepper 與 `keyHash` 都不離開系統邊界。邊緣快取存放的是驗證回應（不含 `keyHash`），即使該層被入侵，攻擊者也拿不到可用於離線碰撞驗證的材料。
 
 **快取失效策略：**
 
@@ -1163,8 +1165,8 @@ flowchart TD
 
 | 層級 | 位置 | 內容 | TTL | 失效機制 |
 |:---|:---|:---|:---|:---|
-| L1 | Gateway / Sidecar / SDK 本地 | KeyValidationView | 5-15 分鐘 | 事件廣播主動失效 |
-| L2 | 共享快取層（如 Redis） | KeyValidationView | 15-30 分鐘 | 事件廣播主動失效 |
+| L1 | Gateway / Sidecar / SDK 本地 | validate-key 回應（不含 keyHash） | 5-15 分鐘 | 事件廣播主動失效 |
+| L2 | 共享快取層（如 Redis，須位於系統信任邊界內） | KeyValidationView | 15-30 分鐘 | 事件廣播主動失效 |
 | L3 | 金鑰管理系統資料庫 | 完整資料 | - | 單一事實來源 |
 
 **安全事件的快取失效優先級：**
