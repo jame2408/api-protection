@@ -165,7 +165,7 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
 
         var key = await Db.ApiKeys.AsNoTracking().SingleAsync(k => k.Id == keyId);
 
-        key.Status.Should().Be(ApiKeyStatus.Expired, "到期掃描應把已過期的 Active 金鑰轉為 Expired");
+        key.Status.Should().Be(ApiKeyStatus.Expired, "到期掃描應把已過期的非終態金鑰轉為 Expired");
     }
 
     // Regex pattern (the trailing previousStatus is a "(.*)" capture group, so Reqnroll's
