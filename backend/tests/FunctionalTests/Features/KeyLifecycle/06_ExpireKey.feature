@@ -1,6 +1,5 @@
 Feature: 金鑰到期處理
 
-  @ignore
   Scenario: Active 金鑰到期
     Given 金鑰 "key-A" 狀態為 Active
     And   當前時間已超過 "key-A" 的 expiresAt

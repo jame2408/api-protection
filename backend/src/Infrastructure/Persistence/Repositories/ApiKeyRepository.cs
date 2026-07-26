@@ -71,4 +71,20 @@ public class ApiKeyRepository(AppDbContext db) : IApiKeyRepository
     {
         return await db.ApiKeys.Where(k => k.Status == ApiKeyStatus.Rotating).ToListAsync(cancel);
     }
+
+    // Tracked (no AsNoTracking) — caller (ExpireKeyScanHandler) mutates and persists each match,
+    // same reasoning as GetRotatingAsync above. Cross-tenant: no tenantId filter (System Agent
+    // scan scope, IApiKeyRepository.cs). The terminal-state filter is built per detailed-design
+    // C8's Guard, but currently has no scenario coverage of its own: scenario 6 ("已在終態") seeds
+    // with the default +30-day expiresAt, so the date predicate already excludes it before the
+    // terminal-state filter would ever matter — kept per the guard's design intent, not because a
+    // scenario currently forces it.
+    public async Task<IReadOnlyList<ApiKey>> GetExpiredNonTerminalAsync(
+        DateTimeOffset now, CancellationToken cancel = default)
+    {
+        return await db.ApiKeys.Where(k =>
+            k.ExpiresAt <= now &&
+            k.Status != ApiKeyStatus.Revoked &&
+            k.Status != ApiKeyStatus.Expired).ToListAsync(cancel);
+    }
 }

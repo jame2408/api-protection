@@ -14,4 +14,10 @@ public interface IApiKeyRepository
     // sweep is a system-wide job, not a per-tenant request, so unlike GetByIdAsync there is no
     // tenantId filter here.
     Task<IReadOnlyList<ApiKey>> GetRotatingAsync(CancellationToken cancel = default);
+
+    // System Agent scan (C8 ExpireKey) — cross-tenant on purpose, same reasoning as
+    // GetRotatingAsync above. Filters both the date predicate and terminal states here (rather
+    // than in a per-key guard) — see ExpireKeyScanHandler's class comment for why this BC has no
+    // per-key command handler this round.
+    Task<IReadOnlyList<ApiKey>> GetExpiredNonTerminalAsync(DateTimeOffset now, CancellationToken cancel = default);
 }

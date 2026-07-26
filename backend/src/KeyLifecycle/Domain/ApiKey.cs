@@ -233,6 +233,37 @@ public class ApiKey : AggregateRoot<Guid>
             KeyId: Id,
             Audiences: ["SecurityAdmin", "Consumer"]));
 
+    /// <summary>
+    /// Expires this key once the scan determines now &gt;= ExpiresAt: captures the previous
+    /// status and transitions to Expired. Guards (terminal-state / date) are the caller's
+    /// (query-side) responsibility — see ExpireKeyScanHandler's class comment for why this BC
+    /// filters at the repository query instead of a per-key guard; mirrors
+    /// <see cref="CompleteGracePeriod"/>.
+    ///
+    /// Deferral: detailed-design C8 / design-doc ADR-03 specify a Locked → Revoked branch here
+    /// (locked keys expiring are revoked, not expired, to preserve security context) — deferred
+    /// to scenario 46 ("Locked 金鑰到期 — 轉為 Revoked 以保留安全上下文") per BDD single-@ignore
+    /// discipline. Insertion point: a `Status == ApiKeyStatus.Locked` branch before the
+    /// Active-branch assignment below, raising KeyRevoked instead of KeyExpired. Known
+    /// prerequisite gap for that round: the aggregate does not yet persist the lock's `ruleId`
+    /// (<see cref="Lock"/> only carries it on the KeyLocked event, not as a field) — scenario 46
+    /// needs a `LockRuleId` field + migration to build the reason string
+    /// `"System: locked key expired (original lock rule: {ruleId})"` (detailed-design C8
+    /// version; design-doc T10 currently says `(rule: {ruleId})` — reconcile design-doc in that
+    /// same commit).
+    /// </summary>
+    public void Expire(DateTimeOffset now)
+    {
+        var previousStatus = Status;
+        Status = ApiKeyStatus.Expired;
+
+        AddDomainEvent(new KeyExpired(
+            EventId: Guid.NewGuid(),
+            OccurredAt: now,
+            KeyId: Id,
+            PreviousStatus: previousStatus.ToString()));
+    }
+
     private static (string prefix, string rawKey, string keyHash) GenerateKeyMaterial(
         string tenantId, string environment, IApiKeyHasher hasher)
     {
