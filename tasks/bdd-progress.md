@@ -23,7 +23,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 48 / 48  
+**已通過：** 50 / 50  
 **下一個：** 無 — 全部場景已通過（repo 內 `@ignore` 零命中，`grep -rn "@ignore" backend/tests/FunctionalTests/Features/` 已確認）
 
 ---
@@ -37,7 +37,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 | `03_SuspendResumeKey.feature` | 3 | 暫停與恢復金鑰 | 8 | KeyLifecycle.SuspendKey、ResumeKey | AuthToken 機制（Wave 3 前須建立） |
 | `04_LockUnlockKey.feature` | 4 | 鎖定與解鎖金鑰 | 6 | KeyLifecycle.LockKey、UnlockKey | System 角色 |
 | `05_RotateKey.feature` | 5+6 | 輪替金鑰 + 完成寬限期 | 9 | KeyLifecycle.RotateKey、CompleteGracePeriodJob | FakeClock（Wave 5 後段） |
-| `06_ExpireKey.feature` | 7 | 金鑰到期處理 | 6 | KeyLifecycle.ExpireKeyJob | FakeClock |
+| `06_ExpireKey.feature` | 7 | 金鑰到期處理 | 8 | KeyLifecycle.ExpireKeyJob | FakeClock |
 
 ---
 

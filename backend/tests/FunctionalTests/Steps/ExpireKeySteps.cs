@@ -220,36 +220,50 @@ public class ExpireKeySteps(FunctionalTestContext ctx)
             .Contain(_lockRuleId!, "reason 必須包含原始鎖定的 ruleId 以保留安全上下文");
     }
 
-    // Regex pattern (the quoted alias is a "(.*)" capture group, so Reqnroll's
-    // CucumberExpressionDetector classifies the whole attribute as Regex — lesson
-    // 20260712-reqnroll-plus-escaping-depends-on-pattern-kind.md's judging method; the literal
-    // text has no regex-special characters, so no escaping is needed here).
+    // Regex pattern (the quoted alias AND the trailing expected-status are both "(.*)" capture
+    // groups, so Reqnroll's CucumberExpressionDetector classifies the whole attribute as Regex —
+    // lesson 20260712-reqnroll-plus-escaping-depends-on-pattern-kind.md's judging method; neither
+    // literal has regex-special characters, so no escaping is needed here).
     //
-    // "不在掃描結果中，狀態保持 Active" is mechanically defined as three assertions (mirrors
-    // CompleteGracePeriodSteps.ThenKeyStatusStaysRotatingWithNoEvent's "no side effect" method):
-    // (a) the scan Result's ProcessedCount is 0 — this is the discriminating assertion the first
-    // four (positive-path) C8 scenarios don't need, since this scenario's DB holds exactly one
-    // key (GivenKeyIsActive seeds only one), ProcessedCount == 0 precisely proves the date
-    // predicate excluded it from the scan, not just that this one key's status happens to be
-    // untouched; (b) DB status is untouched; (c) no outbox row besides the seed's KeyCreated row
-    // landed (same robust-to-seed-count definition as the CompleteGracePeriodSteps precedent).
+    // Parameterized rather than adding a near-duplicate sibling step: this round (coverage-gap
+    // executor spec) needs a second caller — "...狀態保持 Revoked" — whose only difference from
+    // the existing "...狀態保持 Active" caller (47/48) is the expected ApiKeyStatus value. Adding
+    // a second near-identical step (same three assertions, only the expected status literal
+    // differs) would duplicate the ProcessedCount/outbox-no-side-effect logic; parameterizing the
+    // expected status keeps a single definition for both callers. `expectedStatus` is parsed via
+    // Enum.Parse<ApiKeyStatus>(expectedStatus, ignoreCase: true) — the step text's status word
+    // ("Active" / "Revoked" / any other ApiKeyStatus member name) maps 1:1 onto the enum's member
+    // names, so a direct parse needs no separate lookup table.
+    //
+    // "不在掃描結果中，狀態保持 {expectedStatus}" is mechanically defined as three assertions
+    // (mirrors CompleteGracePeriodSteps.ThenKeyStatusStaysRotatingWithNoEvent's "no side effect"
+    // method): (a) the scan Result's ProcessedCount is 0 — this is the discriminating assertion
+    // the first four (positive-path) C8 scenarios don't need, since this scenario's DB holds
+    // exactly one key (the Given seeds only one), ProcessedCount == 0 precisely proves the
+    // excluding predicate (date or terminal-state) kept it out of the scan, not just that this
+    // one key's status happens to be untouched; (b) DB status is untouched (now checked against
+    // the parsed expectedStatus rather than a hardcoded Active); (c) no outbox row besides the
+    // seed's KeyCreated row landed (same robust-to-seed-count definition as the
+    // CompleteGracePeriodSteps precedent).
     //
     // _scanResult is a nullable Result<ExpireKeyScanResponse, Failure> — Nullable<T>.Value and
     // the Result struct's own .Value member share the same name, so the Nullable unwrap must
     // happen via a local variable first before reading the Result's .Value (readonly struct
     // member) — see this round's spec background note on the naming collision.
-    [Then(@"""(.*)"" 不在掃描結果中，狀態保持 Active")]
-    public async Task ThenKeyIsNotInScanResultAndStaysActive(string keyAlias)
+    [Then(@"""(.*)"" 不在掃描結果中，狀態保持 (.*)")]
+    public async Task ThenKeyIsNotInScanResultAndStaysAtStatus(string keyAlias, string expectedStatus)
     {
         var scanResult = _scanResult!.Value;
-        scanResult.Value.ProcessedCount.Should().Be(0, "未到期的金鑰不應被掃描處理");
+        scanResult.Value.ProcessedCount.Should().Be(0, "不應被掃描處理的金鑰，ProcessedCount 應為 0");
+
+        var expected = Enum.Parse<ApiKeyStatus>(expectedStatus, ignoreCase: true);
 
         var keyId = _ctx.SeededKeys[keyAlias];
         var key = await Db.ApiKeys.AsNoTracking().SingleAsync(k => k.Id == keyId);
-        key.Status.Should().Be(ApiKeyStatus.Active, "未到期的金鑰狀態應保持 Active");
+        key.Status.Should().Be(expected, $"不應被掃描處理的金鑰，狀態應保持 {expectedStatus}");
 
         var hasNonSeedEvent = await Db.OutboxMessages.AnyAsync(m => m.EventType != "KeyCreated");
-        hasNonSeedEvent.Should().BeFalse("未到期的金鑰掃描不應產生任何非 seed 事件");
+        hasNonSeedEvent.Should().BeFalse("不應被掃描處理的金鑰，掃描不應產生任何非 seed 事件");
     }
 
     // Regex pattern (the quoted alias is a "(.*)" capture group, so Reqnroll's

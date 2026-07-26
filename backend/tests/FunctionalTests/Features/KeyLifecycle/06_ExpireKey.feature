@@ -39,3 +39,15 @@ Feature: 金鑰到期處理
     Given 金鑰 "key-A" 狀態為 Revoked
     When  System Agent 執行到期掃描
     Then  "key-A" 不在掃描結果中，不產生任何事件
+
+  Scenario: 已撤銷金鑰即使過期也不重新處理
+    Given 金鑰 "key-A" 狀態為 Revoked
+    And   當前時間已超過 "key-A" 的 expiresAt
+    When  System Agent 執行到期掃描
+    Then  "key-A" 不在掃描結果中，狀態保持 Revoked
+
+  Scenario: 已到期金鑰不重複發出到期事件
+    Given 金鑰 "key-A" 狀態為 Expired
+    And   當前時間已超過 "key-A" 的 expiresAt
+    When  System Agent 執行到期掃描
+    Then  "key-A" 不在掃描結果中，不產生任何事件
