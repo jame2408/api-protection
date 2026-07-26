@@ -282,30 +282,39 @@ public class RevokeKeySteps(FunctionalTestContext ctx)
         revokedBy.GetProperty("name").GetString().Should().Be("security-admin-1");
     }
 
+    // No-HTTP-wire discriminator set: event types that this step accepts as evidence of active
+    // cache invalidation when there is no HTTP response to inspect (System Agent Job scenarios).
+    // A set rather than a single literal because two independent no-wire callers now reuse this
+    // step (05_RotateKey.feature C9 CompleteGracePeriod, and 06_ExpireKey.feature C8 ExpireKey's
+    // Locked→Revoked branch), each locking its own precise event via the Then step immediately
+    // preceding this one — see point (c) below for why this step itself only checks membership.
+    private static readonly string[] NoWireCacheInvalidatingEventTypes =
+        ["KeyGracePeriodExpired", "KeyRevoked"];
+
     [Then(@"觸發主動快取失效")]
     public void ThenActiveCacheInvalidationIsTriggered()
     {
-        // 05_RotateKey.feature C9 (CompleteGracePeriod) scenario reuses this step but has no HTTP
-        // wire (System Agent Job, api-spec.md §3.1 / §3.4 matrix) — _ctx.Response stays null
-        // throughout that scenario. (a) Same "event presence in the outbox *is* the trigger"
-        // reading as the KeyRevoked branch below, applied to KeyGracePeriodExpired: design-doc.md's
-        // rotation sequence diagram has KeyLifecycle publish to ValidationMiddleware, which reacts
-        // by clearing its cache. (b) context-integration-spec.md §4.7's I7 projection table does
-        // NOT list KeyGracePeriodExpired — that is a contract gap, not resolved here (tracked at
-        // orchestrator/checkpoint level, not pre-empted by this test). (c) EventType existence is
-        // sufficient here — payload shape and AggregateId are already locked by the preceding Then
-        // step ("系統產生 KeyGracePeriodExpired 事件..."), so this step is purely the
-        // cache-invalidation *interpretation* record, not a second payload assertion. Respawn
-        // resets the DB every scenario (TestHooks.cs), so there is no cross-scenario false match.
-        // NOTE for a future second caller (e.g. C8 ExpireKey, another no-HTTP System Agent Job):
-        // a null Response alone cannot discriminate which event type to assert here if a second
-        // no-wire caller reuses this step — that will need a better discriminator than this
-        // branch's current hardcoded "KeyGracePeriodExpired" literal. Left as-is; do not
-        // over-design for a caller that does not exist yet.
+        // 05_RotateKey.feature C9 (CompleteGracePeriod) and 06_ExpireKey.feature C8 (ExpireKey's
+        // Locked→Revoked branch) both reuse this step but have no HTTP wire (System Agent Job,
+        // api-spec.md §3.1 / §3.4 matrix) — _ctx.Response stays null throughout both scenarios.
+        // (a) Checked against a set, not one precise event type: this step's own comment history
+        // already established it as a cache-invalidation *interpretation* record — each
+        // scenario's immediately preceding Then step ("系統產生 KeyGracePeriodExpired/KeyRevoked
+        // 事件...") is what locks that scenario's precise event and payload; this step only needs
+        // to confirm the event that just landed belongs to the "triggers active cache
+        // invalidation" family. (b) "KeyGracePeriodExpired" is not listed in
+        // context-integration-spec.md §4.7's I7 projection table — that remains an open contract
+        // gap (tracked at orchestrator/checkpoint level), not resolved by this commit; it is
+        // included here only because design-doc.md's rotation sequence diagram treats it at the
+        // same level as KeyRevoked. "KeyRevoked" IS listed in I7 as "是". (c) This replaces the
+        // single-caller placeholder that used to hardcode "KeyGracePeriodExpired" and left a
+        // "future second caller needs a better discriminator" note — that second caller (C8) has
+        // now arrived, and this set is that discriminator. Respawn resets the DB every scenario
+        // (TestHooks.cs), so there is no cross-scenario false match.
         if (_ctx.Response is null)
         {
-            Db.OutboxMessages.Any(m => m.EventType == "KeyGracePeriodExpired")
-                .Should().BeTrue("KeyGracePeriodExpired must reach the outbox to trigger active cache invalidation");
+            Db.OutboxMessages.Any(m => NoWireCacheInvalidatingEventTypes.Contains(m.EventType))
+                .Should().BeTrue("一個屬於「觸發主動快取失效」集合的事件必須進 outbox");
             return;
         }
 

@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 45 / 48  
-**下一個：** `06_ExpireKey.feature` — Locked 金鑰到期 — 轉為 Revoked 以保留安全上下文
+**已通過：** 46 / 48  
+**下一個：** `06_ExpireKey.feature` — 金鑰尚未到期 — 不處理
 
 ---
 

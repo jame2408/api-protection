@@ -27,6 +27,14 @@ public class ApiKey : AggregateRoot<Guid>
     public Guid? PredecessorKeyId { get; private set; }
     public DateTimeOffset? GraceDeadline { get; private set; }
 
+    /// <summary>
+    /// The ruleId that triggered the most recent <see cref="Lock"/>, persisted so
+    /// <see cref="Expire"/> can build a reason string when a Locked key later expires
+    /// (design-doc T2 "記錄觸發規則 ID"). Previously only carried on the KeyLocked event —
+    /// this field closes that persistence gap.
+    /// </summary>
+    public string? LockRuleId { get; private set; }
+
     // EF Core
     private ApiKey() { }
 
@@ -119,10 +127,14 @@ public class ApiKey : AggregateRoot<Guid>
     /// <summary>
     /// Locks the key following an automated anomaly-detection rule hit. Guards (not-found /
     /// non-Active status) are the handler's responsibility; mirrors <see cref="Suspend"/>.
+    /// Persists <paramref name="ruleId"/> to <see cref="LockRuleId"/> so a later
+    /// <see cref="Expire"/> can use it to build the Locked→Revoked reason (design-doc T2
+    /// "記錄觸發規則 ID").
     /// </summary>
     public void Lock(string ruleId, string reason, JsonElement evidence)
     {
         Status = ApiKeyStatus.Locked;
+        LockRuleId = ruleId;
 
         AddDomainEvent(new KeyLocked(
             EventId: Guid.NewGuid(),
@@ -151,11 +163,14 @@ public class ApiKey : AggregateRoot<Guid>
 
     /// <summary>
     /// Unlocks the key. Guards (not-found / non-Locked status) are the handler's
-    /// responsibility; mirrors <see cref="Resume"/>.
+    /// responsibility; mirrors <see cref="Resume"/>. Clears <see cref="LockRuleId"/> — unlocking
+    /// ends the security context the rule established, so a stale ruleId must not be referenced
+    /// if this key is later locked and expires again.
     /// </summary>
     public void Unlock(Actor unlockedBy)
     {
         Status = ApiKeyStatus.Active;
+        LockRuleId = null;
 
         AddDomainEvent(new KeyUnlocked(
             EventId: Guid.NewGuid(),
@@ -234,26 +249,40 @@ public class ApiKey : AggregateRoot<Guid>
             Audiences: ["SecurityAdmin", "Consumer"]));
 
     /// <summary>
+    /// System actor used when this aggregate raises events on its own initiative rather than in
+    /// response to a caller-supplied actor (expiry-scan branch of <see cref="Expire"/>).
+    /// design-doc T10 fixes both the reason string and the actor as system constants — not a
+    /// caller choice — so <see cref="Expire"/>'s signature stays unchanged and does not accept
+    /// an actor parameter. Naming mirrors the secret-scanner actor in
+    /// RevokeLeakedKeysEndpoint.cs.
+    /// </summary>
+    private static readonly Actor ExpiryScanActor = new(ActorType.System, "expiry-scan", "Expiry Scan");
+
+    /// <summary>
     /// Expires this key once the scan determines now &gt;= ExpiresAt: captures the previous
     /// status and transitions to Expired. Guards (terminal-state / date) are the caller's
     /// (query-side) responsibility — see ExpireKeyScanHandler's class comment for why this BC
     /// filters at the repository query instead of a per-key guard; mirrors
     /// <see cref="CompleteGracePeriod"/>.
     ///
-    /// Deferral: detailed-design C8 / design-doc ADR-03 specify a Locked → Revoked branch here
-    /// (locked keys expiring are revoked, not expired, to preserve security context) — deferred
-    /// to scenario 46 ("Locked 金鑰到期 — 轉為 Revoked 以保留安全上下文") per BDD single-@ignore
-    /// discipline. Insertion point: a `Status == ApiKeyStatus.Locked` branch before the
-    /// Active-branch assignment below, raising KeyRevoked instead of KeyExpired. Known
-    /// prerequisite gap for that round: the aggregate does not yet persist the lock's `ruleId`
-    /// (<see cref="Lock"/> only carries it on the KeyLocked event, not as a field) — scenario 46
-    /// needs a `LockRuleId` field + migration to build the reason string
-    /// `"System: locked key expired (original lock rule: {ruleId})"` (detailed-design C8
-    /// version; design-doc T10 currently says `(rule: {ruleId})` — reconcile design-doc in that
-    /// same commit).
+    /// Locked → Revoked branch (detailed-design C8 / design-doc ADR-03): a locked key that
+    /// expires is revoked instead of expired, to preserve the security context that caused the
+    /// lock — the only asymmetric transition among C8's four scan branches. Delegates to
+    /// <see cref="Revoke"/> rather than assigning fields directly: Revoke already encapsulates
+    /// previousStatus capture, clearing SuccessorKeyId, and raising KeyRevoked — exactly the
+    /// semantics T10 calls for; duplicating that here would create two Revoked-transition
+    /// implementations. `LockRuleId ?? "unknown"` covers pre-migration Locked rows that predate
+    /// this field: producing a readable reason beats an NRE or an empty parenthetical
+    /// (INV-7 "撤銷必須有因", detailed-design §5 invariant table, C8(Locked) row).
     /// </summary>
     public void Expire(DateTimeOffset now)
     {
+        if (Status == ApiKeyStatus.Locked)
+        {
+            Revoke($"System: locked key expired (original lock rule: {LockRuleId ?? "unknown"})", ExpiryScanActor);
+            return;
+        }
+
         var previousStatus = Status;
         Status = ApiKeyStatus.Expired;
 

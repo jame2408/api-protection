@@ -647,7 +647,7 @@ stateDiagram-v2
 | T7 | Rotating | Expired | 系統代理 | now ≥ expiresAt（且尚未達 graceDeadline） | 更新狀態，註記 previousStatus | KeyExpired |
 | T8 | Locked | Active | Security Admin | 管理員確認無風險，或冷卻時間到期 | 更新狀態 | KeyUnlocked |
 | T9 | Locked | Revoked | Security Admin | 管理員確認金鑰已洩陷 | 更新狀態，記錄原因（必填） | KeyRevoked |
-| T10 | Locked | Revoked | 系統代理（定時掃描） | now ≥ expiresAt | 更新狀態，自動填入原因「System: locked key expired (rule: {ruleId})」，主動快取失效 | KeyRevoked |
+| T10 | Locked | Revoked | 系統代理（定時掃描） | now ≥ expiresAt | 更新狀態，自動填入原因「System: locked key expired (original lock rule: {ruleId})」，主動快取失效 | KeyRevoked |
 | T11 | Suspended | Active | Security Admin / Service Owner | 管理員決定恢復 | 更新狀態 | KeyResumed |
 | T12 | Suspended | Revoked | Security Admin | 管理員確認撤銷 | 更新狀態，記錄原因（必填） | KeyRevoked |
 | T13 | Suspended | Expired | 系統代理 | now ≥ expiresAt | 更新狀態，註記 previousStatus | KeyExpired |

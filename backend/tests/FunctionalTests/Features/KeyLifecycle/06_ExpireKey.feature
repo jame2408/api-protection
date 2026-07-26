@@ -21,7 +21,6 @@ Feature: 金鑰到期處理
     Then  "key-A" 狀態變為 Expired
     And   系統產生 KeyExpired 事件，previousStatus 為 Suspended
 
-  @ignore
   Scenario: Locked 金鑰到期 — 轉為 Revoked 以保留安全上下文
     Given 金鑰 "key-A" 狀態為 Locked，原始鎖定 ruleId 為 "impossible-travel"
     And   當前時間已超過 "key-A" 的 expiresAt
