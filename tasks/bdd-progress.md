@@ -23,8 +23,8 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 
 ## 目前進度
 
-**已通過：** 50 / 50  
-**下一個：** 無 — 全部場景已通過（repo 內 `@ignore` 零命中，`grep -rn "@ignore" backend/tests/FunctionalTests/Features/` 已確認）
+**已通過：** 50 / 59  
+**下一個：** 待使用者晉升 — KeyLifecycle 50 條全綠；Data Plane 9 條（`07_ValidateKey.feature`）已由 ADR-030 授權產出並帶 `@ignore` 落檔，**尚在 `tasks/bdd-backlog.md` 等待晉升**，晉升順序為使用者專屬裁決
 
 ---
 
@@ -38,6 +38,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 | `04_LockUnlockKey.feature` | 4 | 鎖定與解鎖金鑰 | 6 | KeyLifecycle.LockKey、UnlockKey | System 角色 |
 | `05_RotateKey.feature` | 5+6 | 輪替金鑰 + 完成寬限期 | 9 | KeyLifecycle.RotateKey、CompleteGracePeriodJob | FakeClock（Wave 5 後段） |
 | `06_ExpireKey.feature` | 7 | 金鑰到期處理 | 8 | KeyLifecycle.ExpireKeyJob | FakeClock |
+| `07_ValidateKey.feature` | 待晉升 | 金鑰驗證（Data Plane） | 9 | Data Plane（validate-key）、KeyLifecycle 查詢 | ADR-029 系統側漏斗；AP 側欄位留第二刀 |
 
 ---
 
