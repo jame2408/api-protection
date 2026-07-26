@@ -35,3 +35,4 @@
 | [027](adr-027-team-access-bc-and-sharedkernel-contract.md) | 2026-07-11 | Team Access BC 落地形態與 SharedKernel 契約 |
 | [028](adr-028-knowledge-ledger-lifecycle-and-adr-index.md) | 2026-07-12 | 知識帳面生命週期：ADR 索引機械化、phase 收尾清掃義務、plan 檔退役歸檔 |
 | [029](adr-029-validation-funnel-execution-side.md) | 2026-07-26 | 驗證漏斗執行側與 pepper 邊界：漏斗一律在金鑰管理系統內執行 |
+| [030](adr-030-discovery-freeze-scoped-lift.md) | 2026-07-26 | Discovery 凍結的範圍化解除：規格已產出但場景從未產出的 BC |

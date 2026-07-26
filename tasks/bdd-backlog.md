@@ -1,6 +1,6 @@
 # BDD Scenario Backlog
 
-新場景從 Discovery（`requirements-analysis-design` skill）產出後，先進此處等待排程。（Discovery 新場景產出目前凍結 — 見 CLAUDE.md「BDD Scenario Development Cycle」段；凍結解除前 `requirements-analysis-design` skill 的 Step 5 不得產出新場景檔。既有場景修訂／缺陷再現／行為移除不受此凍結限制，走 `docs/adr/adr-022-bdd-requirement-type-routing.md` 分流）
+新場景從 Discovery（`requirements-analysis-design` skill）產出後，先進此處等待排程。（Discovery 新場景產出目前凍結 — 見 CLAUDE.md「BDD Scenario Development Cycle」段；凍結解除前 `requirements-analysis-design` skill 的 Step 5 不得產出新場景檔。**範圍化解除逐案走 `docs/adr/adr-030-discovery-freeze-scoped-lift.md`**：判準為「API 契約已在 api-spec 定案但 `.feature` 從未產出」，目前已解除 Data Plane（api-spec §4），場景須可指回具體規格條目、不得發明規格外行為。既有場景修訂／缺陷再現／行為移除不受此凍結限制，走 `docs/adr/adr-022-bdd-requirement-type-routing.md` 分流）
 只有用戶決定順序後，才將項目移入 `tasks/bdd-progress.md`。
 Claude **不得自主將項目從 backlog 升格到 progress**。
 
