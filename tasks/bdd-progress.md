@@ -1,7 +1,7 @@
 # BDD 場景實作進度
 
-> 場景定義與順序以 `tests/FunctionalTests/Features/KeyLifecycle/` 內的 `.feature` 文件為準。
-> 未實作場景標記 `@ignore`；`.feature` 文件已用數字前綴排序，字母序 = Wave 順序。
+> 場景定義與順序以 `tests/FunctionalTests/Features/` 內的 `.feature` 文件為準（目前有 `KeyLifecycle/` 與 `DataPlane/` 兩個子目錄）。
+> 未實作場景標記 `@ignore`；`.feature` 文件已用數字前綴排序，字母序 = Wave 順序。**檔內場景順序即實作順序**——`07_ValidateKey.feature` 的 IP 白名單場景刻意置於檔尾（Wave 9），與漏斗層序脫鉤。
 
 ---
 
@@ -24,7 +24,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 ## 目前進度
 
 **已通過：** 50 / 59  
-**下一個：** 待使用者晉升 — KeyLifecycle 50 條全綠；Data Plane 9 條（`07_ValidateKey.feature`）已由 ADR-030 授權產出並帶 `@ignore` 落檔，**尚在 `tasks/bdd-backlog.md` 等待晉升**，晉升順序為使用者專屬裁決
+**下一個：** `07_ValidateKey.feature` — 成功驗證 Active 金鑰（Wave 8 首條）
 
 ---
 
@@ -38,7 +38,7 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 | `04_LockUnlockKey.feature` | 4 | 鎖定與解鎖金鑰 | 6 | KeyLifecycle.LockKey、UnlockKey | System 角色 |
 | `05_RotateKey.feature` | 5+6 | 輪替金鑰 + 完成寬限期 | 9 | KeyLifecycle.RotateKey、CompleteGracePeriodJob | FakeClock（Wave 5 後段） |
 | `06_ExpireKey.feature` | 7 | 金鑰到期處理 | 8 | KeyLifecycle.ExpireKeyJob | FakeClock |
-| `07_ValidateKey.feature` | 待晉升 | 金鑰驗證（Data Plane） | 9 | Data Plane（validate-key）、KeyLifecycle 查詢 | ADR-029 系統側漏斗；AP 側欄位留第二刀 |
+| `07_ValidateKey.feature` | 8＋9 | 金鑰驗證（Data Plane） | 9（Wave 8 共 8 條；IP 白名單 1 條留 Wave 9） | Data Plane（validate-key）、KeyLifecycle 查詢 | ADR-029 系統側漏斗；`KeyHash` 唯一索引；AP 側 ipAllowlist 留 Wave 9 |
 
 ---
 
@@ -49,3 +49,5 @@ grep -rc "@ignore" backend/tests/FunctionalTests/Features/
 | Wave 1 開始前 | EF Core Migration、Respawn 初始化 |
 | Wave 3 開始前 | AuthToken 機制（Security Admin / Consumer / System 的 JWT）— **已建立**（ADR-024 Phase 2） |
 | Wave 5 寬限期場景前 | FakeClock 實作（`ISystemClock`）並注入 WebApplicationFactory |
+| Wave 8 開始前 | `KeyHash` 唯一索引 migration（ADR-017 Rule 6(a)）— 驗證熱路徑以雜湊直接命中，此索引是查找主鍵 |
+| Wave 9 開始前 | AccessPolicy 側 `ipAllowlist` 可供驗證路徑讀取（第一刀只查 KeyLifecycle 側欄位） |

@@ -49,15 +49,6 @@ Feature: 金鑰驗證（Data Plane）
     When  Gateway 以 "key-A" 的完整金鑰、來源 IP "203.0.113.42"、requestedScope "orders:read" 呼叫驗證
     Then  驗證失敗，errorCode 為 "KEY_REVOKED"，httpStatusHint 為 401
 
-  # --- Layer 3: IP 檢查 ---
-
-  @ignore
-  Scenario: 來源 IP 不在白名單 — 拒絕驗證
-    Given 金鑰 "key-A" 狀態為 Active
-    And   "key-A" 的 IP 白名單為 ["203.0.113.42"]
-    When  Gateway 以 "key-A" 的完整金鑰、來源 IP "198.51.100.7"、requestedScope "orders:read" 呼叫驗證
-    Then  驗證失敗，errorCode 為 "IP_NOT_ALLOWED"，httpStatusHint 為 403
-
   # --- Layer 4: 雜湊驗證 ---
 
   @ignore
@@ -74,3 +65,17 @@ Feature: 金鑰驗證（Data Plane）
     And   "key-A" 的 scopes 為 ["orders:read"]
     When  Gateway 以 "key-A" 的完整金鑰、來源 IP "203.0.113.42"、requestedScope "orders:write" 呼叫驗證
     Then  驗證失敗，errorCode 為 "SCOPE_INSUFFICIENT"，httpStatusHint 為 403
+
+  # --- Layer 3: IP 檢查（Wave 9 — 需 AccessPolicy 側 ipAllowlist） ---
+  #
+  # 置於檔尾而非漏斗層序位置：佇列的「下一個」由 .feature 行號決定
+  # （tasks/bdd-progress.md「如何找到下一個場景」），而本條依 2026-07-26 題 3 裁決
+  # 留待第二刀——第一刀只查 KeyLifecycle 側欄位，漏斗第 3 層先走「無白名單即放行」。
+  # 實作順序因此與漏斗層序脫鉤，屬刻意安排。
+
+  @ignore
+  Scenario: 來源 IP 不在白名單 — 拒絕驗證
+    Given 金鑰 "key-A" 狀態為 Active
+    And   "key-A" 的 IP 白名單為 ["203.0.113.42"]
+    When  Gateway 以 "key-A" 的完整金鑰、來源 IP "198.51.100.7"、requestedScope "orders:read" 呼叫驗證
+    Then  驗證失敗，errorCode 為 "IP_NOT_ALLOWED"，httpStatusHint 為 403
