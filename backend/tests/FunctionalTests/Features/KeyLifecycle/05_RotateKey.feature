@@ -60,7 +60,6 @@ Feature: 輪替金鑰
     When  System Agent 執行寬限期掃描
     Then  "key-A" 狀態保持 Rotating，不產生任何事件
 
-  @ignore
   Scenario: 非 Rotating 狀態 — 拒絕完成寬限期
     Given 金鑰 "key-A" 狀態為 Active
     When  System Agent 對 "key-A" 執行 CompleteGracePeriod
